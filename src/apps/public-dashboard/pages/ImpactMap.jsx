@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useActivities } from '../../../hooks/useActivities';
+import { useTheme } from '../../../context/ThemeContext';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
@@ -90,19 +91,21 @@ const darkMapStyle = [
   },
 ];
 
-const mapOptions = {
-  styles: darkMapStyle,
-  disableDefaultUI: true,
-  zoomControl: true,
-};
 
 // Centered on the Indian Ocean to match the provided link.
 const initialCenter = { lat: 19.9340979, lng: 67.3750703 };
 
 export default function ImpactMap() {
   const { activities, loading, error } = useActivities();
+  const { theme } = useTheme();
   const [map, setMap] = useState(null);
   const [selectedActivity, setSelectedActivity] = useState(null);
+
+  const currentMapOptions = {
+    styles: theme === 'light' ? [] : darkMapStyle,
+    disableDefaultUI: true,
+    zoomControl: true,
+  };
 
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
@@ -155,13 +158,13 @@ export default function ImpactMap() {
           The map is ready, but there are no cleanup activities to display at the moment.
         </div>
       )}
-      <div className="card" style={{ height: '700px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#242f3e' }}>
+      <div className="card" style={{ height: '700px', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
         {!isLoaded || loading ? <LoadingSpinner /> : (
           <GoogleMap
             mapContainerStyle={mapContainerStyle}
             center={initialCenter}
             zoom={3}
-            options={mapOptions}
+            options={currentMapOptions}
             onLoad={onLoad}
             onUnmount={onUnmount}
           >
@@ -184,9 +187,9 @@ export default function ImpactMap() {
                 onCloseClick={() => setSelectedActivity(null)}
               >
                 <div>
-                  <strong>{selectedActivity.location}</strong><br/>
-                  Category: {selectedActivity.category}<br/>
-                  Quantity: {selectedActivity.quantity} kg<br/>
+                  <strong>{selectedActivity.location}</strong><br />
+                  Category: {selectedActivity.category}<br />
+                  Quantity: {selectedActivity.quantity} kg<br />
                   Status: {selectedActivity.status}
                 </div>
               </InfoWindow>
