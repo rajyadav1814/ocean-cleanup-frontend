@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import Logo from '../../../components/common/Logo';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -12,7 +13,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     try {
       const res = await fetch('http://localhost:3001/api/auth/login', {
         method: 'POST',
@@ -21,9 +22,9 @@ export default function Login() {
         },
         body: JSON.stringify({ username, password })
       });
-      
+
       const data = await res.json();
-      
+
       if (data.ok) {
         login(data.user, data.token);
         if (data.user.role === 'verifier') navigate('/verifier/pending');
@@ -38,15 +39,16 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-container">
+    <div className="auth-container" style={{ flexDirection: 'column' }}>
+      <Logo />
       <div className="card glass auth-card">
-        <h2 className="text-xl font-bold mb-4 gradient-text">Welcome Back</h2>
+        <h2 className="text-xl font-bold mb-4 gradient-text" style={{ textAlign: 'center' }}>Welcome Back</h2>
         {error && <div className="error-message" style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
         <form onSubmit={handleSubmit} className="auth-form" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div className="form-group">
             <label className="text-sm text-secondary mb-2 block">Username</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className="input-field w-full"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -55,8 +57,8 @@ export default function Login() {
           </div>
           <div className="form-group">
             <label className="text-sm text-secondary mb-2 block">Password</label>
-            <input 
-              type="password" 
+            <input
+              type="password"
               className="input-field w-full"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
