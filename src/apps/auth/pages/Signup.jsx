@@ -4,6 +4,9 @@ import { useAuth } from '../../../context/AuthContext';
 import Logo from '../../../components/common/Logo';
 
 export default function Signup() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('contributor');
@@ -21,7 +24,7 @@ export default function Signup() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ username, password, role })
+        body: JSON.stringify({ firstName, lastName, email, username, password, role })
       });
 
       const data = await res.json();
@@ -46,6 +49,38 @@ export default function Signup() {
         <h2 className="text-xl font-bold mb-4 gradient-text" style={{ textAlign: 'center' }}>Create Account</h2>
         {error && <div className="error-message" style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
         <form onSubmit={handleSubmit} className="auth-form" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="text-sm text-secondary mb-2 block">First Name</label>
+              <input
+                type="text"
+                className="input-field w-full"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="text-sm text-secondary mb-2 block">Last Name</label>
+              <input
+                type="text"
+                className="input-field w-full"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="text-sm text-secondary mb-2 block">Email</label>
+            <input
+              type="email"
+              className="input-field w-full"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
           <div className="form-group">
             <label className="text-sm text-secondary mb-2 block">Username</label>
             <input
