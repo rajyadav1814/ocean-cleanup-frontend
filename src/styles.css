@@ -56,10 +56,11 @@
   padding: 0;
 }
 
-/* Leaflet map compatibility — prevent global CSS reset from breaking tile images */
+/* ── Leaflet base resets ─────────────────────────────────────────────────── */
 .leaflet-container {
   height: 100%;
   width: 100%;
+  font-family: var(--font-sans);
 }
 
 .leaflet-tile-pane img,
@@ -71,30 +72,176 @@
   max-height: none !important;
 }
 
-/* Map page wrapper: solid background, NO semi-transparent overlay or padding
-   so the Leaflet tile canvas is fully visible without any tint. */
+/* ── Map wrapper ─────────────────────────────────────────────────────────── */
 .map-wrapper {
-  height: 700px;
+  height: calc(100vh - 180px);
   width: 100%;
   overflow: hidden;
   position: relative;
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-glow);
   box-shadow: 0 0 40px rgba(14, 165, 233, 0.15), var(--shadow-lg);
-  background: #fff; /* white so CSS-filter inversion in dark mode shows correct dark colors */
+  background: #e5e3df;
 }
 
-/* In dark mode the map div has filter:invert applied, so the leaflet container
-   needs a white background to invert cleanly to dark navy */
-.map-wrapper .leaflet-container {
-  background: #aad3df; /* Leaflet's default water color — inverts to a nice dark blue */
+/* ── Google Maps-style zoom control (bottom-right) ───────────────────────── */
+.map-wrapper .leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3) !important;
+  border-radius: 2px !important;
+  overflow: hidden;
 }
-
-/* Leaflet zoom controls — ensure they sit above tiles in both themes */
 .map-wrapper .leaflet-control-zoom a {
-  background: var(--surface) !important;
-  color: var(--text-main) !important;
-  border-color: var(--border-light) !important;
+  background: #fff !important;
+  color: #666 !important;
+  border: none !important;
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  font-size: 20px !important;
+  font-weight: 300 !important;
+  display: block;
+  text-align: center;
+  transition: background 0.15s;
+}
+.map-wrapper .leaflet-control-zoom a:hover {
+  background: #f5f5f5 !important;
+  color: #333 !important;
+}
+.map-wrapper .leaflet-control-zoom-in {
+  border-bottom: 1px solid #e0e0e0 !important;
+}
+
+/* ── "Open in Maps" overlay button ──────────────────────────────────────── */
+.open-in-maps-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #fff;
+  color: #444;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  text-decoration: none;
+  border-radius: 2px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.1);
+  transition: box-shadow 0.15s, background 0.15s;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+.open-in-maps-btn:hover {
+  background: #f8f8f8;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.1);
+  color: #222;
+  text-decoration: none;
+}
+.open-in-maps-btn svg {
+  flex-shrink: 0;
+  color: #1a73e8;
+}
+
+/* ── Google-style pin label ──────────────────────────────────────────────── */
+.gmap-pin-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.gmap-pin-label {
+  position: absolute;
+  top: 0;
+  left: 46px;
+  white-space: nowrap;
+  background: #fff;
+  color: #EA4335;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 2px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  pointer-events: none;
+  transform: translateY(6px);
+  font-family: 'Google Sans', 'Roboto', var(--font-sans), sans-serif;
+}
+
+/* ── Google Maps-style popup ─────────────────────────────────────────────── */
+.gmap-popup-container .leaflet-popup-content-wrapper {
+  border-radius: 8px !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25) !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border: none !important;
+}
+.gmap-popup-container .leaflet-popup-tip-container {
+  display: none;
+}
+.gmap-popup-container .leaflet-popup-content {
+  margin: 0 !important;
+  width: auto !important;
+}
+.gmap-popup {
+  min-width: 200px;
+  padding: 16px;
+  font-family: 'Google Sans', 'Roboto', var(--font-sans), sans-serif;
+}
+.gmap-popup-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #202124;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.gmap-popup-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 5px;
+}
+.gmap-popup-key {
+  font-size: 12px;
+  color: #80868b;
+  white-space: nowrap;
+}
+.gmap-popup-val {
+  font-size: 12px;
+  color: #202124;
+  font-weight: 500;
+  text-align: right;
+}
+.gmap-status {
+  color: #1a73e8;
+}
+.gmap-directions-link {
+  display: block;
+  margin-top: 12px;
+  color: #1a73e8;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: center;
+  padding: 8px;
+  border-top: 1px solid #e8eaed;
+  margin-left: -16px;
+  margin-right: -16px;
+  margin-bottom: -16px;
+  transition: background 0.15s;
+}
+.gmap-directions-link:hover {
+  background: #f8f9fa;
+  text-decoration: none;
+}
+
+/* ── Attribution (Google Maps style) ────────────────────────────────────── */
+.map-wrapper .leaflet-control-attribution {
+  background: rgba(255,255,255,0.8) !important;
+  font-size: 11px !important;
+  color: #666 !important;
+  padding: 2px 6px !important;
+  border-radius: 2px 0 0 0 !important;
 }
 
 
