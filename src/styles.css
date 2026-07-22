@@ -56,6 +56,48 @@
   padding: 0;
 }
 
+/* Leaflet map compatibility — prevent global CSS reset from breaking tile images */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+}
+
+.leaflet-tile-pane img,
+.leaflet-marker-pane img,
+.leaflet-shadow-pane img,
+.leaflet-overlay-pane img,
+.leaflet-zoom-animated img {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* Map page wrapper: solid background, NO semi-transparent overlay or padding
+   so the Leaflet tile canvas is fully visible without any tint. */
+.map-wrapper {
+  height: 700px;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-glow);
+  box-shadow: 0 0 40px rgba(14, 165, 233, 0.15), var(--shadow-lg);
+  background: #fff; /* white so CSS-filter inversion in dark mode shows correct dark colors */
+}
+
+/* In dark mode the map div has filter:invert applied, so the leaflet container
+   needs a white background to invert cleanly to dark navy */
+.map-wrapper .leaflet-container {
+  background: #aad3df; /* Leaflet's default water color — inverts to a nice dark blue */
+}
+
+/* Leaflet zoom controls — ensure they sit above tiles in both themes */
+.map-wrapper .leaflet-control-zoom a {
+  background: var(--surface) !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-light) !important;
+}
+
+
 body {
   font-family: var(--font-sans);
   color: var(--text-main);
