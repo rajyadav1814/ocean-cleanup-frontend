@@ -33,6 +33,23 @@
   --radius-xl: 1.5rem;
 }
 
+[data-theme="light"] {
+  --primary: #0284c7;
+  --primary-hover: #0369a1;
+  --secondary: #2563eb;
+  --dark: #f8fafc;
+  --bg-gradient: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%);
+  --surface: rgba(255, 255, 255, 0.85);
+  --surface-hover: rgba(255, 255, 255, 0.95);
+  --border-light: rgba(0, 0, 0, 0.15);
+  --border-glow: rgba(2, 132, 199, 0.3);
+  
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  
+  --shadow-glow: 0 0 20px rgba(2, 132, 199, 0.4);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -46,6 +63,7 @@ body {
   background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 a {
@@ -66,7 +84,7 @@ a {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background: rgba(2, 6, 23, 0.7);
+  background: var(--surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   position: sticky;
@@ -74,6 +92,7 @@ a {
   z-index: 50;
   border-bottom: 1px solid var(--border-light);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .topbar .logo {
@@ -125,6 +144,7 @@ main {
   height: calc(100vh - 7rem);
   position: sticky;
   top: 5rem;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .sidebar h3 {
@@ -149,7 +169,7 @@ main {
 }
 
 .sidebar a:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(128, 128, 128, 0.1);
   color: var(--text-main);
   transform: translateX(4px);
 }
@@ -170,13 +190,13 @@ main {
   border-radius: var(--radius-lg);
   padding: 2rem;
   box-shadow: var(--shadow-md);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease, background 0.3s ease;
 }
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg), 0 0 30px rgba(14, 165, 233, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-lg), 0 0 30px var(--border-glow);
+  border-color: var(--primary);
 }
 
 /* Content Grid */
@@ -216,15 +236,15 @@ button:active {
 }
 
 button.secondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(128, 128, 128, 0.1);
   color: var(--text-main);
   border: 1px solid var(--border-light);
   box-shadow: none;
 }
 
 button.secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(128, 128, 128, 0.2);
+  border-color: var(--border-light);
 }
 
 button.danger {
@@ -264,7 +284,7 @@ input, select, textarea {
   padding: 1rem 1.25rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--surface);
   font-family: inherit;
   font-size: 1rem;
   color: var(--text-main);
@@ -278,7 +298,7 @@ input::placeholder, textarea::placeholder {
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--primary);
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--surface-hover);
   box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
 }
 
@@ -422,7 +442,8 @@ tr:hover td {
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border-light);
-  box-shadow: var(--shadow-lg), 0 0 40px rgba(14, 165, 233, 0.1);
+  box-shadow: var(--shadow-lg), 0 0 40px var(--border-glow);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .auth-card h2 {
