@@ -31,15 +31,15 @@ export default function Overview() {
         </div>
         <div className="card">
           <div className="stat-label" style={{ textTransform: 'none' }}>Verified activities</div>
-          <div className="stat-value" style={{ background: 'none', WebkitTextFillColor: 'initial', color: '#f8fafc' }}>312</div>
+          <div className="stat-value" style={{ background: 'none', WebkitTextFillColor: 'initial', color: 'var(--text-main)' }}>312</div>
         </div>
         <div className="card">
           <div className="stat-label" style={{ textTransform: 'none' }}>Volunteers</div>
-          <div className="stat-value" style={{ background: 'none', WebkitTextFillColor: 'initial', color: '#f8fafc' }}>1,540</div>
+          <div className="stat-value" style={{ background: 'none', WebkitTextFillColor: 'initial', color: 'var(--text-main)' }}>1,540</div>
         </div>
         <div className="card">
           <div className="stat-label" style={{ textTransform: 'none' }}>Partner orgs</div>
-          <div className="stat-value" style={{ background: 'none', WebkitTextFillColor: 'initial', color: '#f8fafc' }}>18</div>
+          <div className="stat-value" style={{ background: 'none', WebkitTextFillColor: 'initial', color: 'var(--text-main)' }}>18</div>
         </div>
       </div>
     </section>
