@@ -87,10 +87,11 @@
 /* ── Google Maps-style zoom control (bottom-right) ───────────────────────── */
 .map-wrapper .leaflet-control-zoom {
   border: none !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3) !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
   border-radius: 2px !important;
   overflow: hidden;
 }
+
 .map-wrapper .leaflet-control-zoom a {
   background: #fff !important;
   color: #666 !important;
@@ -104,10 +105,12 @@
   text-align: center;
   transition: background 0.15s;
 }
+
 .map-wrapper .leaflet-control-zoom a:hover {
   background: #f5f5f5 !important;
   color: #333 !important;
 }
+
 .map-wrapper .leaflet-control-zoom-in {
   border-bottom: 1px solid #e0e0e0 !important;
 }
@@ -129,18 +132,20 @@
   font-family: var(--font-sans);
   text-decoration: none;
   border-radius: 2px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.15s, background 0.15s;
   cursor: pointer;
   border: none;
   outline: none;
 }
+
 .open-in-maps-btn:hover {
   background: #f8f8f8;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), 0 4px 16px rgba(0, 0, 0, 0.1);
   color: #222;
   text-decoration: none;
 }
+
 .open-in-maps-btn svg {
   flex-shrink: 0;
   color: #1a73e8;
@@ -151,6 +156,7 @@
   position: relative;
   display: inline-block;
 }
+
 .gmap-pin-label {
   position: absolute;
   top: 0;
@@ -162,7 +168,7 @@
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 2px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
   pointer-events: none;
   transform: translateY(6px);
   font-family: 'Google Sans', 'Roboto', var(--font-sans), sans-serif;
@@ -171,23 +177,27 @@
 /* ── Google Maps-style popup ─────────────────────────────────────────────── */
 .gmap-popup-container .leaflet-popup-content-wrapper {
   border-radius: 8px !important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.25) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25) !important;
   padding: 0 !important;
   overflow: hidden;
   border: none !important;
 }
+
 .gmap-popup-container .leaflet-popup-tip-container {
   display: none;
 }
+
 .gmap-popup-container .leaflet-popup-content {
   margin: 0 !important;
   width: auto !important;
 }
+
 .gmap-popup {
   min-width: 200px;
   padding: 16px;
   font-family: 'Google Sans', 'Roboto', var(--font-sans), sans-serif;
 }
+
 .gmap-popup-title {
   font-size: 15px;
   font-weight: 600;
@@ -195,26 +205,31 @@
   margin-bottom: 10px;
   line-height: 1.3;
 }
+
 .gmap-popup-row {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 5px;
 }
+
 .gmap-popup-key {
   font-size: 12px;
   color: #80868b;
   white-space: nowrap;
 }
+
 .gmap-popup-val {
   font-size: 12px;
   color: #202124;
   font-weight: 500;
   text-align: right;
 }
+
 .gmap-status {
   color: #1a73e8;
 }
+
 .gmap-directions-link {
   display: block;
   margin-top: 12px;
@@ -230,6 +245,7 @@
   margin-bottom: -16px;
   transition: background 0.15s;
 }
+
 .gmap-directions-link:hover {
   background: #f8f9fa;
   text-decoration: none;
@@ -237,7 +253,7 @@
 
 /* ── Attribution (Google Maps style) ────────────────────────────────────── */
 .map-wrapper .leaflet-control-attribution {
-  background: rgba(255,255,255,0.8) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
   font-size: 11px !important;
   color: #666 !important;
   padding: 2px 6px !important;
@@ -496,15 +512,6 @@ textarea:focus {
   border-color: var(--primary);
   background: var(--surface-hover);
   box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
-}
-
-select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 1.2em;
-  padding-right: 2.5rem;
 }
 
 select option {

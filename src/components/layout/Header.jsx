@@ -37,11 +37,6 @@ export default function Header() {
             </svg>
           )}
         </button>
-        <select value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="contributor">Contributor</option>
-          <option value="verifier">Verifier</option>
-          <option value="public">Public</option>
-        </select>
         <WalletConnectButton />
       </div>
     </header>
