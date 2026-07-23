@@ -24,28 +24,7 @@ function StatCard({ label, value, suffix = '', loading, accent }) {
   );
 }
 
-function MiniCard({ label, value, suffix = '', loading, color }) {
-  return (
-    <div style={{
-      background: 'var(--surface)',
-      border: '1px solid var(--border-light)',
-      borderRadius: 'var(--radius-md)',
-      padding: '1rem 1.25rem',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.35rem'
-    }}>
-      <div style={{ fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>{label}</div>
-      {loading ? (
-        <div style={{ height: '1.75rem', background: 'var(--surface-hover)', borderRadius: '0.375rem', animation: 'pulse 1.5s ease-in-out infinite' }} />
-      ) : (
-        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: color || 'var(--primary)', lineHeight: 1 }}>
-          {typeof value === 'number' ? value.toLocaleString() : value}{suffix && <span style={{ fontSize: '1rem', marginLeft: '0.25rem', fontWeight: 500 }}>{suffix}</span>}
-        </div>
-      )}
-    </div>
-  );
-}
+
 
 export default function Overview() {
   const [stats, setStats] = useState(null);
@@ -95,15 +74,7 @@ export default function Overview() {
         <StatCard label="Impact Credits Issued"  value={s.impactCredits}     loading={loading} accent />
       </div>
 
-      {/* Status breakdown */}
-      <div className="mb-6">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem' }}>
-          <MiniCard label="Pending Review"    value={s.pendingActivities}   loading={loading} color="#d97706" />
-          <MiniCard label="Approved"          value={s.approvedActivities}  loading={loading} color="#10b981" />
-          <MiniCard label="Rejected"          value={s.rejectedActivities}  loading={loading} color="#ef4444" />
-          <MiniCard label="Partner Orgs"      value={s.partnerOrgs}         loading={loading} color="var(--secondary)" />
-        </div>
-      </div>
+
 
       {/* Community Impact section */}
       <div className="mb-4 mt-6">
