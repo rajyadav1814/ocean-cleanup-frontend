@@ -158,8 +158,6 @@ export default function SubmitActivity() {
               type="submit"
               style={{
                 width: '100%',
-                background: '#ffffff',
-                color: '#000000',
                 boxShadow: 'none',
                 padding: '1rem',
                 borderRadius: 'var(--radius-md)'
