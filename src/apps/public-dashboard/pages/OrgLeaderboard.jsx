@@ -25,7 +25,7 @@ export default function OrgLeaderboard() {
             <tbody>
               {mockData.map(org => (
                 <tr key={org.rank}>
-                  <td style={{ fontWeight: '700', color: 'var(--primary-hover)' }}>#{org.rank}</td>
+                  <td style={{ fontWeight: '700', color: 'var(--primary-hover)' }}>{org.rank}</td>
                   <td><strong>{org.name}</strong></td>
                   <td>{org.kg.toLocaleString()}</td>
                   <td>{org.credits.toLocaleString()} <span style={{ color: 'var(--success)' }}>IC</span></td>
