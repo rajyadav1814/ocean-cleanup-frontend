@@ -9,7 +9,6 @@ import PendingQueue from '../apps/verifier/pages/PendingQueue';
 import ActivityReview from '../apps/verifier/pages/ActivityReview';
 import MultisigStatus from '../apps/verifier/pages/MultisigStatus';
 import Overview from '../apps/public-dashboard/pages/Overview';
-import OrgLeaderboard from '../apps/public-dashboard/pages/OrgLeaderboard';
 import ImpactMap from '../apps/public-dashboard/pages/ImpactMap';
 import Login from '../apps/auth/pages/Login';
 import Signup from '../apps/auth/pages/Signup';
@@ -35,9 +34,11 @@ function MainLayout({ children }) {
   return (
     <div className="app-shell">
       <Header />
-      <main className="grid" style={{ gridTemplateColumns: '240px 1fr' }}>
+      <main style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
         <Sidebar />
-        {children}
+        <div style={{ flex: 1, padding: '2rem', minWidth: 0 }}>
+          {children}
+        </div>
       </main>
     </div>
   );
@@ -93,13 +94,12 @@ export default function AppRouter() {
         </ProtectedRoute>
       } />
 
-      {/* Dashboard Routes - Public/Admin */}
+      {/* Dashboard Routes - Admin Only */}
       <Route path="/dashboard/*" element={
-        <ProtectedRoute allowedRoles={['admin', 'contributor', 'verifier']}>
+        <ProtectedRoute allowedRoles={['admin']}>
           <MainLayout>
             <Routes>
               <Route path="overview" element={<Overview />} />
-              <Route path="leaderboard" element={<OrgLeaderboard />} />
               <Route path="map" element={<ImpactMap />} />
             </Routes>
           </MainLayout>

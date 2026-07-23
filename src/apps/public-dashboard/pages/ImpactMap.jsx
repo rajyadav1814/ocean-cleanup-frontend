@@ -95,14 +95,14 @@ export default function ImpactMap() {
       // ── Plot markers ──
       const valid = activities.filter(
         (a) =>
-          a.latitude != null &&
-          a.longitude != null &&
-          !isNaN(Number(a.latitude)) &&
-          !isNaN(Number(a.longitude))
+          a.lat != null &&
+          a.lon != null &&
+          !isNaN(Number(a.lat)) &&
+          !isNaN(Number(a.lon))
       );
 
       if (valid.length > 0) {
-        const latLngs = valid.map((a) => [Number(a.latitude), Number(a.longitude)]);
+        const latLngs = valid.map((a) => [Number(a.lat), Number(a.lon)]);
 
         valid.forEach((activity, i) => {
           const [lat, lng] = latLngs[i];
