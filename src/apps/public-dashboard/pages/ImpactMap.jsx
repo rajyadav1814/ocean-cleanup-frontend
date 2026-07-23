@@ -186,10 +186,10 @@ export default function ImpactMap() {
   const googleMapsUrl = `https://www.google.com/maps/@${mapCenter[0]},${mapCenter[1]},${mapZoom}z`;
 
   return (
-    <section>
-      <div className="mb-6">
-        <h3>Global Impact Map</h3>
-        <p className="text-muted">Visualizing worldwide cleanup locations.</p>
+    <section style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div className="card mb-6" style={{ flexShrink: 0, padding: '1.25rem 1.75rem' }}>
+        <h3 style={{ marginBottom: '0.25rem' }}>Global Impact Map</h3>
+        <p className="text-muted" style={{ margin: 0 }}>Visualizing worldwide cleanup locations.</p>
       </div>
 
       {!loading && !error && activities.length === 0 && (

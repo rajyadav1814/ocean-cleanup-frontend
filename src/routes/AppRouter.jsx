@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import { useAuth } from '../context/AuthContext';
@@ -31,12 +32,13 @@ function ProtectedRoute({ children, allowedRoles }) {
 }
 
 function MainLayout({ children }) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   return (
     <div className="app-shell">
-      <Header />
-      <main style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
-        <Sidebar />
-        <div style={{ flex: 1, padding: '2rem', minWidth: 0 }}>
+      <Header toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
+      <main className="main-layout">
+        <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
+        <div className="main-content">
           {children}
         </div>
       </main>

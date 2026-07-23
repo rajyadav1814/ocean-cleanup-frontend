@@ -49,7 +49,7 @@ const ICONS = {
 
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-export default function Sidebar() {
+export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
   const { user, role, logout } = useAuth();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -147,26 +147,17 @@ export default function Sidebar() {
   };
 
   return (
-    <aside style={{
-      width: isCollapsed ? '80px' : '260px',
-      backgroundColor: 'var(--surface)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      borderRadius: 'var(--radius-lg)',
-      border: '1px solid var(--border-light)',
-      display: 'flex',
-      flexDirection: 'column',
-      height: 'calc(100vh - 7rem)',
-      margin: '0 1rem 1.5rem 1rem',
-      padding: isCollapsed ? '1.5rem 0.5rem' : '1.5rem 1.25rem',
-      boxShadow: 'var(--shadow-lg)',
-      fontFamily: 'var(--font-sans)',
-      position: 'sticky',
-      top: '5rem',
-      overflow: 'hidden',
-      transition: 'all 0.3s ease',
-      flexShrink: 0
-    }}>
+    <>
+      <div 
+        className={`sidebar-overlay ${isMobileMenuOpen ? 'mobile-open' : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+      <aside 
+        className={`sidebar-container ${isMobileMenuOpen ? 'mobile-open' : ''}`}
+        style={{
+          width: isCollapsed ? '80px' : '260px',
+          padding: isCollapsed ? '1.5rem 0.5rem' : '1.5rem 1.25rem'
+        }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', marginBottom: '2.5rem' }}>
         {!isCollapsed && (
@@ -255,6 +246,7 @@ export default function Sidebar() {
         </div>
       </nav>
       <LogoutModal />
-    </aside>
+      </aside>
+    </>
   );
 }

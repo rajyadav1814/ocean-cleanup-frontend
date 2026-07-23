@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import WalletConnectButton from '../wallet/WalletConnectButton';
 
-export default function Header() {
+export default function Header({ toggleMobileMenu }) {
   const { role, setRole } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
@@ -38,6 +38,13 @@ export default function Header() {
           )}
         </button>
         <WalletConnectButton />
+        <button className="mobile-menu-btn secondary" onClick={toggleMobileMenu} aria-label="Menu" style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
       </div>
     </header>
   );

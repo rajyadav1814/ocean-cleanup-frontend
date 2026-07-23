@@ -76,10 +76,10 @@ export default function Overview() {
   return (
     <section>
       {/* Header */}
-      <div className="mb-6" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="card mb-6" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', padding: '1.25rem 1.75rem' }}>
         <div>
-          <h3>Global Overview</h3>
-          <p className="text-muted">Real-time tracking of worldwide ocean cleanup efforts.</p>
+          <h3 style={{ marginBottom: '0.25rem' }}>Global Overview</h3>
+          <p className="text-muted" style={{ margin: 0 }}>Real-time tracking of worldwide ocean cleanup efforts.</p>
         </div>
         {error && (
           <span style={{ fontSize: '0.8rem', color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '0.25rem 0.75rem', borderRadius: '0.5rem' }}>

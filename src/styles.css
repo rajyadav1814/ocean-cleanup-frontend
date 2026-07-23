@@ -74,7 +74,8 @@
 
 /* ── Map wrapper ─────────────────────────────────────────────────────────── */
 .map-wrapper {
-  height: calc(100vh - 180px);
+  flex: 1;
+  min-height: 400px;
   width: 100%;
   overflow: hidden;
   position: relative;
@@ -288,7 +289,8 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 0 1rem;
+  height: 4rem;
   background: var(--surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -314,27 +316,122 @@ a {
 
 .nav-links {
   display: flex;
-  gap: 1.5rem;
+  gap: 0.5rem;
   align-items: center;
 }
 
-/* Main Content Area */
+@media (min-width: 768px) {
+  .topbar {
+    padding: 0 1.5rem;
+  }
+  .nav-links {
+    gap: 1.5rem;
+  }
+}
+
 main {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
+.main-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  position: relative;
+}
+
+.main-content {
+  flex: 1;
+  padding: 1rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 @media (min-width: 768px) {
-  main.grid {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 2rem;
-    padding: 2rem;
+  .main-layout {
+    flex-direction: row;
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+  
+  .main-content {
+    padding: 0;
   }
 }
 
 /* Glassmorphism Sidebar */
+.sidebar-container {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  
+  /* Mobile default (hidden) */
+  position: fixed;
+  top: 0;
+  left: -100%;
+  height: 100vh;
+  z-index: 1000;
+  margin: 0;
+  border-radius: 0;
+}
+
+.sidebar-container.mobile-open {
+  left: 0;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+}
+
+.sidebar-overlay.mobile-open {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .sidebar-container {
+    position: sticky;
+    top: 5.5rem;
+    height: calc(100vh - 7rem);
+    margin: 0;
+    border-radius: var(--radius-lg);
+    left: auto;
+  }
+  
+  .sidebar-overlay {
+    display: none !important;
+  }
+}
+
+.mobile-menu-btn {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .mobile-menu-btn {
+    display: none;
+  }
+}
+
 .sidebar {
   background: var(--surface);
   backdrop-filter: blur(20px);
@@ -473,6 +570,18 @@ form {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .form-group {

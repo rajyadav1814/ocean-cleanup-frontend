@@ -8,9 +8,9 @@ export default function MyActivities() {
 
   return (
     <section>
-      <div className="mb-6">
-        <h3>My Activities</h3>
-        <p className="text-muted">A record of your environmental impact contributions.</p>
+      <div className="card mb-6" style={{ padding: '1.25rem 1.75rem' }}>
+        <h3 style={{ marginBottom: '0.25rem' }}>My Activities</h3>
+        <p className="text-muted" style={{ margin: 0 }}>A record of your environmental impact contributions.</p>
       </div>
       {activities.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>

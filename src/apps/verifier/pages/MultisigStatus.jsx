@@ -1,9 +1,9 @@
 export default function MultisigStatus() {
   return (
     <section>
-      <div className="mb-6">
-        <h3>Multisig Status</h3>
-        <p className="text-muted">Monitor multi-signature approvals for large distributions.</p>
+      <div className="card mb-6" style={{ padding: '1.25rem 1.75rem' }}>
+        <h3 style={{ marginBottom: '0.25rem' }}>Multisig Status</h3>
+        <p className="text-muted" style={{ margin: 0 }}>Monitor multi-signature approvals for large distributions.</p>
       </div>
       <div className="card">
         <div className="flex-between mb-4">
