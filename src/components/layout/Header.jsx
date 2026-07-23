@@ -5,6 +5,18 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import WalletConnectButton from '../wallet/WalletConnectButton';
 
+function getDisplayName(user) {
+  return user?.displayName
+    || [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim()
+    || user?.username
+    || user?.role
+    || 'User';
+}
+
+function getDisplayInitial(user) {
+  return (user?.displayInitial || getDisplayName(user) || 'U').trim().charAt(0).toUpperCase();
+}
+
 export default function Header({ toggleMobileMenu }) {
   const { user, role, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -138,7 +150,7 @@ export default function Header({ toggleMobileMenu }) {
               }}
             >
               <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                {user.email ? user.email.charAt(0).toUpperCase() : 'U'}
+                {getDisplayInitial(user)}
               </span>
             </button>
 
@@ -151,10 +163,10 @@ export default function Header({ toggleMobileMenu }) {
               }}>
                 <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--border-light)', background: 'var(--surface-hover)' }}>
                   <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {user.username || 'User'}
+                    {getDisplayName(user)}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize', marginTop: '4px' }}>
-                    {role || 'Unknown'} Workspace
+                    {role || user?.role || 'Unknown'} Workspace
                   </div>
                 </div>
 

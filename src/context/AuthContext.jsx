@@ -3,6 +3,27 @@ import { TOKEN_KEY, USER_KEY, authVerify } from '../services/api';
 
 const AuthContext = createContext(null);
 
+function buildDisplayName(userData) {
+  return userData?.displayName
+    || [userData?.firstName, userData?.lastName].filter(Boolean).join(' ').trim()
+    || userData?.username
+    || userData?.role
+    || 'User';
+}
+
+function normalizeUser(userData) {
+  if (!userData) return null;
+
+  const displayName = buildDisplayName(userData);
+  const displayInitial = (userData.displayInitial || displayName || 'U').trim().charAt(0).toUpperCase();
+
+  return {
+    ...userData,
+    displayName,
+    displayInitial
+  };
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
@@ -15,8 +36,10 @@ export function AuthProvider({ children }) {
         try {
           const data = await authVerify(token);
           if (data.ok && data.user) {
-            setUser(data.user);
-            setRole(data.user.role);
+            const normalizedUser = normalizeUser(data.user);
+            setUser(normalizedUser);
+            setRole(normalizedUser.role);
+            localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
           } else {
             localStorage.removeItem(TOKEN_KEY);
             localStorage.removeItem(USER_KEY);
@@ -33,10 +56,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (userData, token) => {
+    const normalizedUser = normalizeUser(userData);
     localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(userData));
-    setUser(userData);
-    setRole(userData.role);
+    localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
+    setUser(normalizedUser);
+    setRole(normalizedUser.role);
   };
 
   const logout = () => {
