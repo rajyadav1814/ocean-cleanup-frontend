@@ -204,6 +204,12 @@ export default function PendingQueue() {
                         </div>
                       )}
                       <div className="flex-between">
+                        <span>Volunteers</span>
+                        <strong style={{ color: 'var(--text-main)' }}>
+                          {activity.volunteers != null && activity.volunteers !== 0 ? activity.volunteers : '—'}
+                        </strong>
+                      </div>
+                      <div className="flex-between">
                         <span>Submitted</span>
                         <strong style={{ color: 'var(--text-main)' }}>{new Date(activity.timestamp).toLocaleDateString()}</strong>
                       </div>

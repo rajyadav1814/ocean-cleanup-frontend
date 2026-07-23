@@ -105,9 +105,11 @@ export default function SubmitActivity() {
               <label>Volunteers</label>
               <input
                 type="number"
-                placeholder="23"
+                min="1"
+                placeholder="How many volunteers?"
                 value={form.volunteers}
                 onChange={(e) => setForm({ ...form, volunteers: e.target.value })}
+                required
               />
             </div>
             <div className="form-group">
@@ -115,12 +117,24 @@ export default function SubmitActivity() {
               <input
                 type="number"
                 min="1"
-                placeholder="47"
+                placeholder="Kg collected"
                 value={form.quantity}
                 onChange={(e) => setForm({ ...form, quantity: e.target.value })}
                 required
               />
             </div>
+          </div>
+
+          {/* Notes */}
+          <div className="form-group">
+            <label>Notes <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+            <textarea
+              rows={2}
+              placeholder="Any extra details about this cleanup…"
+              value={form.notes || ''}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              style={{ resize: 'vertical' }}
+            />
           </div>
 
           {/* Organization */}
