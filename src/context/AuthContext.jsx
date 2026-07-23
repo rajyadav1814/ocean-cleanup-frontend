@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState, useEffect } from 'react';
+import { TOKEN_KEY, USER_KEY, authVerify } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -9,24 +10,21 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem(TOKEN_KEY);
       if (token) {
         try {
-          const res = await fetch('http://localhost:3001/api/auth/verify', {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          });
-          const data = await res.json();
+          const data = await authVerify(token);
           if (data.ok && data.user) {
             setUser(data.user);
             setRole(data.user.role);
           } else {
-            localStorage.removeItem('token');
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
           }
         } catch (err) {
           console.error('Auth verification failed', err);
-          localStorage.removeItem('token');
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
         }
       }
       setLoading(false);
@@ -35,13 +33,15 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (userData, token) => {
-    localStorage.setItem('token', token);
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(userData));
     setUser(userData);
     setRole(userData.role);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
     setUser(null);
     setRole(null);
   };
@@ -49,7 +49,19 @@ export function AuthProvider({ children }) {
   const value = useMemo(() => ({ user, role, login, logout, loading }), [user, role, loading]);
 
   if (loading) {
-    return <div style={{ color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
+    return (
+      <div style={{
+        display: 'flex', justifyContent: 'center', alignItems: 'center',
+        height: '100vh', background: 'var(--bg)', flexDirection: 'column', gap: '1rem'
+      }}>
+        <div style={{
+          width: '36px', height: '36px', border: '3px solid var(--border-light)',
+          borderTopColor: 'var(--primary)', borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite'
+        }} />
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Restoring session…</span>
+      </div>
+    );
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
