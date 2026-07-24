@@ -30,6 +30,14 @@ export async function apiPost(path, body) {
   return response.json();
 }
 
+export async function apiDelete(path) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'DELETE',
+    headers: authHeaders()
+  });
+  return response.json();
+}
+
 // For multipart form-data (file uploads) — do NOT set Content-Type manually
 export async function apiPostForm(path, formData) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
