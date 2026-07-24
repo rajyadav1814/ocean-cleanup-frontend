@@ -32,6 +32,7 @@ export default function SubmitActivity() {
       dispatch(invalidateActivities());
       dispatch(invalidateDashboard());
       setStatus('Activity submitted successfully!');
+      setTimeout(() => window.location.reload(), 250);
     } else {
       setStatus('Submission failed. Please try again.');
     }
