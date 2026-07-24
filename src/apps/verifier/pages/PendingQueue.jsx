@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useActivities } from '../../../hooks/useActivities';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
 // Status badge component
 function StatusBadge({ status }) {
   const cfg = {
-    pending:  { bg: 'rgba(217,119,6,0.15)',   color: '#d97706', label: 'Pending' },
-    approved: { bg: 'rgba(16,185,129,0.15)',  color: '#10b981', label: 'Approved' },
-    rejected: { bg: 'rgba(239,68,68,0.15)',   color: '#ef4444', label: 'Rejected' }
+    pending: { bg: 'rgba(217,119,6,0.15)', color: '#d97706', label: 'Pending' },
+    approved: { bg: 'rgba(16,185,129,0.15)', color: '#10b981', label: 'Approved' },
+    rejected: { bg: 'rgba(239,68,68,0.15)', color: '#ef4444', label: 'Rejected' }
   }[status] || { bg: 'rgba(148,163,184,0.15)', color: '#94a3b8', label: status };
 
   return (
@@ -32,7 +32,7 @@ function RejectModal({ onConfirm, onCancel, loading }) {
         onClick={e => e.stopPropagation()}>
         <h4 style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           Reject Activity
         </h4>
@@ -68,6 +68,96 @@ function RejectModal({ onConfirm, onCancel, loading }) {
   );
 }
 
+
+function ImagePreviewModal({ src, alt, onClose }) {
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      role="presentation"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1100,
+        background: 'rgba(2, 6, 23, 0.82)',
+        backdropFilter: 'blur(10px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem'
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Image preview"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'relative',
+          width: 'min(96vw, 1100px)',
+          maxHeight: '92vh',
+          borderRadius: '1rem',
+          overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.12)',
+          boxShadow: '0 30px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(14,165,233,0.15)'
+        }}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close image preview"
+          style={{
+            position: 'absolute',
+            top: '0.75rem',
+            right: '0.75rem',
+            zIndex: 1,
+            width: '2.25rem',
+            height: '2.25rem',
+            borderRadius: '999px',
+            background: 'rgba(15, 23, 42, 0.75)',
+            color: 'white',
+            border: '1px solid rgba(255,255,255,0.12)',
+            display: 'grid',
+            placeItems: 'center',
+            padding: 0
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+
+        <img
+          src={src}
+          alt={alt}
+          style={{
+            display: 'block',
+            width: '100%',
+            maxHeight: '92vh',
+            objectFit: 'contain',
+            background: '#020617'
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function PendingQueue() {
   const { activities, loading, reviewActivity } = useActivities();
 
@@ -75,6 +165,8 @@ export default function PendingQueue() {
   const [actionState, setActionState] = useState({});
   // Which activity id has the reject modal open
   const [rejectModal, setRejectModal] = useState(null);
+  // Evidence image currently open in the preview modal
+  const [previewImage, setPreviewImage] = useState(null);
 
   if (loading) return <LoadingSpinner />;
 
@@ -109,6 +201,14 @@ export default function PendingQueue() {
           onConfirm={handleRejectConfirm}
           onCancel={() => setRejectModal(null)}
           loading={actionState[rejectModal] === 'rejecting'}
+        />
+      )}
+
+      {previewImage && (
+        <ImagePreviewModal
+          src={previewImage.src}
+          alt={previewImage.alt}
+          onClose={() => setPreviewImage(null)}
         />
       )}
 
@@ -150,7 +250,23 @@ export default function PendingQueue() {
                       <img
                         src={activity.imageGatewayUrl || activity.imageUrl}
                         alt="Cleanup evidence"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onClick={() => setPreviewImage({
+                          src: activity.imageGatewayUrl || activity.imageUrl,
+                          alt: `Cleanup evidence for ${activity.location || 'this activity'}`
+                        })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setPreviewImage({
+                              src: activity.imageGatewayUrl || activity.imageUrl,
+                              alt: `Cleanup evidence for ${activity.location || 'this activity'}`
+                            });
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        title="Click to zoom"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }}
                       />
                     ) : (
                       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -250,7 +366,7 @@ export default function PendingQueue() {
                             <div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                           ) : (
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12"/>
+                              <polyline points="20 6 9 17 4 12" />
                             </svg>
                           )}
                           {busy === 'approving' ? 'Approving…' : 'Approve'}
@@ -262,7 +378,7 @@ export default function PendingQueue() {
                           style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '0.65rem' }}
                         >
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                           </svg>
                           Reject
                         </button>
