@@ -1,8 +1,12 @@
 import { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { apiPost } from '../../../services/api';
 import LocationPicker from '../../../components/common/LocationPicker';
+import { invalidateActivities } from '../../../store/activitiesSlice';
+import { invalidateDashboard } from '../../../store/dashboardSlice';
 
 export default function SubmitActivity() {
+  const dispatch = useDispatch();
   const [form, setForm] = useState({
     location: '', lat: null, lon: null,
     volunteers: '', quantity: '',
@@ -23,7 +27,14 @@ export default function SubmitActivity() {
       timestamp: new Date().toISOString()
     };
     const response = await apiPost('/api/activities', payload);
-    setStatus(response.ok ? 'Activity submitted successfully!' : 'Submission failed. Please try again.');
+    if (response.ok) {
+      // Invalidate caches so next tab visit re-fetches fresh data
+      dispatch(invalidateActivities());
+      dispatch(invalidateDashboard());
+      setStatus('Activity submitted successfully!');
+    } else {
+      setStatus('Submission failed. Please try again.');
+    }
   }
 
   const handleFileChange = (e) => {

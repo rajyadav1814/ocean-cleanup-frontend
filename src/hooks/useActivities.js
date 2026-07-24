@@ -1,35 +1,39 @@
-import { useEffect, useState, useCallback } from 'react';
-import { apiGet, apiPost } from '../services/api';
+import { useEffect, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchActivities, reviewActivityThunk, invalidateActivities } from '../store/activitiesSlice';
 
+/**
+ * useActivities — reads from the global Redux store.
+ * The API is called at most once per session (cached globally).
+ * Subsequent tab switches return instantly from the store.
+ */
 export function useActivities() {
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const { items: activities, status, error } = useSelector((state) => state.activities);
 
-  const fetchActivities = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await apiGet('/api/activities');
-      setActivities(data.activities || []);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const loading = status === 'idle' || status === 'loading';
 
+  // Trigger fetch only when status is 'idle' (first mount or after invalidation)
   useEffect(() => {
-    fetchActivities();
-  }, [fetchActivities]);
-
-  // Call POST /api/activities/:id/review with { status, reviewNote }
-  // Returns { ok, activity } and updates local state immediately
-  const reviewActivity = useCallback(async (id, status, reviewNote = '') => {
-    const data = await apiPost(`/api/activities/${id}/review`, { status, reviewNote });
-    if (data.ok) {
-      setActivities(prev =>
-        prev.map(a => a.id === id ? { ...a, ...data.activity } : a)
-      );
+    if (status === 'idle') {
+      dispatch(fetchActivities());
     }
-    return data;
-  }, []);
+  }, [dispatch, status]);
 
-  return { activities, loading, reviewActivity, refresh: fetchActivities };
+  // Wrap reviewActivity to dispatch the thunk and return the result
+  const reviewActivity = useCallback(
+    async (id, reviewStatus, reviewNote = '') => {
+      const result = await dispatch(reviewActivityThunk({ id, status: reviewStatus, reviewNote }));
+      return result.payload;
+    },
+    [dispatch]
+  );
+
+  // Force a fresh fetch on next mount (use after submitting a new activity)
+  const refresh = useCallback(() => {
+    dispatch(invalidateActivities());
+    dispatch(fetchActivities());
+  }, [dispatch]);
+
+  return { activities, loading, error, reviewActivity, refresh };
 }

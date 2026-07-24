@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { apiGet } from '../../../services/api';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchDashboardStats } from '../../../store/dashboardSlice';
 
 function StatCard({ label, value, suffix = '', loading, accent }) {
   return (
@@ -27,28 +28,17 @@ function StatCard({ label, value, suffix = '', loading, accent }) {
 
 
 export default function Overview() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const dispatch = useDispatch();
+  const { stats, status, error } = useSelector((state) => state.dashboard);
 
+  const loading = status === 'idle' || status === 'loading';
+
+  // Only fetches once — cached in Redux; no re-fetch on tab switch
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const data = await apiGet('/api/dashboard/stats');
-        if (!cancelled) {
-          if (data.ok) setStats(data.stats);
-          else setError('Failed to load stats');
-        }
-      } catch {
-        if (!cancelled) setError('Network error');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+    if (status === 'idle') {
+      dispatch(fetchDashboardStats());
     }
-    load();
-    return () => { cancelled = true; };
-  }, []);
+  }, [dispatch, status]);
 
   const s = stats || {};
 
