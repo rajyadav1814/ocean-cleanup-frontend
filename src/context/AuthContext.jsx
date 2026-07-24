@@ -83,7 +83,7 @@ export function AuthProvider({ children }) {
           borderTopColor: 'var(--primary)', borderRadius: '50%',
           animation: 'spin 0.8s linear infinite'
         }} />
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Restoring session…</span>
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading…</span>
       </div>
     );
   }
