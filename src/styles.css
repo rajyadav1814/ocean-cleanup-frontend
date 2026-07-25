@@ -790,3 +790,50 @@ tr:hover td {
   from { opacity: 0; transform: translateY(-8px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* Loading spinner styles */
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: var(--text-muted);
+}
+
+.loading-spinner--fullscreen {
+  min-height: 60vh;
+}
+
+.loading-spinner .spinner {
+  display: block;
+  animation: rotate 1s linear infinite;
+}
+
+.spinner-track {
+  stroke: rgba(255, 255, 255, 0.06);
+}
+
+.spinner-head {
+  stroke: var(--primary);
+  stroke-dasharray: 90,200;
+  stroke-dashoffset: 0;
+  transform-origin: 50% 50%;
+  animation: dash 1.2s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes dash {
+  0% { stroke-dasharray: 1,200; stroke-dashoffset: 0; }
+  50% { stroke-dasharray: 90,200; stroke-dashoffset: -35; }
+  100% { stroke-dasharray: 90,200; stroke-dashoffset: -124; }
+}
+
+.spinner-text {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
