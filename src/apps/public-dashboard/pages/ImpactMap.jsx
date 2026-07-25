@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useActivities } from '../../../hooks/useActivities';
-import { useTheme } from '../../../context/ThemeContext';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import 'leaflet/dist/leaflet.css';
 
 /* ─── Google-style red SVG pin ────────────────────────────────────────────── */
-const createGooglePin = (label = '') => {
+const createGooglePin = () => {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="36" height="46" viewBox="0 0 36 46">
       <defs>
@@ -22,30 +21,9 @@ const createGooglePin = (label = '') => {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
-/* ─── "Open in Maps" link ──────────────────────────────────────────────────── */
-function OpenInMapsBtn({ lat, lng, label }) {
-  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="open-in-maps-btn"
-      title="Open in Google Maps"
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-        <polyline points="15 3 21 3 21 9" />
-        <line x1="10" y1="14" x2="21" y2="3" />
-      </svg>
-      Open in Maps
-    </a>
-  );
-}
 
 export default function ImpactMap() {
   const { activities, loading, error } = useActivities();
-  const { theme } = useTheme();
   const mapRef = useRef(null);
   const leafletMap = useRef(null);
   const tileLayerRef = useRef(null);
@@ -108,13 +86,12 @@ export default function ImpactMap() {
           const [lat, lng] = latLngs[i];
           const locationLabel = activity.location || 'Ocean Cleanup Site';
 
-          // Google-style DivIcon with pin + label
+          // Plain pin marker, details move into the click popup
           const icon = L.divIcon({
             className: '',
             html: `
-              <div class="gmap-pin-wrapper">
+              <div class="gmap-pin-wrapper" aria-label="${locationLabel}">
                 <img src="${createGooglePin()}" width="36" height="46" alt="pin"/>
-                <div class="gmap-pin-label">${locationLabel}</div>
               </div>`,
             iconSize: [36, 46],
             iconAnchor: [18, 46],

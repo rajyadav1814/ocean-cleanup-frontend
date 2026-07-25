@@ -152,27 +152,9 @@
   color: #1a73e8;
 }
 
-/* ── Google-style pin label ──────────────────────────────────────────────── */
+/* ── Google-style pin wrapper ───────────────────────────────────────────── */
 .gmap-pin-wrapper {
-  position: relative;
   display: inline-block;
-}
-
-.gmap-pin-label {
-  position: absolute;
-  top: 0;
-  left: 46px;
-  white-space: nowrap;
-  background: #fff;
-  color: #EA4335;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 2px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-  pointer-events: none;
-  transform: translateY(6px);
-  font-family: 'Google Sans', 'Roboto', var(--font-sans), sans-serif;
 }
 
 /* ── Google Maps-style popup ─────────────────────────────────────────────── */
