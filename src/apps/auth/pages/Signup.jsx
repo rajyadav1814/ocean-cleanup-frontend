@@ -17,7 +17,7 @@ export default function Signup() {
     try {
       const data = await authSignup(form);
       if (data.ok) {
-        navigate('/login');
+        navigate('/login', { replace: true, state: { flashMessage: 'Account created successfully' } });
       } else {
         setError(data.message || 'Signup failed');
       }
