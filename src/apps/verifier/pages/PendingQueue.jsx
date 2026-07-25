@@ -160,6 +160,7 @@ function ImagePreviewModal({ src, alt, onClose }) {
 
 export default function PendingQueue() {
   const { activities, loading, reviewActivity } = useActivities();
+  const pendingActivities = activities.filter((activity) => activity.status === 'pending');
 
   // Per-card action state: { [activityId]: 'approving' | 'rejecting' | null }
   const [actionState, setActionState] = useState({});
@@ -220,26 +221,19 @@ export default function PendingQueue() {
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', flexWrap: 'wrap' }}>
             <span style={{ background: 'rgba(217,119,6,0.15)', color: '#d97706', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', fontWeight: 600 }}>
-              {activities.filter(a => a.status === 'pending').length} Pending
-            </span>
-            <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', fontWeight: 600 }}>
-              {activities.filter(a => a.status === 'approved').length} Approved
-            </span>
-            <span style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', fontWeight: 600 }}>
-              {activities.filter(a => a.status === 'rejected').length} Rejected
+              {pendingActivities.length} Pending
             </span>
           </div>
         </div>
 
-        {activities.length === 0 ? (
+        {pendingActivities.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-            <p className="text-muted">No activities to review.</p>
+            <p className="text-muted">No pending activities to review.</p>
           </div>
         ) : (
           <div className="content-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
-            {activities.map((activity) => {
+            {pendingActivities.map((activity) => {
               const busy = actionState[activity.id];
-              const isResolved = activity.status === 'approved' || activity.status === 'rejected';
 
               return (
                 <div key={activity.id} className="card" style={{ padding: 0, overflow: 'hidden', opacity: busy ? 0.8 : 1, transition: 'opacity 0.2s' }}>
@@ -330,60 +324,36 @@ export default function PendingQueue() {
                         <strong style={{ color: 'var(--text-main)' }}>{new Date(activity.timestamp).toLocaleDateString()}</strong>
                       </div>
 
-                      {/* Show rejection reason if rejected */}
-                      {activity.status === 'rejected' && activity.reviewNote && (
-                        <div style={{
-                          marginTop: '0.25rem', padding: '0.5rem 0.75rem',
-                          background: 'rgba(239,68,68,0.1)', borderRadius: '0.5rem',
-                          borderLeft: '3px solid #ef4444', fontSize: '0.8rem', color: '#f87171'
-                        }}>
-                          <strong>Reason: </strong>{activity.reviewNote}
-                        </div>
-                      )}
-
-                      {/* Show approval time if approved */}
-                      {activity.status === 'approved' && activity.reviewedAt && (
-                        <div style={{
-                          marginTop: '0.25rem', padding: '0.5rem 0.75rem',
-                          background: 'rgba(16,185,129,0.1)', borderRadius: '0.5rem',
-                          borderLeft: '3px solid #10b981', fontSize: '0.8rem', color: '#10b981'
-                        }}>
-                          Approved on {new Date(activity.reviewedAt).toLocaleString()}
-                        </div>
-                      )}
                     </div>
 
-                    {/* Action Buttons — only show for pending */}
-                    {!isResolved && (
-                      <div className="mt-6" style={{ display: 'flex', gap: '0.75rem' }}>
-                        <button
-                          className="success"
-                          disabled={!!busy}
-                          onClick={() => handleApprove(activity.id)}
-                          style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '0.65rem' }}
-                        >
-                          {busy === 'approving' ? (
-                            <div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                          ) : (
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          )}
-                          {busy === 'approving' ? 'Approving…' : 'Approve'}
-                        </button>
-                        <button
-                          className="danger"
-                          disabled={!!busy}
-                          onClick={() => openRejectModal(activity.id)}
-                          style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '0.65rem' }}
-                        >
+                    <div className="mt-6" style={{ display: 'flex', gap: '0.75rem' }}>
+                      <button
+                        className="success"
+                        disabled={!!busy}
+                        onClick={() => handleApprove(activity.id)}
+                        style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '0.65rem' }}
+                      >
+                        {busy === 'approving' ? (
+                          <div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                        ) : (
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                            <polyline points="20 6 9 17 4 12" />
                           </svg>
-                          Reject
-                        </button>
-                      </div>
-                    )}
+                        )}
+                        {busy === 'approving' ? 'Approving…' : 'Approve'}
+                      </button>
+                      <button
+                        className="danger"
+                        disabled={!!busy}
+                        onClick={() => openRejectModal(activity.id)}
+                        style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '0.65rem' }}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                        Reject
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
