@@ -68,7 +68,7 @@ export default function Overview() {
 
       {/* Top stat cards */}
       <div className="content-grid mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-        <StatCard label="Total Activities" value={s.totalActivities} loading={loading} accent />
+        <StatCard label="Total Activities" value={s.totalActivities} loading={loading} accent onClick={() => navigate('/dashboard/activities')} />
         <StatCard label="Total Kg Collected" value={s.totalKgCollected} suffix=" kg" loading={loading} accent />
         <StatCard label="Impact Credits Issued" value={s.impactCredits} loading={loading} accent />
         <StatCard

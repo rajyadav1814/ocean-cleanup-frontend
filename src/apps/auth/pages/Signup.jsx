@@ -122,7 +122,6 @@ export default function Signup() {
             <select value={form.role} onChange={set('role')} style={{ width: '100%' }}>
               <option value="contributor">Contributor</option>
               <option value="verifier">Verifier</option>
-              <option value="admin">Admin</option>
             </select>
           </div>
 
