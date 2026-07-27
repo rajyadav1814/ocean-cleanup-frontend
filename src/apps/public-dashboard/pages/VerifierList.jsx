@@ -199,7 +199,7 @@ export default function VerifierList() {
               border: '1px solid var(--border-glow)', borderRadius: '999px',
               padding: '0.2rem 0.75rem', fontWeight: 600, fontSize: '0.8rem'
             }}>
-              {verifiers.length} total
+              Total: {verifiers.length}
             </span>
           )}
           {error && (

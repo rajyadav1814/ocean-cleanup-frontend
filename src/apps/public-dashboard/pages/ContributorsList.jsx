@@ -201,7 +201,7 @@ export default function ContributorsList() {
               border: '1px solid rgba(16,185,129,0.3)', borderRadius: '999px',
               padding: '0.2rem 0.75rem', fontWeight: 600, fontSize: '0.8rem'
             }}>
-              {contributors.length} total
+              Total: {contributors.length}
             </span>
           )}
           {error && (
