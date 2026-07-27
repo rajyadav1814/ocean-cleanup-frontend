@@ -1,6 +1,29 @@
 import React from 'react';
 import { useActivities } from '../../../hooks/useActivities';
 
+const statusStyles = {
+  approved: {
+    backgroundColor: 'rgba(16,185,129,0.12)',
+    color: '#10b981',
+  },
+  rejected: {
+    backgroundColor: 'rgba(239,68,68,0.12)',
+    color: '#ef4444',
+  },
+  pending: {
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    color: '#f59e0b',
+  },
+  default: {
+    backgroundColor: 'rgba(148,163,184,0.12)',
+    color: '#64748b',
+  },
+};
+
+const getStatusStyle = (status) => {
+  return statusStyles[String(status).toLowerCase()] || statusStyles.default;
+};
+
 export default function AllActivities() {
   const { activities, loading, error, refresh } = useActivities();
 
@@ -41,7 +64,23 @@ export default function AllActivities() {
                     <td style={{ padding: '0.75rem 1rem' }}>{a.location}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>{a.quantity}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>{a.contributorId || '—'}</td>
-                    <td style={{ padding: '0.75rem 1rem' }}>{a.status}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '82px',
+                        padding: '0.35rem 0.65rem',
+                        borderRadius: '999px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        letterSpacing: '0.01em',
+                        textTransform: 'capitalize',
+                        ...getStatusStyle(a.status),
+                      }}>
+                        {a.status || 'Unknown'}
+                      </span>
+                    </td>
                     <td style={{ padding: '0.75rem 1rem' }}>{a.timestamp ? new Date(a.timestamp).toLocaleString() : '—'}</td>
                   </tr>
                 ))}
