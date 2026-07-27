@@ -161,8 +161,10 @@ export default function ContributorsList() {
   const dispatch = useDispatch();
   const { contributors, status, error } = useSelector((state) => state.users);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
   const [actionState, setActionState] = useState({});
   const loading = status === 'idle' || status === 'loading';
+  const pageSize = 10;
 
   const filteredContributors = contributors.filter((user) => {
     const query = searchTerm.trim().toLowerCase();
@@ -171,9 +173,16 @@ export default function ContributorsList() {
     return fullName.includes(query) || (user.username || '').toLowerCase().includes(query);
   });
 
+  const pageCount = Math.max(1, Math.ceil(filteredContributors.length / pageSize));
+  const currentPageContributors = filteredContributors.slice((page - 1) * pageSize, page * pageSize);
+
   useEffect(() => {
     if (status === 'idle') dispatch(fetchUserLists());
   }, [dispatch, status]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, contributors.length]);
 
   const handleToggleActive = async (user) => {
     setActionState((prev) => ({ ...prev, [user.id]: true }));
@@ -233,12 +242,45 @@ export default function ContributorsList() {
       {/* Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <UserTable
-          users={filteredContributors}
+          users={currentPageContributors}
           loading={loading}
           emptyLabel="No contributors registered yet."
           onToggleActive={handleToggleActive}
           actionState={actionState}
         />
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0.75rem' }}>
+        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          Showing {currentPageContributors.length} of {filteredContributors.length} contributors
+        </span>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+            disabled={page === 1}
+            style={{
+              borderRadius: '999px', border: '1px solid var(--border-light)',
+              background: 'var(--surface)', color: 'var(--text-main)', padding: '0.6rem 1rem', cursor: page === 1 ? 'not-allowed' : 'pointer'
+            }}
+          >
+            Previous
+          </button>
+          <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>
+            {page} / {pageCount}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((prev) => Math.min(prev + 1, pageCount))}
+            disabled={page === pageCount}
+            style={{
+              borderRadius: '999px', border: '1px solid var(--border-light)',
+              background: 'var(--surface)', color: 'var(--text-main)', padding: '0.6rem 1rem', cursor: page === pageCount ? 'not-allowed' : 'pointer'
+            }}
+          >
+            Next
+          </button>
+        </div>
       </div>
 
       <style>{`
