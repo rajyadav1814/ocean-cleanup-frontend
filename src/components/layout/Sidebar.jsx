@@ -107,7 +107,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', marginBottom: '2.5rem' }}>
         {!isCollapsed && (
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
+          <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
             WORK SPACE
           </h2>
         )}
@@ -140,7 +140,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
               borderRadius: 'var(--radius-md)',
               textDecoration: 'none',
               fontWeight: 600,
-              fontSize: '0.9rem',
+              fontSize: '1.05rem',
               transition: 'all 0.2s',
               backgroundColor: isActive ? 'rgba(14, 165, 233, 0.15)' : 'transparent',
               color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)',
@@ -157,7 +157,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
                 <div style={{ color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)', flexShrink: 0 }}>
                   {ICONS[link.icon]}
                 </div>
-                {!isCollapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{link.label}</span>}
+                {!isCollapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '1.05rem' }}>{link.label}</span>}
               </>
             )}
           </NavLink>
