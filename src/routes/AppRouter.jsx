@@ -11,6 +11,8 @@ import ActivityReview from '../apps/verifier/pages/ActivityReview';
 import MultisigStatus from '../apps/verifier/pages/MultisigStatus';
 import Overview from '../apps/public-dashboard/pages/Overview';
 import ImpactMap from '../apps/public-dashboard/pages/ImpactMap';
+import VerifierList from '../apps/public-dashboard/pages/VerifierList';
+import ContributorsList from '../apps/public-dashboard/pages/ContributorsList';
 import Login from '../apps/auth/pages/Login';
 import Signup from '../apps/auth/pages/Signup';
 
@@ -161,6 +163,8 @@ export default function AppRouter() {
               <Routes>
                 <Route path="overview" element={<Overview />} />
                 <Route path="map" element={<ImpactMap />} />
+                <Route path="verifiers" element={<VerifierList />} />
+                <Route path="contributors" element={<ContributorsList />} />
               </Routes>
             </MainLayout>
           </ProtectedRoute>
