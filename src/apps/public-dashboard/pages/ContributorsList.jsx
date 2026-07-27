@@ -160,8 +160,16 @@ function UserTable({ users, loading, emptyLabel, onToggleActive, actionState }) 
 export default function ContributorsList() {
   const dispatch = useDispatch();
   const { contributors, status, error } = useSelector((state) => state.users);
+  const [searchTerm, setSearchTerm] = useState('');
   const [actionState, setActionState] = useState({});
   const loading = status === 'idle' || status === 'loading';
+
+  const filteredContributors = contributors.filter((user) => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return true;
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase();
+    return fullName.includes(query) || (user.username || '').toLowerCase().includes(query);
+  });
 
   useEffect(() => {
     if (status === 'idle') dispatch(fetchUserLists());
@@ -191,17 +199,25 @@ export default function ContributorsList() {
             All registered contributors on the platform.
           </p>
         </div>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.5rem',
-          fontSize: '0.85rem', color: 'var(--text-muted)'
-        }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'center' }}>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search by name or username"
+            style={{
+              minWidth: '220px', padding: '0.75rem 1rem', borderRadius: '999px',
+              border: '1px solid var(--border-light)', background: 'var(--surface)',
+              color: 'var(--text-main)', outline: 'none'
+            }}
+          />
           {!loading && (
             <span style={{
               background: 'rgba(16,185,129,0.12)', color: '#10b981',
               border: '1px solid rgba(16,185,129,0.3)', borderRadius: '999px',
               padding: '0.2rem 0.75rem', fontWeight: 600, fontSize: '0.8rem'
             }}>
-              Total: {contributors.length}
+              Total: {filteredContributors.length}
             </span>
           )}
           {error && (
@@ -217,7 +233,7 @@ export default function ContributorsList() {
       {/* Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <UserTable
-          users={contributors}
+          users={filteredContributors}
           loading={loading}
           emptyLabel="No contributors registered yet."
           onToggleActive={handleToggleActive}
