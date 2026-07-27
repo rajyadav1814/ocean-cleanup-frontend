@@ -7,9 +7,16 @@ export const fetchUserLists = createAsyncThunk(
   'users/fetchLists',
   async (_, { rejectWithValue }) => {
     try {
-      const data = await apiGet('/api/dashboard/users');
-      if (!data.ok) return rejectWithValue('Failed to load user lists');
-      return { verifiers: data.verifiers, contributors: data.contributors };
+      const [usersData, orgsData] = await Promise.all([
+        apiGet('/api/dashboard/users'),
+        apiGet('/api/dashboard/organizations')
+      ]);
+      if (!usersData.ok) return rejectWithValue('Failed to load user lists');
+      const orgMap = {};
+      if (orgsData.ok && orgsData.organizations) {
+        orgsData.organizations.forEach(org => { orgMap[org.orgId] = org.name; });
+      }
+      return { verifiers: usersData.verifiers, contributors: usersData.contributors, orgMap };
     } catch (err) {
       return rejectWithValue(err.message || 'Network error');
     }
@@ -42,6 +49,7 @@ const usersSlice = createSlice({
   initialState: {
     verifiers: [],
     contributors: [],
+    orgMap: {},
     status: 'idle',   // 'idle' | 'loading' | 'succeeded' | 'failed'
     error: null,
   },
@@ -60,6 +68,7 @@ const usersSlice = createSlice({
         state.status = 'succeeded';
         state.verifiers = action.payload.verifiers;
         state.contributors = action.payload.contributors;
+        state.orgMap = action.payload.orgMap || {};
       })
       .addCase(fetchUserLists.rejected, (state, action) => {
         state.status = 'failed';
