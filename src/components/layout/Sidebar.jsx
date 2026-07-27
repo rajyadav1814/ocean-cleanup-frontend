@@ -79,9 +79,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
     ],
     admin: [
       { to: '/dashboard/overview', label: 'Overview', icon: 'dashboard' },
-      { to: '/dashboard/map', label: 'Impact Map', icon: 'map' },
+      { to: '/dashboard/activities', label: 'All Activities', icon: 'check' },
       { to: '/dashboard/verifiers', label: 'Verifier List', icon: 'verifierList' },
       { to: '/dashboard/contributors', label: 'Contributors List', icon: 'contributorList' },
+      { to: '/dashboard/map', label: 'Impact Map', icon: 'map' },
       { to: '/contributor/submit', label: 'Contributor Workspace', icon: 'user' },
       { to: '/verifier/pending', label: 'Verifier Workspace', icon: 'check' }
     ]
