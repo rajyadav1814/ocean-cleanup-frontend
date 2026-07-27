@@ -1,10 +1,18 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { fetchDashboardStats } from '../../../store/dashboardSlice';
 
-function StatCard({ label, value, suffix = '', loading, accent }) {
+function StatCard({ label, value, suffix = '', loading, accent, onClick }) {
   return (
-    <div className="card">
+    <div
+      className="card"
+      onClick={onClick}
+      style={onClick ? { cursor: 'pointer' } : {}}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (event) => { if (event.key === 'Enter' || event.key === ' ') { onClick(); } } : undefined}
+    >
       <div className="stat-label">{label}</div>
       {loading ? (
         <div style={{
@@ -40,6 +48,7 @@ export default function Overview() {
     }
   }, [dispatch, status]);
 
+  const navigate = useNavigate();
   const s = stats || {};
 
   return (
@@ -62,6 +71,20 @@ export default function Overview() {
         <StatCard label="Total Activities" value={s.totalActivities} loading={loading} accent />
         <StatCard label="Total Kg Collected" value={s.totalKgCollected} suffix=" kg" loading={loading} accent />
         <StatCard label="Impact Credits Issued" value={s.impactCredits} loading={loading} accent />
+        <StatCard
+          label="Total Verifiers"
+          value={s.verifierCount}
+          loading={loading}
+          accent
+          onClick={() => navigate('/dashboard/verifiers')}
+        />
+        <StatCard
+          label="Total Contributors"
+          value={s.contributorCount}
+          loading={loading}
+          accent
+          onClick={() => navigate('/dashboard/contributors')}
+        />
       </div>
 
 
