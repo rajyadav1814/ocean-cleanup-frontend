@@ -101,7 +101,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
       <aside 
         className={`sidebar-container ${isMobileMenuOpen ? 'mobile-open' : ''}`}
         style={{
-          width: isCollapsed ? '80px' : '260px',
+          width: isCollapsed ? '80px' : '310px',
           padding: isCollapsed ? '1.5rem 0.5rem' : '1.5rem 1.25rem'
         }}>
       {/* Header */}
