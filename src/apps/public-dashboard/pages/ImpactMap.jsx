@@ -3,8 +3,16 @@ import { useActivities } from '../../../hooks/useActivities';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import 'leaflet/dist/leaflet.css';
 
-/* ─── Google-style red SVG pin ────────────────────────────────────────────── */
-const createGooglePin = () => {
+/* ─── Google-style marker SVG pin ───────────────────────────────────────────── */
+const getStatusPinColor = (status) => {
+  return {
+    approved: '#10b981',
+    rejected: '#ef4444',
+    pending: '#f59e0b',
+  }[String(status).toLowerCase()] || '#1a73e8';
+};
+
+const createGooglePin = (fillColor = '#1a73e8') => {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="36" height="46" viewBox="0 0 36 46">
       <defs>
@@ -14,7 +22,7 @@ const createGooglePin = () => {
       </defs>
       <!-- Pin body -->
       <path d="M18 0C8.06 0 0 8.06 0 18c0 13.5 18 28 18 28s18-14.5 18-28C36 8.06 27.94 0 18 0z"
-            fill="#EA4335" filter="url(#shadow)"/>
+            fill="${fillColor}" filter="url(#shadow)"/>
       <!-- Inner circle white -->
       <circle cx="18" cy="18" r="7" fill="white"/>
     </svg>`;
@@ -91,13 +99,14 @@ export default function ImpactMap() {
             className: '',
             html: `
               <div class="gmap-pin-wrapper" aria-label="${locationLabel}">
-                <img src="${createGooglePin()}" width="36" height="46" alt="pin"/>
+                <img src="${createGooglePin(getStatusPinColor(activity.status))}" width="36" height="46" alt="pin"/>
               </div>`,
             iconSize: [36, 46],
             iconAnchor: [18, 46],
             popupAnchor: [0, -50],
           });
 
+          const statusColor = getStatusPinColor(activity.status);
           const popupContent = `
             <div class="gmap-popup">
               <div class="gmap-popup-title">${locationLabel}</div>
@@ -111,7 +120,7 @@ export default function ImpactMap() {
               </div>
               <div class="gmap-popup-row">
                 <span class="gmap-popup-key">Status</span>
-                <span class="gmap-popup-val gmap-status">${activity.status || '—'}</span>
+                <span class="gmap-popup-val gmap-status" style="color: ${statusColor}">${activity.status || '—'}</span>
               </div>
               <a class="gmap-directions-link"
                  href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}"

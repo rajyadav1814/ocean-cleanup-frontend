@@ -210,7 +210,19 @@
 }
 
 .gmap-status {
-  color: #1a73e8;
+  font-weight: 600;
+}
+
+.gmap-status.approved {
+  color: #10b981;
+}
+
+.gmap-status.rejected {
+  color: #ef4444;
+}
+
+.gmap-status.pending {
+  color: #f59e0b;
 }
 
 .gmap-directions-link {
