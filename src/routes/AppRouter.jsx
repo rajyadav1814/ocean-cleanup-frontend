@@ -14,6 +14,7 @@ import ImpactMap from '../apps/public-dashboard/pages/ImpactMap';
 import AllActivities from '../apps/public-dashboard/pages/AllActivities';
 import VerifierList from '../apps/public-dashboard/pages/VerifierList';
 import ContributorsList from '../apps/public-dashboard/pages/ContributorsList';
+import Organizations from '../apps/public-dashboard/pages/Organizations';
 import Login from '../apps/auth/pages/Login';
 import Signup from '../apps/auth/pages/Signup';
 
@@ -167,6 +168,7 @@ export default function AppRouter() {
                 <Route path="map" element={<ImpactMap />} />
                 <Route path="verifiers" element={<VerifierList />} />
                 <Route path="contributors" element={<ContributorsList />} />
+                <Route path="organizations" element={<Organizations />} />
               </Routes>
             </MainLayout>
           </ProtectedRoute>

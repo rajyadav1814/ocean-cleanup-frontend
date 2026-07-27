@@ -31,6 +31,14 @@
   --radius-md: 0.75rem;
   --radius-lg: 1.25rem;
   --radius-xl: 1.5rem;
+
+  /* Modal / dialog surfaces */
+  --surface-card: #1e293b;
+  --modal-field-bg: rgba(15, 23, 42, 0.6);
+  --modal-field-border: rgba(255, 255, 255, 0.12);
+  --modal-cancel-bg: rgba(51, 65, 85, 0.6);
+  --modal-cancel-border: rgba(255, 255, 255, 0.15);
+  --modal-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
 }
 
 [data-theme="light"] {
@@ -48,6 +56,14 @@
   --text-muted: #475569;
 
   --shadow-glow: 0 0 20px rgba(2, 132, 199, 0.4);
+
+  /* Modal / dialog surfaces */
+  --surface-card: #ffffff;
+  --modal-field-bg: #f9fafb;
+  --modal-field-border: #d1d5db;
+  --modal-cancel-bg: #f3f4f6;
+  --modal-cancel-border: #d1d5db;
+  --modal-shadow: 0 24px 48px rgba(0, 0, 0, 0.18);
 }
 
 * {
