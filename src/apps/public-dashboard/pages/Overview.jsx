@@ -59,9 +59,9 @@ export default function Overview() {
 
       {/* Top stat cards */}
       <div className="content-grid mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-        <StatCard label="Total Activities"       value={s.totalActivities}   loading={loading} accent />
-        <StatCard label="Total Kg Collected"     value={s.totalKgCollected}  loading={loading} accent />
-        <StatCard label="Impact Credits Issued"  value={s.impactCredits}     loading={loading} accent />
+        <StatCard label="Total Activities" value={s.totalActivities} loading={loading} accent />
+        <StatCard label="Total Kg Collected" value={s.totalKgCollected} suffix=" kg" loading={loading} accent />
+        <StatCard label="Impact Credits Issued" value={s.impactCredits} loading={loading} accent />
       </div>
 
 
@@ -72,10 +72,10 @@ export default function Overview() {
         <p className="text-muted">Current campaign and community engagement metrics.</p>
       </div>
       <div className="content-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-        <StatCard label="Waste Collected"     value={s.totalKgCollected}  suffix=" kg" loading={loading} />
-        <StatCard label="Verified Activities" value={s.approvedActivities}              loading={loading} />
-        <StatCard label="Total Volunteers"    value={s.totalVolunteers}                 loading={loading} />
-        <StatCard label="Partner Orgs"        value={s.partnerOrgs}                     loading={loading} />
+        <StatCard label="Total Volunteers" value={s.totalVolunteers} loading={loading} />
+        <StatCard label="Verified Activities" value={s.approvedActivities} loading={loading} />
+        <StatCard label="Pending Activities" value={s.pendingActivities} loading={loading} />
+        <StatCard label="Rejected Activity" value={s.rejectedActivities} loading={loading} />
       </div>
 
       <style>{`
