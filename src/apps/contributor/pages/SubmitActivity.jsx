@@ -66,7 +66,7 @@ export default function SubmitActivity() {
           <label style={{
             border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)',
             padding: preview ? '0' : '2.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)',
-            cursor: 'pointer', background: 'rgba(0,0,0,0.2)', display: 'block', overflow: 'hidden', position: 'relative'
+            cursor: 'pointer', background: 'rgba(12, 109, 236, 0.2)', display: 'block', overflow: 'hidden', position: 'relative'
           }}>
             <input type="file" accept="image/*" hidden onChange={handleFileChange} />
             {preview ? (
