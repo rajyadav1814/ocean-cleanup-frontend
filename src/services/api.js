@@ -38,6 +38,15 @@ export async function apiDelete(path) {
   return response.json();
 }
 
+export async function apiPatch(path, body) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'PATCH',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(body)
+  });
+  return response.json();
+}
+
 // For multipart form-data (file uploads) — do NOT set Content-Type manually
 export async function apiPostForm(path, formData) {
   const response = await fetch(`${API_BASE_URL}${path}`, {

@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { apiGet } from '../services/api';
+import { apiGet, apiPatch } from '../services/api';
 
 /* ── Thunk ───────────────────────────────────────────────────────────────── */
 
@@ -18,6 +18,19 @@ export const fetchUserLists = createAsyncThunk(
     condition: (_, { getState }) => {
       const { users } = getState();
       return users.status !== 'succeeded' && users.status !== 'loading';
+    }
+  }
+);
+
+export const toggleUserActiveStatus = createAsyncThunk(
+  'users/toggleActive',
+  async ({ id, active }, { rejectWithValue }) => {
+    try {
+      const data = await apiPatch(`/api/dashboard/users/${id}/active`, { active });
+      if (!data.ok) return rejectWithValue(data.error || 'Failed to update user status');
+      return { user: data.user };
+    } catch (err) {
+      return rejectWithValue(err.message || 'Network error');
     }
   }
 );
@@ -50,6 +63,21 @@ const usersSlice = createSlice({
       })
       .addCase(fetchUserLists.rejected, (state, action) => {
         state.status = 'failed';
+        state.error = action.payload;
+      })
+      .addCase(toggleUserActiveStatus.fulfilled, (state, action) => {
+        const updatedUser = action.payload.user;
+        const updateList = (list) => {
+          const index = list.findIndex((user) => user.id === updatedUser.id);
+          if (index !== -1) {
+            list[index] = { ...list[index], active: updatedUser.active };
+          }
+        };
+
+        updateList(state.verifiers);
+        updateList(state.contributors);
+      })
+      .addCase(toggleUserActiveStatus.rejected, (state, action) => {
         state.error = action.payload;
       });
   },
