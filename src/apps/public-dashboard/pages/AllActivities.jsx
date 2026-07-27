@@ -102,20 +102,20 @@ export default function AllActivities() {
                 Showing {(total === 0) ? 0 : (page - 1) * perPage + 1} - {Math.min(page * perPage, total)} of {total}
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }} style={{ padding: '0.35rem 0.5rem' }}>
+                <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }} style={{ padding: '0.35rem 0.5rem', fontSize: '0.85rem' }}>
                   {[5,10,20,50].map(n => <option key={n} value={n}>{n} / page</option>)}
                 </select>
-                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="secondary">Prev</button>
-                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="secondary" style={{ padding: '0.3rem 0.45rem', fontSize: '0.85rem' }}>Prev</button>
+                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', fontSize: '0.80rem' }}>
                   {Array.from({ length: totalPages }).map((_, idx) => {
                     const p = idx + 1;
                     const active = p === page;
                     return (
-                      <button key={p} onClick={() => setPage(p)} style={{ padding: '0.35rem 0.6rem', borderRadius: '6px', background: active ? 'var(--primary-hover)' : 'transparent', color: active ? '#fff' : 'var(--text-muted)', border: '1px solid var(--border-light)' }}>{p}</button>
+                      <button key={p} onClick={() => setPage(p)} style={{ padding: '0.35rem 0.6rem', fontSize: '0.80rem', borderRadius: '6px', background: active ? 'var(--primary-hover)' : 'transparent', color: active ? '#fff' : 'var(--text-muted)', border: '1px solid var(--border-light)' }}>{p}</button>
                     );
                   })}
                 </div>
-                <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="secondary">Next</button>
+                <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="secondary" style={{ padding: '0.3rem 0.45rem', fontSize: '0.85rem' }}>Next</button>
               </div>
             </div>
           </div>
