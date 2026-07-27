@@ -1,21 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../../../components/common/Logo';
-import { authSignup } from '../../../services/api';
+import { authSignup, apiGet } from '../../../services/api';
 
 export default function Signup() {
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', username: '', password: '', role: 'contributor' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', username: '', password: '', role: 'contributor', organizationId: '' });
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [organizations, setOrganizations] = useState([]);
+  const [orgsLoading, setOrgsLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    apiGet('/api/dashboard/organizations')
+      .then((data) => {
+        if (data.ok) setOrganizations(data.organizations || []);
+      })
+      .catch(() => {})
+      .finally(() => setOrgsLoading(false));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const data = await authSignup(form);
+      const payload = { ...form };
+      if (!payload.organizationId) delete payload.organizationId;
+      const data = await authSignup(payload);
       if (data.ok) {
         navigate('/login', { replace: true, state: { flashMessage: 'Account created successfully' } });
       } else {
@@ -117,12 +130,33 @@ export default function Signup() {
             </div>
           </div>
 
-          <div className="form-group">
-            <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>Role</label>
-            <select value={form.role} onChange={set('role')} style={{ width: '100%' }}>
-              <option value="contributor">Contributor</option>
-              <option value="verifier">Verifier</option>
-            </select>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>Role</label>
+              <select value={form.role} onChange={set('role')} style={{ width: '100%' }}>
+                <option value="contributor">Contributor</option>
+                <option value="verifier">Verifier</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>Organization</label>
+              <select
+                value={form.organizationId}
+                onChange={set('organizationId')}
+                style={{ width: '100%' }}
+                disabled={orgsLoading}
+              >
+                <option value="">
+                  {orgsLoading ? 'Loading…' : 'Select Organization'}
+                </option>
+                {organizations.map((org) => (
+                  <option key={org.orgId} value={org.orgId}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <button

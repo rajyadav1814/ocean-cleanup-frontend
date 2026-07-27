@@ -58,6 +58,12 @@ const ICONS = {
       <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
+  ),
+  org: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
   )
 };
 
@@ -82,6 +88,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
       { to: '/dashboard/activities', label: 'All Activities', icon: 'check' },
       { to: '/dashboard/verifiers', label: 'Verifier List', icon: 'verifierList' },
       { to: '/dashboard/contributors', label: 'Contributors List', icon: 'contributorList' },
+      { to: '/dashboard/organizations', label: 'Organizations', icon: 'org' },
       { to: '/dashboard/map', label: 'Impact Map', icon: 'map' },
       { to: '/contributor/submit', label: 'Contributor Workspace', icon: 'user' },
       { to: '/verifier/pending', label: 'Verifier Workspace', icon: 'check' }

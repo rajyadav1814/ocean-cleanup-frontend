@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUserLists, toggleUserActiveStatus } from '../../../store/usersSlice';
 
-function UserTable({ users, loading, emptyLabel, onToggleActive, actionState }) {
+function UserTable({ users, loading, emptyLabel, onToggleActive, actionState, orgMap }) {
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', padding: '1rem' }}>
@@ -42,7 +42,7 @@ function UserTable({ users, loading, emptyLabel, onToggleActive, actionState }) 
       }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
-            {['Sr. No.', 'Name', 'User Name', 'Email', 'Joining Date', 'Status', 'Action'].map((h) => (
+            {['Sr. No.', 'Name', 'User Name', 'Email', 'Organization', 'Joining Date', 'Status', 'Action'].map((h) => (
               <th key={h} style={{
                 padding: '0.75rem 1rem', textAlign: 'left',
                 color: 'var(--text-muted)', fontWeight: 600,
@@ -86,6 +86,24 @@ function UserTable({ users, loading, emptyLabel, onToggleActive, actionState }) 
               </td>
               <td style={{ padding: '0.875rem 1rem', color: 'var(--text-muted)' }}>
                 {u.email}
+              </td>
+              <td style={{ padding: '0.875rem 1rem', whiteSpace: 'nowrap' }}>
+                {u.organizationId && orgMap?.[u.organizationId] ? (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                    background: 'rgba(59,130,246,0.1)', color: '#60a5fa',
+                    borderRadius: '999px', padding: '0.3rem 0.75rem',
+                    fontSize: '0.75rem', fontWeight: 600
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                      <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    {orgMap[u.organizationId]}
+                  </span>
+                ) : (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', opacity: 0.5 }}>—</span>
+                )}
               </td>
               <td style={{ padding: '0.875rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                 {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
@@ -157,7 +175,7 @@ function UserTable({ users, loading, emptyLabel, onToggleActive, actionState }) 
 
 export default function VerifierList() {
   const dispatch = useDispatch();
-  const { verifiers, status, error } = useSelector((state) => state.users);
+  const { verifiers, orgMap, status, error } = useSelector((state) => state.users);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [actionState, setActionState] = useState({});
@@ -245,6 +263,7 @@ export default function VerifierList() {
           emptyLabel="No verifiers registered yet."
           onToggleActive={handleToggleActive}
           actionState={actionState}
+          orgMap={orgMap}
         />
       </div>
 

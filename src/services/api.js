@@ -47,6 +47,25 @@ export async function apiPatch(path, body) {
   return response.json();
 }
 
+export async function apiPut(path, body) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'PUT',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(body)
+  });
+  return response.json();
+}
+
+// ─── Organization API helpers (admin-only) ────────────────────────────────────
+export const orgApi = {
+  list:      (active)        => apiGet(`/api/admin/organizations${active !== undefined ? `?active=${active}` : ''}`),
+  getById:   (id)            => apiGet(`/api/admin/organizations/${id}`),
+  create:    (data)          => apiPost(`/api/admin/organizations`, data),
+  update:    (id, data)      => apiPut(`/api/admin/organizations/${id}`, data),
+  remove:    (id)            => apiDelete(`/api/admin/organizations/${id}`),
+  setStatus: (id, isActive)  => apiPatch(`/api/admin/organizations/${id}/status`, { isActive }),
+};
+
 // For multipart form-data (file uploads) — do NOT set Content-Type manually
 export async function apiPostForm(path, formData) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
