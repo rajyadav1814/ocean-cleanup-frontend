@@ -22,13 +22,23 @@ export default function Header({ toggleMobileMenu }) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const profileRef = useRef(null);
+  const notificationRef = useRef(null);
+
+  const demoNotifications = [
+    { id: 1, title: 'New activity verified', message: 'A cleanup activity has been approved.', time: '2m ago' },
+    { id: 2, title: 'New contributor joined', message: 'A new contributor has submitted their first activity.', time: '1h ago' },
+  ];
 
   useEffect(() => {
     function handleClick(e) {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setProfileOpen(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(e.target)) {
+        setNotificationOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClick);
@@ -135,6 +145,51 @@ export default function Header({ toggleMobileMenu }) {
             </svg>
           )}
         </button>
+        <div ref={notificationRef} style={{ position: 'relative' }}>
+          <button
+            className="secondary"
+            aria-label="Notifications"
+            onClick={() => setNotificationOpen((open) => !open)}
+            style={{ padding: '0.5rem', borderRadius: '50%', position: 'relative' }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <span style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--danger)' }} />
+          </button>
+          {notificationOpen && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 0.5rem)', right: 0,
+              width: '280px', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+              boxShadow: 'var(--shadow-lg), 0 0 18px rgba(0,0,0,0.08)', overflow: 'hidden', zIndex: 100,
+            }}>
+              <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--border-light)', background: 'var(--surface-hover)' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>Notifications</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Latest updates for you</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {demoNotifications.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setNotificationOpen(false)}
+                    style={{
+                      textAlign: 'left', width: '100%', background: 'none', border: 'none', padding: '0.85rem 1rem',
+                      display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer',
+                      color: 'var(--text-main)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-hover)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{item.title}</span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{item.message}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{item.time}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         <WalletConnectButton />
 
         {user && (
