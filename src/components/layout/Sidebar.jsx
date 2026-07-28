@@ -72,6 +72,19 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
   const { user, role } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  const getWorkspaceLabel = (roleName) => {
+    switch (roleName) {
+      case 'admin':
+        return 'Admin Space';
+      case 'contributor':
+        return 'Contributor Space';
+      case 'verifier':
+        return 'Verifier Space';
+      default:
+        return 'Workspace';
+    }
+  };
+
   const links = {
     contributor: [
       { to: '/contributor/submit', label: 'Submit Activity', icon: 'zap' },
@@ -115,7 +128,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', marginBottom: '2.5rem' }}>
         {!isCollapsed && (
           <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
-            WORK SPACE
+            {getWorkspaceLabel(role)}
           </h2>
         )}
         <button
