@@ -285,7 +285,7 @@ export default function Organizations() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', color: 'var(--text-main)' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
-                  {['#', 'Name', 'Region', 'Country', 'Email', 'Joined', 'Status', 'Actions'].map((h) => (
+                  {['Sr.No.', 'Name', 'Region', 'Country', 'Email', 'Joined', 'Status', 'Actions'].map((h) => (
                     <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
