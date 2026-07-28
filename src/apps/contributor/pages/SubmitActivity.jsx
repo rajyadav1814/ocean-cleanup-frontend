@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { apiPost } from '../../../services/api';
+import { apiGet, apiPost } from '../../../services/api';
 import LocationPicker from '../../../components/common/LocationPicker';
 import { invalidateActivities } from '../../../store/activitiesSlice';
 import { invalidateDashboard } from '../../../store/dashboardSlice';
@@ -10,17 +10,38 @@ export default function SubmitActivity() {
   const [form, setForm] = useState({
     location: '', lat: null, lon: null,
     volunteers: '', quantity: '',
-    organization: 'Ocean Guardians Network',
+    organizationId: '',
     category: 'plastic',
     evidenceHash: 'mock-hash'
   });
+  const [organizations, setOrganizations] = useState([]);
+  const [orgsLoading, setOrgsLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [preview, setPreview] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    apiGet('/api/dashboard/organizations')
+      .then((data) => {
+        if (isMounted && data.ok) {
+          setOrganizations(data.organizations || []);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setOrgsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
     const payload = {
-      organizationId: 'org-1',
+      organizationId: form.organizationId || null,
       contributorId: 'contrib-1',
       ...form,
       gps: form.lat && form.lon ? `${form.lat}, ${form.lon}` : null,
@@ -154,14 +175,18 @@ export default function SubmitActivity() {
           <div className="form-group">
             <label>Organization</label>
             <select
-              value={form.organization}
-              onChange={(e) => setForm({ ...form, organization: e.target.value })}
+              value={form.organizationId}
+              onChange={(e) => setForm({ ...form, organizationId: e.target.value })}
+              disabled={orgsLoading}
             >
-              <option value="Ocean Guardians Network">Ocean Guardians Network</option>
-              <option value="Global Cleanup Org">Global Cleanup Org</option>
-              <option value="Clean Coasts">Clean Coasts</option>
-              <option value="Beach Cleanup Crew">Beach Cleanup Crew</option>
-              <option value="Ocean Cleanup Org">Ocean Cleanup Org</option>
+              <option value="">
+                {orgsLoading ? 'Loading organizations…' : 'Select an organization'}
+              </option>
+              {organizations.map((org) => (
+                <option key={org.orgId} value={org.orgId}>
+                  {org.name}
+                </option>
+              ))}
             </select>
           </div>
 
