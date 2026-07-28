@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import SubmitActivity from '../apps/contributor/pages/SubmitActivity';
 import MyActivities from '../apps/contributor/pages/MyActivities';
 import MyImpact from '../apps/contributor/pages/MyImpact';
+import ApprovedActivities from '../apps/contributor/pages/ApprovedActivities';
 import PendingQueue from '../apps/verifier/pages/PendingQueue';
 import ActivityReview from '../apps/verifier/pages/ActivityReview';
 import MultisigStatus from '../apps/verifier/pages/MultisigStatus';
@@ -141,6 +142,7 @@ export default function AppRouter() {
               <Routes>
                 <Route path="submit" element={<SubmitActivity />} />
                 <Route path="my-activities" element={<MyActivities />} />
+                <Route path="approved-activities" element={<ApprovedActivities />} />
                 <Route path="my-impact" element={<MyImpact />} />
               </Routes>
             </MainLayout>

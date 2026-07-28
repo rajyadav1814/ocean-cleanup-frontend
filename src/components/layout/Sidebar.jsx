@@ -89,6 +89,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
     contributor: [
       { to: '/contributor/submit', label: 'Submit Activity', icon: 'zap' },
       { to: '/contributor/my-activities', label: 'My Activities', icon: 'dashboard' },
+      { to: '/contributor/approved-activities', label: 'Approved Activities', icon: 'check' },
       { to: '/contributor/my-impact', label: 'My Impact', icon: 'user' }
     ],
     verifier: [
