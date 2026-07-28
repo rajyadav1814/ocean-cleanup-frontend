@@ -3,6 +3,17 @@ import { orgApi } from '../../../services/api';
 
 const PAGE_SIZE = 8;
 
+function formatJoinedDate(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+
+  return `${day}-${month}-${year}`;
+}
+
 // ── Modal ────────────────────────────────────────────────────────────────────
 function OrgModal({ org, onClose, onSaved, allOrgs = [] }) {
   const isEdit = Boolean(org?.orgId);
@@ -309,7 +320,7 @@ export default function Organizations() {
                     <td style={{ padding: '0.875rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{o.region || '—'}</td>
                     <td style={{ padding: '0.875rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{o.country || '—'}</td>
                     <td style={{ padding: '0.875rem 1rem', color: 'var(--text-muted)' }}>{o.contactEmail || '—'}</td>
-                    <td style={{ padding: '0.875rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{o.joinedAt ? new Date(o.joinedAt).toLocaleDateString() : '—'}</td>
+                    <td style={{ padding: '0.875rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{o.joinedAt ? formatJoinedDate(o.joinedAt) : '—'}</td>
                     <td style={{ padding: '0.875rem 0.75rem', whiteSpace: 'nowrap' }}>
                       <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: toggling[o.orgId] ? 'not-allowed' : 'pointer' }}>
                         <input type="checkbox" checked={o.isActive} disabled={toggling[o.orgId]} onChange={() => handleToggle(o)} style={{ display: 'none' }} />

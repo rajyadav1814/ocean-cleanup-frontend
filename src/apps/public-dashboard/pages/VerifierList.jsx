@@ -2,6 +2,17 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchUserLists, toggleUserActiveStatus } from '../../../store/usersSlice';
 
+function formatJoiningDate(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+
+  return `${day}-${month}-${year}`;
+}
+
 function UserTable({ users, loading, emptyLabel, onToggleActive, actionState, orgMap }) {
   if (loading) {
     return (
@@ -106,7 +117,7 @@ function UserTable({ users, loading, emptyLabel, onToggleActive, actionState, or
                 )}
               </td>
               <td style={{ padding: '0.875rem 1rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
+                {u.createdAt ? formatJoiningDate(u.createdAt) : '—'}
               </td>
               <td style={{ padding: '0.875rem 0.75rem', whiteSpace: 'nowrap' }}>
                 <span style={{

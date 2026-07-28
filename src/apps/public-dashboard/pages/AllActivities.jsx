@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useActivities } from '../../../hooks/useActivities';
+import { fetchUserLists } from '../../../store/usersSlice';
 
 const statusStyles = {
   approved: {
@@ -24,10 +26,37 @@ const getStatusStyle = (status) => {
   return statusStyles[String(status).toLowerCase()] || statusStyles.default;
 };
 
+function formatActivityTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const period = hours >= 12 ? 'PM' : 'AM';
+
+  hours = hours % 12;
+  if (hours === 0) hours = 12;
+
+  const paddedMinutes = minutes.toString().padStart(2, '0');
+  return `${day}-${month}-${year}, ${hours}:${paddedMinutes} ${period}`;
+}
+
 export default function AllActivities() {
+  const dispatch = useDispatch();
   const { activities, loading, error, refresh } = useActivities();
+  const { contributors, status: usersStatus } = useSelector((state) => state.users);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
+
+  useEffect(() => {
+    if (usersStatus === 'idle') {
+      dispatch(fetchUserLists());
+    }
+  }, [dispatch, usersStatus]);
 
   const total = activities.length || 0;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
@@ -73,7 +102,14 @@ export default function AllActivities() {
                     <td style={{ padding: '0.75rem 1rem' }}>{a.category}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>{a.location}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>{a.quantity}</td>
-                    <td style={{ padding: '0.75rem 1rem' }}>{a.contributorId || '—'}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      {(() => {
+                        const contributor = contributors.find((u) => u.id === a.contributorId);
+                        return contributor
+                          ? `${contributor.firstName || ''} ${contributor.lastName || contributor.username || ''}`.trim()
+                          : a.contributorId || '—';
+                      })()}
+                    </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <span style={{
                         display: 'inline-flex',
@@ -91,7 +127,7 @@ export default function AllActivities() {
                         {a.status || 'Unknown'}
                       </span>
                     </td>
-                    <td style={{ padding: '0.75rem 1rem' }}>{a.timestamp ? new Date(a.timestamp).toLocaleString() : '—'}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>{a.timestamp ? formatActivityTimestamp(a.timestamp) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
