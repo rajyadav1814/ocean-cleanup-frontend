@@ -85,6 +85,13 @@ export default function Overview() {
           accent
           onClick={() => navigate('/dashboard/contributors')}
         />
+        <StatCard
+          label="Total Organizations"
+          value={s.partnerOrgs}
+          loading={loading}
+          accent
+          onClick={() => navigate('/dashboard/organizations')}
+        />
       </div>
 
 
