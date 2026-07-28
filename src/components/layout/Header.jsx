@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { apiGetNotifications, apiMarkNotificationRead } from '../../services/api';
 import WalletConnectButton from '../wallet/WalletConnectButton';
 
 function getDisplayName(user) {
@@ -23,14 +24,15 @@ export default function Header({ toggleMobileMenu }) {
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const profileRef = useRef(null);
   const notificationRef = useRef(null);
 
-  const demoNotifications = [
-    { id: 1, title: 'New activity verified', message: 'A cleanup activity has been approved.', time: '2m ago' },
-    { id: 2, title: 'New contributor joined', message: 'A new contributor has submitted their first activity.', time: '1h ago' },
-  ];
+  const demoNotifications = [];
+
+  const notificationItems = notifications.length > 0 ? notifications : [];
 
   useEffect(() => {
     function handleClick(e) {
@@ -44,6 +46,49 @@ export default function Header({ toggleMobileMenu }) {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  useEffect(() => {
+    async function fetchNotifications() {
+      if (role !== 'admin') {
+        setNotifications([]);
+        setUnreadCount(0);
+        return;
+      }
+
+      try {
+        const data = await apiGetNotifications();
+        if (data.ok) {
+          setNotifications(data.notifications || []);
+          setUnreadCount(data.unreadCount || 0);
+        }
+      } catch (err) {
+        console.error('Failed to load notifications:', err);
+      }
+    }
+
+    fetchNotifications();
+  }, [role]);
+
+  async function handleNotificationClick(notification) {
+    if (!notification) return;
+
+    if (!notification.isRead) {
+      try {
+        await apiMarkNotificationRead(notification.id);
+        setNotifications((current) => current.map((item) =>
+          item.id === notification.id ? { ...item, isRead: true } : item
+        ));
+        setUnreadCount((count) => Math.max(0, count - 1));
+      } catch (err) {
+        console.error('Failed to mark notification read:', err);
+      }
+    }
+
+    if (notification.link) {
+      navigate(notification.link);
+      setNotificationOpen(false);
+    }
+  }
 
   const handleLogout = () => {
     setShowLogoutConfirm(false);
@@ -156,36 +201,48 @@ export default function Header({ toggleMobileMenu }) {
               <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
-            <span style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--danger)' }} />
+            {unreadCount > 0 && (
+              <span style={{ position: 'absolute', top: '6px', right: '6px', minWidth: '16px', height: '16px', borderRadius: '999px', background: 'var(--danger)', color: 'white', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
+                {unreadCount}
+              </span>
+            )}
           </button>
           {notificationOpen && (
             <div style={{
               position: 'absolute', top: 'calc(100% + 0.5rem)', right: 0,
-              width: '280px', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+              width: '320px', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
               boxShadow: 'var(--shadow-lg), 0 0 18px rgba(0,0,0,0.08)', overflow: 'hidden', zIndex: 100,
             }}>
               <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--border-light)', background: 'var(--surface-hover)' }}>
                 <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>Notifications</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>Latest updates for you</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                  {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}` : 'No new notifications'}
+                </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {demoNotifications.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setNotificationOpen(false)}
-                    style={{
-                      textAlign: 'left', width: '100%', background: 'none', border: 'none', padding: '0.85rem 1rem',
-                      display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer',
-                      color: 'var(--text-main)'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-hover)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{item.title}</span>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{item.message}</span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{item.time}</span>
-                  </button>
-                ))}
+                {notificationItems.length === 0 ? (
+                  <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                    No notifications yet.
+                  </div>
+                ) : (
+                  notificationItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNotificationClick(item)}
+                      style={{
+                        textAlign: 'left', width: '100%', background: 'none', border: 'none', padding: '0.85rem 1rem',
+                        display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer',
+                        color: 'var(--text-main)', backgroundColor: item.isRead ? 'transparent' : 'rgba(59, 130, 246, 0.08)'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = item.isRead ? 'transparent' : 'rgba(59, 130, 246, 0.08)'}
+                    >
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{item.title}</span>
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{item.message}</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{new Date(item.createdAt).toLocaleString()}</span>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           )}

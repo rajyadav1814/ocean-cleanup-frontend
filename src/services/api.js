@@ -56,6 +56,14 @@ export async function apiPut(path, body) {
   return response.json();
 }
 
+export async function apiGetNotifications() {
+  return apiGet('/api/dashboard/notifications');
+}
+
+export async function apiMarkNotificationRead(id) {
+  return apiPatch(`/api/dashboard/notifications/${id}/read`);
+}
+
 // ─── Organization API helpers (admin-only) ────────────────────────────────────
 export const orgApi = {
   list:      (active)        => apiGet(`/api/admin/organizations${active !== undefined ? `?active=${active}` : ''}`),
