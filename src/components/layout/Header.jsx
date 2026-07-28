@@ -195,14 +195,29 @@ export default function Header({ toggleMobileMenu }) {
             className="secondary"
             aria-label="Notifications"
             onClick={() => setNotificationOpen((open) => !open)}
-            style={{ padding: '0.5rem', borderRadius: '50%', position: 'relative' }}
+            style={{ padding: '0.5rem', borderRadius: '50%', position: 'relative', width: '42px', height: '42px' }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
             {unreadCount > 0 && (
-              <span style={{ position: 'absolute', top: '6px', right: '6px', minWidth: '16px', height: '16px', borderRadius: '999px', background: 'var(--danger)', color: 'white', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
+              <span style={{
+                position: 'absolute',
+                top: '4px',
+                right: '4px',
+                minWidth: '16px',
+                height: '16px',
+                borderRadius: '999px',
+                background: 'var(--danger)',
+                color: 'white',
+                fontSize: '0.65rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 5px',
+                transform: 'translate(20%, -20%)'
+              }}>
                 {unreadCount}
               </span>
             )}
