@@ -19,6 +19,23 @@ function StatusBadge({ status }) {
   );
 }
 
+function formatTimestamp(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const period = hours >= 12 ? 'PM' : 'AM';
+
+  hours = hours % 12 || 12;
+  const paddedMinutes = minutes.toString().padStart(2, '0');
+
+  return `${day}-${month}-${year}, ${hours}:${paddedMinutes} ${period}`;
+}
+
 // Reject-note modal
 function RejectModal({ onConfirm, onCancel, loading }) {
   const [note, setNote] = useState('');
@@ -321,7 +338,7 @@ export default function PendingQueue() {
                       </div>
                       <div className="flex-between">
                         <span>Submitted</span>
-                        <strong style={{ color: 'var(--text-main)' }}>{new Date(activity.timestamp).toLocaleDateString()}</strong>
+                        <strong style={{ color: 'var(--text-main)' }}>{activity.timestamp ? formatTimestamp(activity.timestamp) : '—'}</strong>
                       </div>
 
                     </div>

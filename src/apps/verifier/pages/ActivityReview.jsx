@@ -2,6 +2,23 @@ import { useEffect, useState } from 'react';
 import { useActivities } from '../../../hooks/useActivities';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
+function formatReviewDate(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const period = hours >= 12 ? 'PM' : 'AM';
+
+  hours = hours % 12 || 12;
+  const paddedMinutes = minutes.toString().padStart(2, '0');
+
+  return `${day}-${month}-${year}, ${hours}:${paddedMinutes} ${period}`;
+}
+
 function StatusBadge({ status }) {
   const cfg = {
     pending: { bg: 'rgba(217,119,6,0.15)', color: '#d97706', label: 'Pending' },
@@ -239,7 +256,7 @@ export default function ActivityReview() {
                     </div>
                     <div className="flex-between">
                       <span>Submitted</span>
-                      <strong style={{ color: 'var(--text-main)' }}>{new Date(activity.timestamp).toLocaleDateString()}</strong>
+                      <strong style={{ color: 'var(--text-main)' }}>{activity.timestamp ? formatReviewDate(activity.timestamp) : '—'}</strong>
                     </div>
 
                     {activity.status === 'rejected' && activity.reviewNote && (
@@ -266,7 +283,7 @@ export default function ActivityReview() {
                         fontSize: '0.8rem',
                         color: '#10b981'
                       }}>
-                        Approved on {new Date(activity.reviewedAt).toLocaleString()}
+                        Approved on {formatReviewDate(activity.reviewedAt)}
                       </div>
                     )}
                   </div>
