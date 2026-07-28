@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { apiGetNotifications, apiMarkNotificationRead } from '../../services/api';
+import { formatDateTime } from '../../utils/formatters';
 import WalletConnectButton from '../wallet/WalletConnectButton';
 
 function getDisplayName(user) {
@@ -254,7 +255,7 @@ export default function Header({ toggleMobileMenu }) {
                     >
                       <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{item.title}</span>
                       <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{item.message}</span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{new Date(item.createdAt).toLocaleString()}</span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{formatDateTime(item.createdAt)}</span>
                     </button>
                   ))
                 )}
