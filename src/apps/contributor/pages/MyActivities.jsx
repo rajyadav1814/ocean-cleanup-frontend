@@ -3,6 +3,23 @@ import { useActivities } from '../../../hooks/useActivities';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { apiDelete } from '../../../services/api';
 
+function formatActivityDate(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const period = hours >= 12 ? 'PM' : 'AM';
+
+  hours = hours % 12 || 12;
+  const paddedMinutes = minutes.toString().padStart(2, '0');
+
+  return `${day}-${month}-${year}, ${hours}:${paddedMinutes} ${period}`;
+}
+
 export default function MyActivities() {
   const { activities, loading, refresh } = useActivities();
   const [deletingId, setDeletingId] = useState(null);
@@ -75,7 +92,7 @@ export default function MyActivities() {
                 <div style={{ padding: '1.25rem' }}>
                   <div className="flex-between mb-4" style={{ gap: '0.75rem' }}>
                     <span className="badge pending">Submitted</span>
-                    <span className="text-muted" style={{ fontSize: '0.85rem' }}>{new Date(activity.timestamp || Date.now()).toLocaleDateString()}</span>
+                    <span className="text-muted" style={{ fontSize: '0.85rem' }}>{formatActivityDate(activity.timestamp || Date.now())}</span>
                   </div>
 
                   <h4 style={{ color: 'var(--primary-hover)' }}>{activity.location}</h4>
