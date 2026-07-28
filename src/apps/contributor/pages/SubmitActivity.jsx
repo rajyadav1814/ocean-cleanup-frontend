@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { useAuth } from '../../../context/AuthContext';
 import { apiGet, apiPost } from '../../../services/api';
 import LocationPicker from '../../../components/common/LocationPicker';
 import { invalidateActivities } from '../../../store/activitiesSlice';
@@ -7,6 +8,7 @@ import { invalidateDashboard } from '../../../store/dashboardSlice';
 
 export default function SubmitActivity() {
   const dispatch = useDispatch();
+  const { user } = useAuth();
   const [form, setForm] = useState({
     location: '', lat: null, lon: null,
     volunteers: '', quantity: '',
@@ -42,7 +44,7 @@ export default function SubmitActivity() {
     e.preventDefault();
     const payload = {
       organizationId: form.organizationId || null,
-      contributorId: 'contrib-1',
+      contributorId: user?.id || null,
       ...form,
       gps: form.lat && form.lon ? `${form.lat}, ${form.lon}` : null,
       timestamp: new Date().toISOString()
