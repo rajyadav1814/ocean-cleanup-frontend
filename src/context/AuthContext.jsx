@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, useEffect } from 'react';
-import { TOKEN_KEY, USER_KEY, authVerify } from '../services/api';
+import { TOKEN_KEY, USER_KEY, authVerify, authLogout } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -63,7 +63,16 @@ export function AuthProvider({ children }) {
     setRole(normalizedUser.role);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      try {
+        await authLogout(token);
+      } catch (err) {
+        console.error('Logout request failed', err);
+      }
+    }
+
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setUser(null);

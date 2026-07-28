@@ -97,6 +97,17 @@ export async function authLogin(username, password) {
   return res.json();
 }
 
+export async function authLogout(token) {
+  const res = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    }
+  });
+  return res.json();
+}
+
 export async function authSignup(payload) {
   const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
     method: 'POST',
