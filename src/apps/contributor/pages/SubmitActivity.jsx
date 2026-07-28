@@ -150,6 +150,7 @@ export default function SubmitActivity() {
           </div>
 
           {/* Organization */}
+        <div className="form-row">
           <div className="form-group">
             <label>Organization</label>
             <select
@@ -163,6 +164,24 @@ export default function SubmitActivity() {
               <option value="Ocean Cleanup Org">Ocean Cleanup Org</option>
             </select>
           </div>
+
+          {/* Category */}
+          <div className="form-group">
+            <label>Category</label>
+            <select
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              required
+            >
+              <option value="plastic">Plastic</option>
+              <option value="glass">Glass</option>
+              <option value="metal">Metal</option>
+              <option value="organic">Organic</option>
+              <option value="mixed">Mixed Waste</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>  
 
           {/* Submit */}
           <div className="mt-2">
