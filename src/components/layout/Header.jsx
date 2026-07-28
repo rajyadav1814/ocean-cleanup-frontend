@@ -294,7 +294,7 @@ export default function Header({ toggleMobileMenu }) {
                     {getDisplayName(user)}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'capitalize', marginTop: '4px' }}>
-                    {role || user?.role || 'Unknown'} Workspace
+                    {role || user?.role || 'Unknown'}
                   </div>
                 </div>
 
