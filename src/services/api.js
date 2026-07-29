@@ -88,11 +88,11 @@ export async function apiPostForm(path, formData) {
 export const TOKEN_KEY = 'ocean_token';
 export const USER_KEY = 'ocean_user';
 
-export async function authLogin(username, password) {
+export async function authLogin(username, password, socketId = null) {
   const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
+    body: JSON.stringify({ username, password, socketId })
   });
   return res.json();
 }
