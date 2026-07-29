@@ -91,7 +91,6 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
       { to: '/contributor/my-activities', label: 'My Activities', icon: 'dashboard' },
       { to: '/contributor/approved-activities', label: 'Approved Activities', icon: 'check' },
       { to: '/contributor/rejected-activities', label: 'Rejected Activities', icon: 'check' },
-      { to: '/contributor/my-impact', label: 'My Impact', icon: 'user' }
     ],
     verifier: [
       { to: '/verifier/pending', label: 'Pending Queue', icon: 'dashboard' },
