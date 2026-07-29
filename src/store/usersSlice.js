@@ -16,7 +16,7 @@ export const fetchUserLists = createAsyncThunk(
       if (orgsData.ok && orgsData.organizations) {
         orgsData.organizations.forEach(org => { orgMap[org.orgId] = org.name; });
       }
-      return { verifiers: usersData.verifiers, contributors: usersData.contributors, orgMap };
+      return { verifiers: usersData.verifiers, contributors: usersData.contributors, admins: usersData.admins, orgMap };
     } catch (err) {
       return rejectWithValue(err.message || 'Network error');
     }
@@ -49,6 +49,7 @@ const usersSlice = createSlice({
   initialState: {
     verifiers: [],
     contributors: [],
+    admins: [],
     orgMap: {},
     status: 'idle',   // 'idle' | 'loading' | 'succeeded' | 'failed'
     error: null,
@@ -68,6 +69,7 @@ const usersSlice = createSlice({
         state.status = 'succeeded';
         state.verifiers = action.payload.verifiers;
         state.contributors = action.payload.contributors;
+        state.admins = action.payload.admins;
         state.orgMap = action.payload.orgMap || {};
       })
       .addCase(fetchUserLists.rejected, (state, action) => {
@@ -85,6 +87,7 @@ const usersSlice = createSlice({
 
         updateList(state.verifiers);
         updateList(state.contributors);
+        updateList(state.admins);
       })
       .addCase(toggleUserActiveStatus.rejected, (state, action) => {
         state.error = action.payload;

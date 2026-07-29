@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ocean-cleanup-backend.vercel.app';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ocean-cleanup-cardano.vercel.app';
 
 // Retrieve the stored JWT token
 function getToken() {
@@ -66,12 +66,12 @@ export async function apiMarkNotificationRead(id) {
 
 // ─── Organization API helpers (admin-only) ────────────────────────────────────
 export const orgApi = {
-  list:      (active)        => apiGet(`/api/admin/organizations${active !== undefined ? `?active=${active}` : ''}`),
-  getById:   (id)            => apiGet(`/api/admin/organizations/${id}`),
-  create:    (data)          => apiPost(`/api/admin/organizations`, data),
-  update:    (id, data)      => apiPut(`/api/admin/organizations/${id}`, data),
-  remove:    (id)            => apiDelete(`/api/admin/organizations/${id}`),
-  setStatus: (id, isActive)  => apiPatch(`/api/admin/organizations/${id}/status`, { isActive }),
+  list: (active) => apiGet(`/api/admin/organizations${active !== undefined ? `?active=${active}` : ''}`),
+  getById: (id) => apiGet(`/api/admin/organizations/${id}`),
+  create: (data) => apiPost(`/api/admin/organizations`, data),
+  update: (id, data) => apiPut(`/api/admin/organizations/${id}`, data),
+  remove: (id) => apiDelete(`/api/admin/organizations/${id}`),
+  setStatus: (id, isActive) => apiPatch(`/api/admin/organizations/${id}/status`, { isActive }),
 };
 
 // For multipart form-data (file uploads) — do NOT set Content-Type manually

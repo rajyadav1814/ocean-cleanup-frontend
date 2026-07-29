@@ -48,7 +48,7 @@ function formatActivityTimestamp(timestamp) {
 export default function AllActivities() {
   const dispatch = useDispatch();
   const { activities, loading, error, refresh } = useActivities();
-  const { contributors, status: usersStatus } = useSelector((state) => state.users);
+  const { contributors, verifiers, admins, status: usersStatus } = useSelector((state) => state.users);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
 
@@ -104,7 +104,8 @@ export default function AllActivities() {
                     <td style={{ padding: '0.75rem 1rem' }}>{a.quantity}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>
                       {(() => {
-                        const contributor = contributors.find((u) => u.id === a.contributorId);
+                        const allUsers = [...(contributors || []), ...(verifiers || []), ...(admins || [])];
+                        const contributor = allUsers.find((u) => u.id === a.contributorId);
                         return contributor
                           ? `${contributor.firstName || ''} ${contributor.lastName || contributor.username || ''}`.trim()
                           : a.contributorId || '—';
@@ -139,7 +140,7 @@ export default function AllActivities() {
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <select value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); setPage(1); }} style={{ padding: '0.35rem 0.5rem', fontSize: '0.85rem' }}>
-                  {[5,10,20,50].map(n => <option key={n} value={n}>{n} / page</option>)}
+                  {[5, 10, 20, 50].map(n => <option key={n} value={n}>{n} / page</option>)}
                 </select>
                 <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="secondary" style={{ padding: '0.3rem 0.45rem', fontSize: '0.85rem' }}>Prev</button>
                 <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', fontSize: '0.80rem' }}>
