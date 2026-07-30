@@ -64,6 +64,12 @@ const ICONS = {
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
       <polyline points="9 22 9 12 15 12 15 22" />
     </svg>
+  ),
+  x: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
   )
 };
 
@@ -93,8 +99,9 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
       { to: '/contributor/rejected-activities', label: 'Rejected Activities', icon: 'check' },
     ],
     verifier: [
-      { to: '/verifier/pending', label: 'Pending Queue', icon: 'dashboard' },
-      { to: '/verifier/review', label: 'Activity Review', icon: 'check' },
+      { to: '/verifier/pending', label: 'Pending Activities', icon: 'dashboard' },
+      { to: '/verifier/review', label: 'Approved Activities', icon: 'check' },
+      { to: '/verifier/rejected', label: 'Rejected Activities', icon: 'x' },
       { to: '/verifier/multisig', label: 'Multisig Status', icon: 'shield' }
     ],
     admin: [
@@ -115,75 +122,75 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
 
   return (
     <>
-      <div 
+      <div
         className={`sidebar-overlay ${isMobileMenuOpen ? 'mobile-open' : ''}`}
         onClick={() => setIsMobileMenuOpen(false)}
       />
-      <aside 
+      <aside
         className={`sidebar-container ${isMobileMenuOpen ? 'mobile-open' : ''}`}
         style={{
           width: isCollapsed ? '80px' : '310px',
           padding: isCollapsed ? '1.5rem 0.5rem' : '1.5rem 1.25rem'
         }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', marginBottom: '2.5rem' }}>
-        {!isCollapsed && (
-          <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
-            {getWorkspaceLabel(role)}
-          </h2>
-        )}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          style={{
-            width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--surface-hover)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffffff',
-            border: '1px solid var(--border-light)', cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'all 0.3s',
-            boxShadow: 'none'
-          }}
-        >
-          {ICONS.dashboard}
-        </button>
-      </div>
-
-      {/* Navigation */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
-        {links[role]?.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            title={isCollapsed ? link.label : undefined}
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: isCollapsed ? 'center' : 'flex-start',
-              gap: '1rem',
-              padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
-              borderRadius: 'var(--radius-md)',
-              textDecoration: 'none',
-              fontWeight: 600,
-              fontSize: '1.05rem',
-              transition: 'all 0.2s',
-              backgroundColor: isActive ? 'rgba(14, 165, 233, 0.15)' : 'transparent',
-              color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)',
-              border: isActive ? '1px solid var(--border-glow)' : '1px solid transparent',
-              boxShadow: isActive ? 'inset 0 0 20px rgba(14, 165, 233, 0.05)' : 'none',
-              whiteSpace: 'nowrap',
-              width: '100%',
-              boxSizing: 'border-box',
-              aspectRatio: isCollapsed && isActive ? '1' : 'auto'
-            })}
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', marginBottom: '2.5rem' }}>
+          {!isCollapsed && (
+            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
+              {getWorkspaceLabel(role)}
+            </h2>
+          )}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            style={{
+              width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--surface-hover)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffffff',
+              border: '1px solid var(--border-light)', cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'all 0.3s',
+              boxShadow: 'none'
+            }}
           >
-            {({ isActive }) => (
-              <>
-                <div style={{ color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)', flexShrink: 0 }}>
-                  {ICONS[link.icon]}
-                </div>
-                {!isCollapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '1.05rem' }}>{link.label}</span>}
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
+            {ICONS.dashboard}
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+          {links[role]?.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              title={isCollapsed ? link.label : undefined}
+              style={({ isActive }) => ({
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: isCollapsed ? 'center' : 'flex-start',
+                gap: '1rem',
+                padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: '1.05rem',
+                transition: 'all 0.2s',
+                backgroundColor: isActive ? 'rgba(14, 165, 233, 0.15)' : 'transparent',
+                color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)',
+                border: isActive ? '1px solid var(--border-glow)' : '1px solid transparent',
+                boxShadow: isActive ? 'inset 0 0 20px rgba(14, 165, 233, 0.05)' : 'none',
+                whiteSpace: 'nowrap',
+                width: '100%',
+                boxSizing: 'border-box',
+                aspectRatio: isCollapsed && isActive ? '1' : 'auto'
+              })}
+            >
+              {({ isActive }) => (
+                <>
+                  <div style={{ color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)', flexShrink: 0 }}>
+                    {ICONS[link.icon]}
+                  </div>
+                  {!isCollapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '1.05rem' }}>{link.label}</span>}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </nav>
       </aside>
     </>
   );

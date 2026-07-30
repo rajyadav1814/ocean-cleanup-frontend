@@ -10,6 +10,7 @@ import ApprovedActivities from '../apps/contributor/pages/ApprovedActivities';
 import RejectedActivities from '../apps/contributor/pages/RejectedActivities';
 import PendingQueue from '../apps/verifier/pages/PendingQueue';
 import ActivityReview from '../apps/verifier/pages/ActivityReview';
+import RejectedActivity from '../apps/verifier/pages/RejectedActivity';
 import MultisigStatus from '../apps/verifier/pages/MultisigStatus';
 import Overview from '../apps/public-dashboard/pages/Overview';
 import ImpactMap from '../apps/public-dashboard/pages/ImpactMap';
@@ -157,6 +158,7 @@ export default function AppRouter() {
               <Routes>
                 <Route path="pending" element={<PendingQueue />} />
                 <Route path="review" element={<ActivityReview />} />
+                <Route path="rejected" element={<RejectedActivity />} />
                 <Route path="multisig" element={<MultisigStatus />} />
               </Routes>
             </MainLayout>

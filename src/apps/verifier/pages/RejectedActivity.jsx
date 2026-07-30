@@ -127,11 +127,11 @@ function ImagePreviewModal({ src, alt, onClose }) {
   );
 }
 
-export default function ActivityReview() {
+export default function RejectedActivity() {
   const { activities, loading } = useActivities();
   const [previewImage, setPreviewImage] = useState(null);
-  const reviewedActivities = activities.filter((activity) => activity.status === 'approved');
-  const approvedCount = reviewedActivities.length;
+  const reviewedActivities = activities.filter((activity) => activity.status === 'rejected');
+  const rejectedCount = reviewedActivities.length;
 
   if (loading) return <LoadingSpinner />;
 
@@ -148,19 +148,19 @@ export default function ActivityReview() {
       <section>
         <div className="card mb-6" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', padding: '1.25rem 1.75rem' }}>
           <div>
-            <h3 style={{ marginBottom: '0.25rem' }}>Approved Activities</h3>
-            <p className="text-muted" style={{ margin: 0 }}>Approved cleanup activities.</p>
+            <h3 style={{ marginBottom: '0.25rem' }}>Rejected Activity</h3>
+            <p className="text-muted" style={{ margin: 0 }}>Rejected cleanup activities.</p>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', flexWrap: 'wrap' }}>
-            <span style={{ background: 'rgba(16,185,129,0.15)', color: '#10b981', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', fontWeight: 600 }}>
-              {approvedCount} Approved
+            <span style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', fontWeight: 600 }}>
+              {rejectedCount} Rejected
             </span>
           </div>
         </div>
 
         {reviewedActivities.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-            <p className="text-muted">No approved activities yet.</p>
+            <p className="text-muted">No rejected activities yet.</p>
           </div>
         ) : (
           <div className="content-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
