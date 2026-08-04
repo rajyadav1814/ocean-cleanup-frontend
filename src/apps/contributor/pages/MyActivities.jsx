@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useActivities } from '../../../hooks/useActivities';
+import { useAuth } from '../../../context/AuthContext';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { apiDelete } from '../../../services/api';
 
@@ -22,8 +24,13 @@ function formatActivityDate(timestamp) {
 
 export default function MyActivities() {
   const { activities, loading, refresh } = useActivities();
+  const { user, role } = useAuth();
+  const navigate = useNavigate();
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState('');
+
+  const visibleActivities = activities.filter((activity) => activity.contributorId === user?.id);
+  const canModify = (activity) => role === 'contributor' && activity.contributorId === user?.id && activity.status !== 'approved';
 
   if (loading) return <LoadingSpinner />;
 
@@ -62,13 +69,13 @@ export default function MyActivities() {
         </div>
       )}
 
-      {activities.length === 0 ? (
+      {visibleActivities.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
           <p className="text-muted">No activities submitted yet. Start cleaning!</p>
         </div>
       ) : (
         <div className="content-grid">
-          {activities.map((activity) => {
+          {visibleActivities.map((activity) => {
             const isDeleting = deletingId === activity.id;
 
             return (
@@ -121,16 +128,28 @@ export default function MyActivities() {
                     )}
                   </div>
 
-                  <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(activity.id)}
-                      disabled={isDeleting}
-                      className="danger"
-                      style={{ minWidth: '110px' }}
-                    >
-                      {isDeleting ? 'Deleting…' : 'Delete'}
-                    </button>
+                  <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                    {canModify(activity) && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/contributor/my-activities/edit/${activity.id}`)}
+                        className="secondary"
+                        style={{ minWidth: '110px' }}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {canModify(activity) && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(activity.id)}
+                        disabled={isDeleting}
+                        className="danger"
+                        style={{ minWidth: '110px' }}
+                      >
+                        {isDeleting ? 'Deleting…' : 'Delete'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

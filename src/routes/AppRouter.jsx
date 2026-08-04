@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
@@ -138,44 +138,117 @@ export default function AppRouter() {
           </ProtectedRoute>
         } />
 
-        <Route path="/contributor/*" element={
+        <Route path="/contributor/submit" element={
           <ProtectedRoute allowedRoles={['contributor', 'admin']}>
             <MainLayout>
-              <Routes>
-                <Route path="submit" element={<SubmitActivity />} />
-                <Route path="my-activities" element={<MyActivities />} />
-                <Route path="approved-activities" element={<ApprovedActivities />} />
-                <Route path="rejected-activities" element={<RejectedActivities />} />
-                <Route path="my-impact" element={<MyImpact />} />
-              </Routes>
+              <SubmitActivity />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/contributor/my-activities" element={
+          <ProtectedRoute allowedRoles={['contributor', 'admin']}>
+            <MainLayout>
+              <MyActivities />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/contributor/my-activities/edit/:id" element={
+          <ProtectedRoute allowedRoles={['contributor', 'admin']}>
+            <MainLayout>
+              <SubmitActivity />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/contributor/approved-activities" element={
+          <ProtectedRoute allowedRoles={['contributor', 'admin']}>
+            <MainLayout>
+              <ApprovedActivities />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/contributor/rejected-activities" element={
+          <ProtectedRoute allowedRoles={['contributor', 'admin']}>
+            <MainLayout>
+              <RejectedActivities />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/contributor/my-impact" element={
+          <ProtectedRoute allowedRoles={['contributor', 'admin']}>
+            <MainLayout>
+              <MyImpact />
             </MainLayout>
           </ProtectedRoute>
         } />
 
-        <Route path="/verifier/*" element={
+        <Route path="/verifier/pending" element={
           <ProtectedRoute allowedRoles={['verifier', 'admin']}>
             <MainLayout>
-              <Routes>
-                <Route path="pending" element={<PendingQueue />} />
-                <Route path="review" element={<ActivityReview />} />
-                <Route path="rejected" element={<RejectedActivity />} />
-                <Route path="multisig" element={<MultisigStatus />} />
-              </Routes>
+              <PendingQueue />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/verifier/review" element={
+          <ProtectedRoute allowedRoles={['verifier', 'admin']}>
+            <MainLayout>
+              <ActivityReview />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/verifier/rejected" element={
+          <ProtectedRoute allowedRoles={['verifier', 'admin']}>
+            <MainLayout>
+              <RejectedActivity />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/verifier/multisig" element={
+          <ProtectedRoute allowedRoles={['verifier', 'admin']}>
+            <MainLayout>
+              <MultisigStatus />
             </MainLayout>
           </ProtectedRoute>
         } />
 
-        <Route path="/dashboard/*" element={
+        <Route path="/dashboard/overview" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <MainLayout>
-              <Routes>
-                <Route path="overview" element={<Overview />} />
-                <Route path="activities" element={<AllActivities />} />
-                <Route path="map" element={<ImpactMap />} />
-                <Route path="verifiers" element={<VerifierList />} />
-                <Route path="contributors" element={<ContributorsList />} />
-                <Route path="organizations" element={<Organizations />} />
-              </Routes>
+              <Overview />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/activities" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <MainLayout>
+              <AllActivities />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/map" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <MainLayout>
+              <ImpactMap />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/verifiers" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <MainLayout>
+              <VerifierList />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/contributors" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <MainLayout>
+              <ContributorsList />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/organizations" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <MainLayout>
+              <Organizations />
             </MainLayout>
           </ProtectedRoute>
         } />

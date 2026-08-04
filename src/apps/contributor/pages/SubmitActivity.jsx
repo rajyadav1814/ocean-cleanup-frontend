@@ -1,25 +1,31 @@
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { apiGet, apiPost } from '../../../services/api';
+import { apiGet, apiPatch, apiPost } from '../../../services/api';
+import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import LocationPicker from '../../../components/common/LocationPicker';
 import { invalidateActivities } from '../../../store/activitiesSlice';
 import { invalidateDashboard } from '../../../store/dashboardSlice';
 
 export default function SubmitActivity() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { id: activityId } = useParams();
   const { user } = useAuth();
   const [form, setForm] = useState({
     location: '', lat: null, lon: null,
     volunteers: '', quantity: '',
     organizationId: '',
     category: 'plastic',
-    evidenceHash: 'mock-hash'
+    evidenceHash: 'mock-hash',
+    notes: ''
   });
   const [organizations, setOrganizations] = useState([]);
   const [orgsLoading, setOrgsLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [preview, setPreview] = useState(null);
+  const [loadingActivity, setLoadingActivity] = useState(Boolean(activityId));
 
   useEffect(() => {
     let isMounted = true;
@@ -40,24 +46,91 @@ export default function SubmitActivity() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!activityId) return;
+
+    let isMounted = true;
+
+    const loadActivity = async () => {
+      setLoadingActivity(true);
+      setStatus('');
+
+      try {
+        const data = await apiGet(`/api/activities/${activityId}`);
+        if (!isMounted) return;
+
+        if (!data.ok || !data.activity) {
+          setStatus('Failed to load activity for editing.');
+          return;
+        }
+
+        if (data.activity.contributorId !== user?.id || user?.role !== 'contributor') {
+          setStatus('You are not allowed to edit this activity.');
+          return;
+        }
+
+        if (data.activity.status === 'approved') {
+          setStatus('Approved activities cannot be edited.');
+          return;
+        }
+
+        setForm((prev) => ({
+          ...prev,
+          location: data.activity.location || '',
+          lat: data.activity.lat,
+          lon: data.activity.lon,
+          volunteers: data.activity.volunteers || '',
+          quantity: data.activity.quantity || '',
+          organizationId: data.activity.organizationId || '',
+          category: data.activity.category || 'plastic',
+          evidenceHash: data.activity.evidenceHash || 'mock-hash',
+          notes: data.activity.notes || ''
+        }));
+        setPreview(data.activity.imageGatewayUrl || data.activity.imageUrl || null);
+      } catch (err) {
+        setStatus('Failed to load activity for editing.');
+      } finally {
+        if (isMounted) setLoadingActivity(false);
+      }
+    };
+
+    loadActivity();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activityId, user]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     const payload = {
       organizationId: form.organizationId || null,
       contributorId: user?.id || null,
-      ...form,
+      category: form.category,
+      location: form.location,
+      quantity: form.quantity,
+      volunteers: form.volunteers,
+      evidenceHash: form.evidenceHash,
+      notes: form.notes,
+      lat: form.lat,
+      lon: form.lon,
       gps: form.lat && form.lon ? `${form.lat}, ${form.lon}` : null,
+      imageUrl: form.imageUrl,
       timestamp: new Date().toISOString()
     };
-    const response = await apiPost('/api/activities', payload);
+
+    const response = activityId
+      ? await apiPatch(`/api/activities/${activityId}`, payload)
+      : await apiPost('/api/activities', payload);
+
     if (response.ok) {
       // Invalidate caches so next tab visit re-fetches fresh data
       dispatch(invalidateActivities());
       dispatch(invalidateDashboard());
-      setStatus('Activity submitted successfully!');
-      setTimeout(() => window.location.reload(), 250);
+      setStatus(activityId ? 'Activity updated successfully!' : 'Activity submitted successfully!');
+      setTimeout(() => navigate('/contributor/my-activities', { replace: true }), 250);
     } else {
-      setStatus('Submission failed. Please try again.');
+      setStatus(activityId ? 'Update failed. Please try again.' : 'Submission failed. Please try again.');
     }
   }
 
@@ -77,11 +150,15 @@ export default function SubmitActivity() {
     setForm(prev => ({ ...prev, location: displayName, lat, lon }));
   }
 
+  if (loadingActivity) {
+    return <LoadingSpinner />;
+  }
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 8rem)' }}>
       <section className="card" style={{ maxWidth: '1040px', width: '100%', margin: '0 auto', padding: '2rem' }}>
         <div className="flex-between mb-4">
-          <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Log a cleanup</h3>
+          <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{activityId ? 'Edit cleanup activity' : 'Log a cleanup'}</h3>
         </div>
 
         <form onSubmit={handleSubmit} style={{ gap: '1.25rem' }}>
@@ -116,7 +193,7 @@ export default function SubmitActivity() {
             />
 
             {/* Coordinate confirmation */}
-            {form.lat && form.lon ? (
+            {typeof form.lat === 'number' && typeof form.lon === 'number' ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#22c55e', fontSize: '0.82rem', marginTop: '0.35rem' }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
@@ -221,7 +298,7 @@ export default function SubmitActivity() {
                 borderRadius: 'var(--radius-md)'
               }}
             >
-              Submit activity
+              {activityId ? 'Update activity' : 'Submit activity'}
             </button>
           </div>
         </form>
