@@ -4,7 +4,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { apiGetNotifications, apiMarkNotificationRead } from '../../services/api';
-import { formatDateTime } from '../../utils/formatters';
 import WalletConnectButton from '../wallet/WalletConnectButton';
 
 function getDisplayName(user) {
@@ -19,6 +18,26 @@ function getDisplayInitial(user) {
   return (user?.displayInitial || getDisplayName(user) || 'U').trim().charAt(0).toUpperCase();
 }
 
+function formatNotificationGroupLabel(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Recently';
+
+  const now = new Date();
+  const currentDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const itemDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((currentDay - itemDay) / 86400000);
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 30) return `${diffDays} days ago`;
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
 export default function Header({ toggleMobileMenu }) {
   const { user, role, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -28,6 +47,8 @@ export default function Header({ toggleMobileMenu }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [notifTab, setNotifTab] = useState('all');   // 'all' | 'unread' | 'read'
+  const [showAllNotifs, setShowAllNotifs] = useState(false);
   const profileRef = useRef(null);
   const notificationRef = useRef(null);
 
@@ -84,11 +105,22 @@ export default function Header({ toggleMobileMenu }) {
         console.error('Failed to mark notification read:', err);
       }
     }
+  }
 
-    if (notification.link) {
-      navigate(notification.link);
-      setNotificationOpen(false);
-    }
+  function handleDismiss(e, id) {
+    e.stopPropagation();
+    setNotifications((prev) => {
+      const removed = prev.find((n) => n.id === id);
+      if (removed && !removed.isRead) setUnreadCount((c) => Math.max(0, c - 1));
+      return prev.filter((n) => n.id !== id);
+    });
+  }
+
+  async function handleMarkAllRead() {
+    const unread = notifications.filter((n) => !n.isRead);
+    await Promise.allSettled(unread.map((n) => apiMarkNotificationRead(n.id)));
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setUnreadCount(0);
   }
 
   const handleLogout = () => {
@@ -223,45 +255,178 @@ export default function Header({ toggleMobileMenu }) {
               </span>
             )}
           </button>
-          {notificationOpen && (
-            <div style={{
-              position: 'absolute', top: 'calc(100% + 0.5rem)', right: 0,
-              width: '320px', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
-              boxShadow: 'var(--shadow-lg), 0 0 18px rgba(0,0,0,0.08)', overflow: 'hidden', zIndex: 100,
-            }}>
-              <div style={{ padding: '0.85rem 1rem', borderBottom: '1px solid var(--border-light)', background: 'var(--surface-hover)' }}>
-                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>Notifications</div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                  {unreadCount > 0 ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}` : 'No new notifications'}
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {notificationItems.length === 0 ? (
-                  <div style={{ padding: '1rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                    No notifications yet.
+          {notificationOpen && (() => {
+            const readCount = notifications.filter((n) => n.isRead).length;
+            const unreadTabCount = unreadCount;
+            const filtered = [...notifications]
+              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+              .filter((n) =>
+                notifTab === 'unread' ? !n.isRead
+                  : notifTab === 'read' ? n.isRead
+                    : true
+              );
+            const visible = showAllNotifs ? filtered : filtered.slice(0, 5);
+            const TABS = [
+              { key: 'all', label: 'All', count: notifications.length },
+              { key: 'unread', label: 'Unread', count: unreadTabCount },
+              { key: 'read', label: 'Read', count: readCount },
+            ];
+            return (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 0.5rem)', right: 0,
+                width: '560px',
+                maxWidth: 'calc(100vw - 2rem)',
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+                overflow: 'hidden',
+                zIndex: 100,
+              }}>
+                {/* Header */}
+                <div style={{ padding: '0.75rem 1rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.55rem' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.01em' }}>Notifications</span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        style={{
+                          background: 'none', border: 'none', boxShadow: 'none', padding: '0.15rem 0.4rem',
+                          fontSize: '0.68rem', color: '#0284c7', cursor: 'pointer',
+                          fontWeight: 600, borderRadius: '0.25rem'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                      >Mark all read</button>
+                    )}
                   </div>
-                ) : (
-                  notificationItems.map((item) => (
-                    <button
+                  {/* Tabs */}
+                  <div style={{ display: 'flex', gap: 0 }}>
+                    {TABS.map((tab) => (
+                      <button
+                        key={tab.key}
+                        onClick={() => { setNotifTab(tab.key); setShowAllNotifs(false); }}
+                        style={{
+                          background: 'none', border: 'none', boxShadow: 'none', padding: '0.35rem 0.7rem',
+                          fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', borderRadius: 0,
+                          color: notifTab === tab.key ? '#0284c7' : '#64748b',
+                          borderBottom: notifTab === tab.key ? '2px solid #0284c7' : '2px solid transparent',
+                          display: 'flex', alignItems: 'center', gap: '0.3rem',
+                          transition: 'color 0.15s, border-color 0.15s'
+                        }}
+                      >
+                        {tab.label}
+                        <span style={{
+                          background: notifTab === tab.key ? '#0284c7' : '#f1f5f9',
+                          color: notifTab === tab.key ? 'white' : '#64748b',
+                          fontSize: '0.6rem', fontWeight: 700, padding: '0 0.3rem',
+                          borderRadius: '999px', minWidth: '1rem', textAlign: 'center',
+                          lineHeight: '1.4', display: 'inline-block', transition: 'background 0.15s'
+                        }}>{tab.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* List */}
+                <div style={{
+                  maxHeight: showAllNotifs ? '420px' : 'none',
+                  overflowY: showAllNotifs ? 'auto' : 'visible',
+                }}>
+                  {visible.length === 0 ? (
+                    <div style={{ padding: '1.25rem 1rem', color: '#94a3b8', fontSize: '0.75rem', textAlign: 'center' }}>
+                      No {notifTab === 'all' ? '' : notifTab} notifications.
+                    </div>
+                  ) : visible.map((item) => (
+                    <div
                       key={item.id}
-                      onClick={() => handleNotificationClick(item)}
                       style={{
-                        textAlign: 'left', width: '100%', background: 'none', border: 'none', padding: '0.85rem 1rem',
-                        display: 'flex', flexDirection: 'column', gap: '0.25rem', cursor: 'pointer',
-                        color: 'var(--text-main)', backgroundColor: item.isRead ? 'transparent' : 'rgba(59, 130, 246, 0.08)'
+                        display: 'grid',
+                        gridTemplateColumns: '8px minmax(0, 1fr) auto',
+                        alignItems: 'flex-start',
+                        gap: '0.85rem',
+                        padding: '0.95rem 1rem',
+                        borderBottom: '1px solid #f1f5f9',
+                        background: '#ffffff',
+                        transition: 'background 0.15s'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-hover)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = item.isRead ? 'transparent' : 'rgba(59, 130, 246, 0.08)'}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
                     >
-                      <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{item.title}</span>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{item.message}</span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{formatDateTime(item.createdAt)}</span>
+                      <span style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        marginTop: '0.4rem',
+                        background: item.isRead ? 'transparent' : '#2563eb',
+                        boxShadow: item.isRead ? 'none' : '0 0 0 2px rgba(37, 99, 235, 0.12)'
+                      }} />
+
+                      <button
+                        onClick={() => handleNotificationClick(item)}
+                        style={{
+                          background: 'none', border: 'none', boxShadow: 'none',
+                          padding: 0, textAlign: 'left', cursor: 'pointer', color: '#0f172a',
+                          display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%',
+                          alignItems: 'flex-start'
+                        }}
+                      >
+                        <div style={{
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          lineHeight: 1.35,
+                          marginBottom: '0.2rem',
+                          textAlign: 'left'
+                        }}>
+                          {item.title}
+                        </div>
+                        <div style={{
+                          fontSize: '0.72rem',
+                          color: '#64748b',
+                          lineHeight: 1.45,
+                          wordBreak: 'break-word',
+                          fontWeight: 400
+                        }}>
+                          {item.message}
+                        </div>
+                      </button>
+
+                      <div style={{
+                        fontSize: '0.68rem',
+                        color: '#64748b',
+                        whiteSpace: 'nowrap',
+                        paddingTop: '0.15rem',
+                        textAlign: 'right',
+                        minWidth: '88px',
+                        fontWeight: 500
+                      }}>
+                        {formatNotificationGroupLabel(item.createdAt)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer */}
+                {filtered.length > 5 && (
+                  <div style={{ padding: '0.5rem 1rem', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+                    <button
+                      onClick={() => setShowAllNotifs((v) => !v)}
+                      style={{
+                        background: 'none', border: 'none', boxShadow: 'none',
+                        fontSize: '0.7rem', color: '#0284c7', cursor: 'pointer',
+                        fontWeight: 600, padding: '0.25rem 0.5rem', borderRadius: '0.25rem'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    >
+                      {showAllNotifs ? '↑ Show less' : `View all ${filtered.length} notifications →`}
                     </button>
-                  ))
+                  </div>
                 )}
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
         <WalletConnectButton />
 
