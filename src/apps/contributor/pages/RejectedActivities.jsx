@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useActivities } from '../../../hooks/useActivities';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import ImageGalleryModal from '../../../components/common/ImageGalleryModal';
 
 function formatActivityDate(timestamp) {
   const date = new Date(timestamp);
@@ -20,12 +22,22 @@ function formatActivityDate(timestamp) {
 
 export default function RejectedActivities() {
   const { activities, loading } = useActivities();
+  const [gallery, setGallery] = useState(null);
   const rejectedActivities = activities.filter((activity) => activity.status === 'rejected');
 
   if (loading) return <LoadingSpinner />;
 
   return (
-    <section>
+    <>
+      {gallery && (
+        <ImageGalleryModal
+          images={gallery.images}
+          startAt={gallery.startAt}
+          alt="Cleanup evidence"
+          onClose={() => setGallery(null)}
+        />
+      )}
+      <section>
       <div className="card mb-6" style={{ padding: '1.25rem 1.75rem' }}>
         <h3 style={{ marginBottom: '0.25rem' }}>Rejected Activities</h3>
         <p className="text-muted" style={{ margin: 0 }}>Cleanup activities that were reviewed and rejected by a verifier.</p>
@@ -39,20 +51,43 @@ export default function RejectedActivities() {
         <div className="content-grid">
           {rejectedActivities.map((activity) => (
             <div key={activity.id} className="card" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
-              <div style={{ background: 'var(--surface-hover)', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', overflow: 'hidden' }}>
-                {(activity.imageGatewayUrl || activity.imageUrl) ? (
-                  <img
-                    src={activity.imageGatewayUrl || activity.imageUrl}
-                    alt="Cleanup evidence"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                    <polyline points="21 15 16 10 5 21"></polyline>
-                  </svg>
-                )}
+              <div style={{ background: 'var(--surface-hover)', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', overflow: 'hidden', position: 'relative' }}>
+                {(() => {
+                  const urls = Array.isArray(activity.imageGatewayUrl)
+                    ? activity.imageGatewayUrl
+                    : activity.imageGatewayUrl
+                      ? [activity.imageGatewayUrl]
+                      : [];
+                  const firstUrl = urls[0];
+                  return firstUrl ? (
+                    <>
+                      <img
+                        src={firstUrl}
+                        alt="Cleanup evidence"
+                        onClick={() => setGallery({ images: urls, startAt: 0 })}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGallery({ images: urls, startAt: 0 }); } }}
+                        role="button"
+                        tabIndex={0}
+                        title="Click to view photos"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }}
+                      />
+                      {urls.length > 1 && (
+                        <span style={{
+                          position: 'absolute', top: '0.4rem', right: '0.4rem',
+                          background: 'rgba(0,0,0,0.65)', color: 'white',
+                          fontSize: '0.7rem', padding: '0.15rem 0.45rem',
+                          borderRadius: '999px', fontWeight: 600, backdropFilter: 'blur(4px)'
+                        }}>+{urls.length - 1} more</span>
+                      )}
+                    </>
+                  ) : (
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                  );
+                })()}
               </div>
 
               <div style={{ padding: '1.25rem' }}>
@@ -85,5 +120,6 @@ export default function RejectedActivities() {
         </div>
       )}
     </section>
+    </>
   );
 }
