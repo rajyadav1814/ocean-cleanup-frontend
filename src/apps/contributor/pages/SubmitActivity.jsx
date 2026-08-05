@@ -24,7 +24,10 @@ export default function SubmitActivity() {
   const [organizations, setOrganizations] = useState([]);
   const [orgsLoading, setOrgsLoading] = useState(true);
   const [status, setStatus] = useState('');
-  const [preview, setPreview] = useState(null);
+  // images: array of { objectUrl, dataUrl } for new local files
+  const [images, setImages] = useState([]);
+  // existingUrls: array of gateway URLs loaded from edit mode
+  const [existingUrls, setExistingUrls] = useState([]);
   const [loadingActivity, setLoadingActivity] = useState(Boolean(activityId));
 
   useEffect(() => {
@@ -86,7 +89,14 @@ export default function SubmitActivity() {
           evidenceHash: data.activity.evidenceHash || 'mock-hash',
           notes: data.activity.notes || ''
         }));
-        setPreview(data.activity.imageGatewayUrl || data.activity.imageUrl || null);
+
+        // Load existing images (array from backend)
+        const urls = Array.isArray(data.activity.imageGatewayUrl)
+          ? data.activity.imageGatewayUrl
+          : data.activity.imageGatewayUrl
+            ? [data.activity.imageGatewayUrl]
+            : [];
+        setExistingUrls(urls);
       } catch (err) {
         setStatus('Failed to load activity for editing.');
       } finally {
@@ -103,6 +113,7 @@ export default function SubmitActivity() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
     const payload = {
       organizationId: form.organizationId || null,
       contributorId: user?.id || null,
@@ -115,16 +126,19 @@ export default function SubmitActivity() {
       lat: form.lat,
       lon: form.lon,
       gps: form.lat && form.lon ? `${form.lat}, ${form.lon}` : null,
-      imageUrl: form.imageUrl,
       timestamp: new Date().toISOString()
     };
+
+    // If there are newly-selected images, send them as a JSON array of base64 strings
+    if (images.length > 0) {
+      payload.imageUrls = JSON.stringify(images.map((img) => img.dataUrl));
+    }
 
     const response = activityId
       ? await apiPatch(`/api/activities/${activityId}`, payload)
       : await apiPost('/api/activities', payload);
 
     if (response.ok) {
-      // Invalidate caches so next tab visit re-fetches fresh data
       dispatch(invalidateActivities());
       dispatch(invalidateDashboard());
       setStatus(activityId ? 'Activity updated successfully!' : 'Activity submitted successfully!');
@@ -135,20 +149,41 @@ export default function SubmitActivity() {
   }
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setPreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    files.forEach((file) => {
+      const objectUrl = URL.createObjectURL(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setForm(prev => ({ ...prev, evidenceHash: `hash-${file.name}-${Date.now()}`, imageUrl: reader.result }));
+        setImages((prev) => [
+          ...prev,
+          { objectUrl, dataUrl: reader.result, name: file.name }
+        ]);
       };
       reader.readAsDataURL(file);
-    }
+    });
+
+    // Reset the input so the same file can be selected again if removed
+    e.target.value = '';
+  };
+
+  const removeNewImage = (index) => {
+    setImages((prev) => {
+      URL.revokeObjectURL(prev[index].objectUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const removeExistingImage = (index) => {
+    setExistingUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   function handleLocationChange({ displayName, lat, lon }) {
     setForm(prev => ({ ...prev, location: displayName, lat, lon }));
   }
+
+  const totalImageCount = existingUrls.length + images.length;
 
   if (loadingActivity) {
     return <LoadingSpinner />;
@@ -163,24 +198,99 @@ export default function SubmitActivity() {
 
         <form onSubmit={handleSubmit} style={{ gap: '1.25rem' }}>
           {/* Photo Upload Area */}
-          <label style={{
-            border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)',
-            padding: preview ? '0' : '2.5rem 1rem', textAlign: 'center', color: 'var(--text-muted)',
-            cursor: 'pointer', background: 'rgba(12, 109, 236, 0.2)', display: 'block', overflow: 'hidden', position: 'relative'
-          }}>
-            <input type="file" accept="image/*" hidden onChange={handleFileChange} />
-            {preview ? (
-              <img src={preview} alt="Upload preview" style={{ width: '100%', height: '180px', objectFit: 'cover', display: 'block' }} />
-            ) : (
-              <>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 0.5rem auto' }}>
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                  <circle cx="12" cy="13" r="4"></circle>
-                </svg>
-                <div style={{ fontSize: '0.9rem' }}>Take or add photos</div>
-              </>
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{
+              border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)',
+              padding: '1.25rem 1rem', textAlign: 'center', color: 'var(--text-muted)',
+              cursor: 'pointer', background: 'rgba(12, 109, 236, 0.2)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+            }}>
+              <input type="file" accept="image/*" multiple hidden onChange={handleFileChange} />
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+              <span style={{ fontSize: '0.9rem' }}>
+                {totalImageCount > 0 ? `Add more photos (${totalImageCount} selected)` : 'Take or add photos (multiple)'}
+              </span>
+            </label>
+
+            {/* Image Preview Grid */}
+            {totalImageCount > 0 && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))',
+                gap: '0.6rem',
+                marginTop: '0.75rem'
+              }}>
+                {/* Existing images (edit mode) */}
+                {existingUrls.map((url, idx) => (
+                  <div key={`existing-${idx}`} style={{ position: 'relative', borderRadius: 'var(--radius-sm)', overflow: 'hidden', aspectRatio: '1', background: 'var(--surface-hover)' }}>
+                    <img
+                      src={url}
+                      alt={`Existing image ${idx + 1}`}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeExistingImage(idx)}
+                      aria-label="Remove image"
+                      style={{
+                        position: 'absolute', top: '0.25rem', right: '0.25rem',
+                        width: '1.5rem', height: '1.5rem', borderRadius: '999px',
+                        background: 'rgba(15,23,42,0.82)', border: '1px solid rgba(255,255,255,0.2)',
+                        color: 'white', display: 'grid', placeItems: 'center',
+                        padding: 0, cursor: 'pointer', lineHeight: 1
+                      }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      background: 'rgba(0,0,0,0.55)', color: '#0ea5e9',
+                      fontSize: '0.6rem', padding: '0.15rem 0.3rem', textAlign: 'center', fontWeight: 600
+                    }}>IPFS</div>
+                  </div>
+                ))}
+
+                {/* New local images */}
+                {images.map((img, idx) => (
+                  <div key={`new-${idx}`} style={{ position: 'relative', borderRadius: 'var(--radius-sm)', overflow: 'hidden', aspectRatio: '1', background: 'var(--surface-hover)' }}>
+                    <img
+                      src={img.objectUrl}
+                      alt={img.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeNewImage(idx)}
+                      aria-label="Remove image"
+                      style={{
+                        position: 'absolute', top: '0.25rem', right: '0.25rem',
+                        width: '1.5rem', height: '1.5rem', borderRadius: '999px',
+                        background: 'rgba(15,23,42,0.82)', border: '1px solid rgba(255,255,255,0.2)',
+                        color: 'white', display: 'grid', placeItems: 'center',
+                        padding: 0, cursor: 'pointer', lineHeight: 1
+                      }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      background: 'rgba(0,0,0,0.55)', color: '#94a3b8',
+                      fontSize: '0.6rem', padding: '0.15rem 0.3rem',
+                      textAlign: 'center', fontWeight: 500,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                    }}>{img.name}</div>
+                  </div>
+                ))}
+              </div>
             )}
-          </label>
+          </div>
 
           {/* Location with autocomplete */}
           <div className="form-group">

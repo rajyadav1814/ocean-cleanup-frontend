@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useActivities } from '../../../hooks/useActivities';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import ImageGalleryModal from '../../../components/common/ImageGalleryModal';
 
 function formatReviewDate(timestamp) {
   const date = new Date(timestamp);
@@ -38,98 +39,10 @@ function StatusBadge({ status }) {
   );
 }
 
-function ImagePreviewModal({ src, alt, onClose }) {
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      if (event.key === 'Escape') onClose();
-    };
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [onClose]);
-
-  return (
-    <div
-      role="presentation"
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1100,
-        background: 'rgba(2, 6, 23, 0.82)',
-        backdropFilter: 'blur(10px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem'
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Image preview"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: 'relative',
-          width: 'min(96vw, 1100px)',
-          maxHeight: '92vh',
-          borderRadius: '1rem',
-          overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.12)',
-          boxShadow: '0 30px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(14,165,233,0.15)'
-        }}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close image preview"
-          style={{
-            position: 'absolute',
-            top: '0.75rem',
-            right: '0.75rem',
-            zIndex: 1,
-            width: '2.25rem',
-            height: '2.25rem',
-            borderRadius: '999px',
-            background: 'rgba(15, 23, 42, 0.75)',
-            color: 'white',
-            border: '1px solid rgba(255,255,255,0.12)',
-            display: 'grid',
-            placeItems: 'center',
-            padding: 0
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-
-        <img
-          src={src}
-          alt={alt}
-          style={{
-            display: 'block',
-            width: '100%',
-            maxHeight: '92vh',
-            objectFit: 'contain',
-            background: '#020617'
-          }}
-        />
-      </div>
-    </div>
-  );
-}
 
 export default function ActivityReview() {
   const { activities, loading } = useActivities();
-  const [previewImage, setPreviewImage] = useState(null);
+  const [gallery, setGallery] = useState(null);
   const reviewedActivities = activities.filter((activity) => activity.status === 'approved');
   const approvedCount = reviewedActivities.length;
 
@@ -137,11 +50,12 @@ export default function ActivityReview() {
 
   return (
     <>
-      {previewImage && (
-        <ImagePreviewModal
-          src={previewImage.src}
-          alt={previewImage.alt}
-          onClose={() => setPreviewImage(null)}
+      {gallery && (
+        <ImageGalleryModal
+          images={gallery.images}
+          startAt={gallery.startAt}
+          alt="Cleanup evidence"
+          onClose={() => setGallery(null)}
         />
       )}
 
@@ -167,39 +81,51 @@ export default function ActivityReview() {
             {reviewedActivities.map((activity) => (
               <div key={activity.id} className="card" style={{ padding: 0, overflow: 'hidden' }}>
                 <div style={{ background: 'var(--surface-hover)', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', overflow: 'hidden', position: 'relative' }}>
-                  {(activity.imageGatewayUrl || activity.imageUrl) ? (
-                    <img
-                      src={activity.imageGatewayUrl || activity.imageUrl}
-                      alt="Cleanup evidence"
-                      onClick={() => setPreviewImage({
-                        src: activity.imageGatewayUrl || activity.imageUrl,
-                        alt: 'Cleanup evidence for ' + (activity.location || 'this activity')
-                      })}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setPreviewImage({
-                            src: activity.imageGatewayUrl || activity.imageUrl,
-                            alt: 'Cleanup evidence for ' + (activity.location || 'this activity')
-                          });
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      title="Click to zoom"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }}
-                    />
-                  ) : (
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                      <polyline points="21 15 16 10 5 21"></polyline>
-                    </svg>
-                  )}
+                  {(() => {
+                    const urls = Array.isArray(activity.imageGatewayUrl)
+                      ? activity.imageGatewayUrl
+                      : activity.imageGatewayUrl
+                        ? [activity.imageGatewayUrl]
+                        : [];
+                    const firstUrl = urls[0];
+                    return firstUrl ? (
+                      <>
+                        <img
+                          src={firstUrl}
+                          alt="Cleanup evidence"
+                          onClick={() => setGallery({ images: urls, startAt: 0 })}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setGallery({ images: urls, startAt: 0 });
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          title="Click to view photos"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }}
+                        />
+                        {urls.length > 1 && (
+                          <span style={{
+                            position: 'absolute', top: '0.4rem', left: '0.4rem',
+                            background: 'rgba(0,0,0,0.65)', color: 'white',
+                            fontSize: '0.7rem', padding: '0.15rem 0.45rem',
+                            borderRadius: '999px', fontWeight: 600, backdropFilter: 'blur(4px)'
+                          }}>{urls.length} photos</span>
+                        )}
+                      </>
+                    ) : (
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                      </svg>
+                    );
+                  })()}
 
-                  {activity.imageCid && (
+                  {Array.isArray(activity.imageCid) && activity.imageCid.length > 0 && (
                     <a
-                      href={activity.imageGatewayUrl}
+                      href={activity.imageGatewayUrl[0]}
                       target="_blank"
                       rel="noopener noreferrer"
                       style={{
