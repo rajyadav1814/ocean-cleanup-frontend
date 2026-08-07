@@ -67,11 +67,6 @@ export default function SubmitActivity() {
           return;
         }
 
-        if (data.activity.contributorId !== user?.id || user?.role !== 'contributor') {
-          setStatus('You are not allowed to edit this activity.');
-          return;
-        }
-
         if (data.activity.status === 'approved') {
           setStatus('Approved activities cannot be edited.');
           return;
@@ -142,7 +137,8 @@ export default function SubmitActivity() {
       dispatch(invalidateActivities());
       dispatch(invalidateDashboard());
       setStatus(activityId ? 'Activity updated successfully!' : 'Activity submitted successfully!');
-      setTimeout(() => navigate('/contributor/my-activities', { replace: true }), 250);
+      const dest = user?.role === 'citizen' ? '/citizen/overview' : '/contributor/my-activities';
+      setTimeout(() => navigate(dest, { replace: true }), 250);
     } else {
       setStatus(activityId ? 'Update failed. Please try again.' : 'Submission failed. Please try again.');
     }
@@ -186,7 +182,7 @@ export default function SubmitActivity() {
   const totalImageCount = existingUrls.length + images.length;
 
   if (loadingActivity) {
-    return <LoadingSpinner />;
+    return <LoadingSpinner layout="form" />;
   }
 
   return (

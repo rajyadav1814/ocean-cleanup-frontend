@@ -21,6 +21,7 @@ import ContributorsList from '../apps/public-dashboard/pages/ContributorsList';
 import Organizations from '../apps/public-dashboard/pages/Organizations';
 import Login from '../apps/auth/pages/Login';
 import Signup from '../apps/auth/pages/Signup';
+import CitizenOverview from '../apps/citizen/pages/CitizenOverview';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuth();
@@ -32,6 +33,7 @@ function ProtectedRoute({ children, allowedRoles }) {
   if (allowedRoles && !allowedRoles.includes(role)) {
     if (role === 'verifier') return <Navigate to="/verifier/pending" replace />;
     if (role === 'admin') return <Navigate to="/dashboard/overview" replace />;
+    if (role === 'citizen') return <Navigate to="/citizen/overview" replace />;
     return <Navigate to="/contributor/overview" replace />;
   }
 
@@ -121,6 +123,7 @@ export default function AppRouter() {
   if (user && (location.pathname === '/login' || location.pathname === '/signup')) {
     if (role === 'verifier') return <Navigate to="/verifier/pending" replace />;
     if (role === 'admin') return <Navigate to="/dashboard/overview" replace />;
+    if (role === 'citizen') return <Navigate to="/citizen/overview" replace />;
     return <Navigate to="/contributor/overview" replace />;
   }
 
@@ -134,7 +137,12 @@ export default function AppRouter() {
         <Route path="/" element={
           <ProtectedRoute>
             <MainLayout>
-              <Navigate to={role === 'verifier' ? '/verifier/pending' : role === 'admin' ? '/dashboard/overview' : '/contributor/overview'} replace />
+              <Navigate to={
+                role === 'verifier' ? '/verifier/pending'
+                : role === 'admin' ? '/dashboard/overview'
+                : role === 'citizen' ? '/citizen/overview'
+                : '/contributor/overview'
+              } replace />
             </MainLayout>
           </ProtectedRoute>
         } />
@@ -143,6 +151,22 @@ export default function AppRouter() {
           <ProtectedRoute allowedRoles={['contributor', 'admin']}>
             <MainLayout>
               <ContributorOverview />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* ── Citizen routes ── */}
+        <Route path="/citizen/overview" element={
+          <ProtectedRoute allowedRoles={['citizen', 'admin']}>
+            <MainLayout>
+              <CitizenOverview />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/citizen/submit" element={
+          <ProtectedRoute allowedRoles={['citizen', 'admin']}>
+            <MainLayout>
+              <SubmitActivity />
             </MainLayout>
           </ProtectedRoute>
         } />

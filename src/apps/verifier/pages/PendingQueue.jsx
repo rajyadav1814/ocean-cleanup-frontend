@@ -99,7 +99,7 @@ export default function PendingQueue() {
   // Gallery modal: { images: string[], startAt: number } | null
   const [gallery, setGallery] = useState(null);
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner layout="list" />;
 
   async function handleApprove(id) {
     setActionState(s => ({ ...s, [id]: 'approving' }));

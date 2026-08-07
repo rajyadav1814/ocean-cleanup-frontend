@@ -80,14 +80,11 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
 
   const getWorkspaceLabel = (roleName) => {
     switch (roleName) {
-      case 'admin':
-        return 'Admin Space';
-      case 'contributor':
-        return 'Contributor Space';
-      case 'verifier':
-        return 'Verifier Space';
-      default:
-        return 'Workspace';
+      case 'admin':       return 'Admin Space';
+      case 'contributor': return 'Contributor Space';
+      case 'verifier':    return 'Verifier Space';
+      case 'citizen':     return 'Citizen Space';
+      default:            return 'Workspace';
     }
   };
 
@@ -96,6 +93,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
       { to: '/contributor/overview', label: 'Overview', icon: 'dashboard' },
       { to: '/contributor/submit', label: 'Submit Activity', icon: 'zap' },
       { to: '/contributor/my-activities', label: 'My Activities', icon: 'dashboard' },
+    ],
+    citizen: [
+      { to: '/citizen/overview', label: 'My Space',         icon: 'dashboard' },
+      { to: '/citizen/submit',   label: 'Submit Activity',  icon: 'zap' },
     ],
     verifier: [
       { to: '/verifier/pending', label: 'Pending Activities', icon: 'dashboard' },
@@ -192,7 +193,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
         </nav>
 
         {/* Community rank mini-card */}
-        {role === 'contributor' && !isCollapsed && (
+        {(role === 'contributor' || role === 'citizen') && !isCollapsed && (
           <div style={{
             marginTop: 'auto',
             paddingTop: '1.25rem',

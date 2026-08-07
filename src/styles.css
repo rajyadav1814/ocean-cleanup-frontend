@@ -391,10 +391,20 @@ a {
   line-height: 1;
   margin: 0;
   text-transform: uppercase;
+  transition: color 0.2s ease;
 }
 
 .brand-wordmark:hover {
   color: #e8f2ff;
+}
+
+[data-theme="light"] .brand-wordmark {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+[data-theme="light"] .brand-wordmark:hover {
+  color: var(--primary-hover);
 }
 
 .nav-links {
