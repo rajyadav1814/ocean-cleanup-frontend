@@ -25,7 +25,7 @@ export default function ApprovedActivities() {
   const [gallery, setGallery] = useState(null);
   const approvedActivities = activities.filter((activity) => activity.status === 'approved');
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner layout="list" />;
 
   return (
     <>

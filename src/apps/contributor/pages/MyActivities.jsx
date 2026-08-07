@@ -34,7 +34,7 @@ export default function MyActivities() {
   const visibleActivities = activities.filter((activity) => activity.contributorId === user?.id);
   const canModify = (activity) => role === 'contributor' && activity.contributorId === user?.id && activity.status !== 'approved';
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner layout="list" />;
 
   async function handleDelete(activityId) {
     const confirmed = window.confirm('Delete this activity? This cannot be undone.');

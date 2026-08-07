@@ -25,7 +25,7 @@ export default function RejectedActivities() {
   const [gallery, setGallery] = useState(null);
   const rejectedActivities = activities.filter((activity) => activity.status === 'rejected');
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner layout="list" />;
 
   return (
     <>

@@ -204,7 +204,7 @@ export default function ImpactMap() {
 
         {loading ? (
           <div style={{ display: 'flex', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
-            <LoadingSpinner />
+            <LoadingSpinner layout="map" />
           </div>
         ) : (
           <div

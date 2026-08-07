@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import { TOKEN_KEY, USER_KEY, authVerify, authLogout } from '../services/api';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const AuthContext = createContext(null);
 
@@ -83,16 +84,8 @@ export function AuthProvider({ children }) {
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex', justifyContent: 'center', alignItems: 'center',
-        height: '100vh', background: 'var(--bg)', flexDirection: 'column', gap: '1rem'
-      }}>
-        <div style={{
-          width: '36px', height: '36px', border: '3px solid var(--border-light)',
-          borderTopColor: 'var(--primary)', borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite'
-        }} />
-        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Loading…</span>
+      <div style={{ height: '100vh', background: 'var(--bg)', paddingTop: '10vh' }}>
+        <LoadingSpinner fullscreen={true} />
       </div>
     );
   }

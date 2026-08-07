@@ -46,7 +46,7 @@ export default function RejectedActivity() {
   const reviewedActivities = activities.filter((activity) => activity.status === 'rejected');
   const rejectedCount = reviewedActivities.length;
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner layout="form" />;
 
   return (
     <>

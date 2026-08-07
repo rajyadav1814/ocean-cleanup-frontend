@@ -123,3 +123,11 @@ export async function authVerify(token) {
   });
   return res.json();
 }
+
+// ─── Citizen API helpers ──────────────────────────────────────────────────────
+export const citizenApi = {
+  getStats:       ()              => apiGet('/api/citizen/stats'),
+  getLeaderboard: ()              => apiGet('/api/citizen/leaderboard'),
+  getFeed:        (limit = 15)    => apiGet(`/api/citizen/feed?limit=${limit}`),
+  submitReport:   (formData)      => apiPostForm('/api/activities', formData),
+};

@@ -22,7 +22,8 @@ export default function Login() {
   const getRedirectPath = (role) => {
     if (role === 'verifier') return '/verifier/pending';
     if (role === 'admin') return '/dashboard/overview';
-    return '/contributor/submit';
+    if (role === 'citizen') return '/citizen/overview';
+    return '/contributor/overview';
   };
 
   const handleSubmit = async (e) => {

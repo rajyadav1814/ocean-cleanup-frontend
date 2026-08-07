@@ -46,7 +46,7 @@ export default function ActivityReview() {
   const reviewedActivities = activities.filter((activity) => activity.status === 'approved');
   const approvedCount = reviewedActivities.length;
 
-  if (loading) return <LoadingSpinner />;
+  if (loading) return <LoadingSpinner layout="form" />;
 
   return (
     <>
