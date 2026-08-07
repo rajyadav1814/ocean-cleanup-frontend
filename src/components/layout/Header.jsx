@@ -196,12 +196,9 @@ export default function Header({ toggleMobileMenu }) {
   return (
     <header className="topbar">
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <h2 className="logo">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--primary-hover)' }}>
-            <path d="M2 12h4l2-9 5 18 3-9h6" />
-          </svg>
-          Ocean Cleanup
-        </h2>
+        <Link to="/" className="brand-wordmark" aria-label="BlueMind home">
+          BLUEMIND
+        </Link>
       </div>
       <div className="nav-links">
         <button className="secondary" onClick={toggleTheme} aria-label="Toggle Theme" style={{ padding: '0.5rem', borderRadius: '50%' }}>

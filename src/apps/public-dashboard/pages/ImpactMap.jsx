@@ -92,7 +92,7 @@ export default function ImpactMap() {
 
         valid.forEach((activity, i) => {
           const [lat, lng] = latLngs[i];
-          const locationLabel = activity.location || 'Ocean Cleanup Site';
+          const locationLabel = activity.location || 'BlueMind Activity Site';
 
           // Plain pin marker, details move into the click popup
           const icon = L.divIcon({

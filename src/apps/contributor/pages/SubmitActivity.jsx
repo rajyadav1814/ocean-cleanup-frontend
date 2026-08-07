@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { apiGet, apiPatch, apiPost } from '../../../services/api';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
-import LocationPicker from '../../../components/common/LocationPicker';
+import MapLocationPicker from '../../../components/common/MapLocationPicker';
 import { invalidateActivities } from '../../../store/activitiesSlice';
 import { invalidateDashboard } from '../../../store/dashboardSlice';
 
@@ -292,33 +292,15 @@ export default function SubmitActivity() {
             )}
           </div>
 
-          {/* Location with autocomplete */}
+          {/* Map Location Picker */}
           <div className="form-group">
-            <label>Location</label>
-            <LocationPicker
+            <label>Location details</label>
+            <MapLocationPicker
               value={form.location}
+              lat={form.lat}
+              lon={form.lon}
               onChange={handleLocationChange}
-              placeholder="Search a beach, park, coast…"
-              required
             />
-
-            {/* Coordinate confirmation */}
-            {typeof form.lat === 'number' && typeof form.lon === 'number' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#22c55e', fontSize: '0.82rem', marginTop: '0.35rem' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-                GPS: {form.lat.toFixed(5)}, {form.lon.toFixed(5)}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--text-muted)', fontSize: '0.82rem', marginTop: '0.35rem' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                  <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-                Type to search — select a suggestion to capture GPS
-              </div>
-            )}
           </div>
 
           {/* Volunteers & Waste */}

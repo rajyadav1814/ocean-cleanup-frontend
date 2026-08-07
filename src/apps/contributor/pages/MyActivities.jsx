@@ -132,7 +132,9 @@ export default function MyActivities() {
 
                   <div style={{ padding: '1.25rem' }}>
                     <div className="flex-between mb-4" style={{ gap: '0.75rem' }}>
-                      <span className="badge pending">Submitted</span>
+                      <span className={`badge ${activity.status || 'pending'}`} style={{ textTransform: 'capitalize' }}>
+                        {activity.status || 'Pending'}
+                      </span>
                       <span className="text-muted" style={{ fontSize: '0.85rem' }}>{formatActivityDate(activity.timestamp || Date.now())}</span>
                     </div>
 

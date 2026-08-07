@@ -93,10 +93,9 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
 
   const links = {
     contributor: [
+      { to: '/contributor/overview', label: 'Overview', icon: 'dashboard' },
       { to: '/contributor/submit', label: 'Submit Activity', icon: 'zap' },
       { to: '/contributor/my-activities', label: 'My Activities', icon: 'dashboard' },
-      { to: '/contributor/approved-activities', label: 'Approved Activities', icon: 'check' },
-      { to: '/contributor/rejected-activities', label: 'Rejected Activities', icon: 'check' },
     ],
     verifier: [
       { to: '/verifier/pending', label: 'Pending Activities', icon: 'dashboard' },
@@ -191,6 +190,26 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
             </NavLink>
           ))}
         </nav>
+
+        {/* Community rank mini-card */}
+        {role === 'contributor' && !isCollapsed && (
+          <div style={{
+            marginTop: 'auto',
+            paddingTop: '1.25rem',
+            borderTop: '1px solid var(--border-light)',
+          }}>
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(61,214,224,0.1) 100%)',
+              border: '1px solid var(--border-glow)',
+              borderRadius: 'var(--radius-md)',
+              padding: '1rem 1.1rem',
+            }}>
+              <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', fontWeight: 600 }}>Your impact</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--primary-hover)', margin: '0.2rem 0 0.1rem' }}>🌊 Active</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Keep logging — every kg counts!</div>
+            </div>
+          </div>
+        )}
       </aside>
     </>
   );
