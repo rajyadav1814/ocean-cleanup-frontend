@@ -32,7 +32,7 @@ export default function MyActivities() {
   const [gallery, setGallery] = useState(null);
 
   const visibleActivities = activities.filter((activity) => activity.contributorId === user?.id);
-  const canModify = (activity) => role === 'contributor' && activity.contributorId === user?.id && activity.status !== 'approved';
+  const canModify = (activity) => (role === 'contributor' || role === 'citizen') && activity.contributorId === user?.id && activity.status !== 'approved';
 
   if (loading) return <LoadingSpinner layout="list" />;
 
@@ -155,7 +155,7 @@ export default function MyActivities() {
                       {canModify(activity) && (
                         <button
                           type="button"
-                          onClick={() => navigate(`/contributor/my-activities/edit/${activity.id}`)}
+                          onClick={() => navigate(`/${role}/my-activities/edit/${activity.id}`)}
                           className="secondary"
                           style={{ minWidth: '110px' }}
                         >

@@ -73,10 +73,19 @@ const ICONS = {
   )
 };
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
   const { user, role } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth < 768;
 
   const getWorkspaceLabel = (roleName) => {
     switch (roleName) {
@@ -97,6 +106,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
     citizen: [
       { to: '/citizen/overview', label: 'My Space',         icon: 'dashboard' },
       { to: '/citizen/submit',   label: 'Submit Activity',  icon: 'zap' },
+      { to: '/citizen/my-activities', label: 'My Activities', icon: 'dashboard' },
     ],
     verifier: [
       { to: '/verifier/pending', label: 'Pending Activities', icon: 'dashboard' },
@@ -129,26 +139,28 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
       <aside
         className={`sidebar-container ${isMobileMenuOpen ? 'mobile-open' : ''}`}
         style={{
-          width: isCollapsed ? '80px' : '310px',
-          padding: isCollapsed ? '1.5rem 0.5rem' : '1.5rem 1.25rem'
+          width: isCollapsed ? '80px' : (isMobile ? '260px' : '310px'),
+          padding: isCollapsed ? '1rem 0.5rem' : (isMobile ? '1.25rem 1rem' : '1.5rem 1.25rem')
         }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', marginBottom: '2.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', marginBottom: isMobile ? '1.5rem' : '2.5rem' }}>
           {!isCollapsed && (
-            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
               {getWorkspaceLabel(role)}
             </h2>
           )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             style={{
-              width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--surface-hover)',
+              width: isMobile ? '32px' : '36px', height: isMobile ? '32px' : '36px', borderRadius: '50%', backgroundColor: 'var(--surface-hover)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffffff',
               border: '1px solid var(--border-light)', cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'all 0.3s',
               boxShadow: 'none'
             }}
           >
-            {ICONS.dashboard}
+            <div style={{ transform: isMobile ? 'scale(0.85)' : 'none', display: 'flex' }}>
+              {ICONS.dashboard}
+            </div>
           </button>
         </div>
 
@@ -158,17 +170,18 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
             <NavLink
               key={link.to}
               to={link.to}
+              onClick={() => { if (isMobile) setIsMobileMenuOpen(false); }}
               title={isCollapsed ? link.label : undefined}
               style={({ isActive }) => ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: isCollapsed ? 'center' : 'flex-start',
-                gap: '1rem',
-                padding: isCollapsed ? '0.75rem 0' : '0.75rem 1rem',
+                gap: isMobile ? '0.75rem' : '1rem',
+                padding: isCollapsed ? '0.75rem 0' : (isMobile ? '0.6rem 0.75rem' : '0.75rem 1rem'),
                 borderRadius: 'var(--radius-md)',
                 textDecoration: 'none',
                 fontWeight: 600,
-                fontSize: '1.05rem',
+                fontSize: isMobile ? '0.95rem' : '1.05rem',
                 transition: 'all 0.2s',
                 backgroundColor: isActive ? 'rgba(14, 165, 233, 0.15)' : 'transparent',
                 color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)',
@@ -182,10 +195,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
             >
               {({ isActive }) => (
                 <>
-                  <div style={{ color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)', flexShrink: 0 }}>
+                  <div style={{ color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)', flexShrink: 0, transform: isMobile ? 'scale(0.9)' : 'none', display: 'flex' }}>
                     {ICONS[link.icon]}
                   </div>
-                  {!isCollapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontSize: '1.05rem' }}>{link.label}</span>}
+                  {!isCollapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontSize: isMobile ? '0.95rem' : '1.05rem' }}>{link.label}</span>}
                 </>
               )}
             </NavLink>
