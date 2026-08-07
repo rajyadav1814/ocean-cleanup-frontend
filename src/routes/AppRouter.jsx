@@ -170,6 +170,20 @@ export default function AppRouter() {
             </MainLayout>
           </ProtectedRoute>
         } />
+        <Route path="/citizen/my-activities" element={
+          <ProtectedRoute allowedRoles={['citizen', 'admin']}>
+            <MainLayout>
+              <MyActivities />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/citizen/my-activities/edit/:id" element={
+          <ProtectedRoute allowedRoles={['citizen', 'admin']}>
+            <MainLayout>
+              <SubmitActivity />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
         <Route path="/contributor/submit" element={
           <ProtectedRoute allowedRoles={['contributor', 'admin']}>
             <MainLayout>

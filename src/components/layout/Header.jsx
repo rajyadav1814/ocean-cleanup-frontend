@@ -49,8 +49,16 @@ export default function Header({ toggleMobileMenu }) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [notifTab, setNotifTab] = useState('all');   // 'all' | 'unread' | 'read'
   const [showAllNotifs, setShowAllNotifs] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const profileRef = useRef(null);
   const notificationRef = useRef(null);
+  const isMobile = windowWidth < 768;
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const demoNotifications = [];
 
@@ -270,29 +278,36 @@ export default function Header({ toggleMobileMenu }) {
             ];
             return (
               <div style={{
-                position: 'absolute', top: 'calc(100% + 0.5rem)', right: 0,
-                width: '560px',
-                maxWidth: 'calc(100vw - 2rem)',
-                background: '#ffffff',
-                border: '1px solid #e2e8f0',
+                position: isMobile ? 'fixed' : 'absolute',
+                top: isMobile ? '4.5rem' : 'calc(100% + 0.5rem)',
+                right: isMobile ? 'auto' : 0,
+                left: isMobile ? '50%' : 'auto',
+                transform: isMobile ? 'translateX(-50%)' : 'none',
+                width: isMobile ? '320px' : '460px',
+                maxWidth: 'calc(100vw - 1rem)',
+                background: 'var(--surface-card)',
+                border: '1px solid var(--border-light)',
                 borderRadius: 'var(--radius-md)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+                boxShadow: 'var(--shadow-lg), 0 4px 30px rgba(0,0,0,0.15)',
                 overflow: 'hidden',
                 zIndex: 100,
+                display: 'flex',
+                flexDirection: 'column',
+                maxHeight: isMobile ? 'calc(100vh - 5.5rem)' : 'auto'
               }}>
                 {/* Header */}
-                <div style={{ padding: '0.75rem 1rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                <div style={{ padding: '0.75rem 1rem 0', borderBottom: '1px solid var(--border-light)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.55rem' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.01em' }}>Notifications</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>Notifications</span>
                     {unreadCount > 0 && (
                       <button
                         onClick={handleMarkAllRead}
                         style={{
                           background: 'none', border: 'none', boxShadow: 'none', padding: '0.15rem 0.4rem',
-                          fontSize: '0.68rem', color: '#0284c7', cursor: 'pointer',
+                          fontSize: '0.68rem', color: 'var(--primary)', cursor: 'pointer',
                           fontWeight: 600, borderRadius: '0.25rem'
                         }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
                         onMouseLeave={e => e.currentTarget.style.background = 'none'}
                       >Mark all read</button>
                     )}
@@ -305,20 +320,20 @@ export default function Header({ toggleMobileMenu }) {
                         onClick={() => { setNotifTab(tab.key); setShowAllNotifs(false); }}
                         style={{
                           background: 'none', border: 'none', boxShadow: 'none', padding: '0.35rem 0.7rem',
-                          fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', borderRadius: 0,
-                          color: notifTab === tab.key ? '#0284c7' : '#64748b',
-                          borderBottom: notifTab === tab.key ? '2px solid #0284c7' : '2px solid transparent',
-                          display: 'flex', alignItems: 'center', gap: '0.3rem',
+                          fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', borderRadius: 0,
+                          color: notifTab === tab.key ? 'var(--primary-hover)' : 'var(--text-muted)',
+                          borderBottom: notifTab === tab.key ? '2px solid var(--primary-hover)' : '2px solid transparent',
+                          display: 'flex', alignItems: 'center', gap: '0.4rem',
                           transition: 'color 0.15s, border-color 0.15s'
                         }}
                       >
                         {tab.label}
                         <span style={{
-                          background: notifTab === tab.key ? '#0284c7' : '#f1f5f9',
-                          color: notifTab === tab.key ? 'white' : '#64748b',
-                          fontSize: '0.6rem', fontWeight: 700, padding: '0 0.3rem',
+                          background: notifTab === tab.key ? 'var(--primary)' : 'var(--border-light)',
+                          color: notifTab === tab.key ? 'white' : 'var(--text-muted)',
+                          fontSize: '0.65rem', fontWeight: 700, padding: '0 0.4rem',
                           borderRadius: '999px', minWidth: '1rem', textAlign: 'center',
-                          lineHeight: '1.4', display: 'inline-block', transition: 'background 0.15s'
+                          lineHeight: '1.5', display: 'inline-block', transition: 'background 0.15s'
                         }}>{tab.count}</span>
                       </button>
                     ))}
@@ -327,11 +342,12 @@ export default function Header({ toggleMobileMenu }) {
 
                 {/* List */}
                 <div style={{
-                  maxHeight: showAllNotifs ? '420px' : 'none',
-                  overflowY: showAllNotifs ? 'auto' : 'visible',
+                  overflowY: 'auto',
+                  flex: 1,
+                  maxHeight: isMobile ? 'none' : (showAllNotifs ? '420px' : 'auto'),
                 }}>
                   {visible.length === 0 ? (
-                    <div style={{ padding: '1.25rem 1rem', color: '#94a3b8', fontSize: '0.75rem', textAlign: 'center' }}>
+                    <div style={{ padding: '1.25rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
                       No {notifTab === 'all' ? '' : notifTab} notifications.
                     </div>
                   ) : visible.map((item) => (
@@ -343,44 +359,44 @@ export default function Header({ toggleMobileMenu }) {
                         alignItems: 'flex-start',
                         gap: '0.85rem',
                         padding: '0.95rem 1rem',
-                        borderBottom: '1px solid #f1f5f9',
-                        background: '#ffffff',
+                        borderBottom: '1px solid var(--border-light)',
+                        background: 'transparent',
                         transition: 'background 0.15s'
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
-                      onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                     >
                       <span style={{
                         width: '8px',
                         height: '8px',
                         borderRadius: '50%',
                         marginTop: '0.4rem',
-                        background: item.isRead ? 'transparent' : '#2563eb',
-                        boxShadow: item.isRead ? 'none' : '0 0 0 2px rgba(37, 99, 235, 0.12)'
+                        background: item.isRead ? 'transparent' : 'var(--primary)',
+                        boxShadow: item.isRead ? 'none' : '0 0 0 2px var(--border-glow)'
                       }} />
 
                       <button
                         onClick={() => handleNotificationClick(item)}
                         style={{
                           background: 'none', border: 'none', boxShadow: 'none',
-                          padding: 0, textAlign: 'left', cursor: 'pointer', color: '#0f172a',
-                          display: 'flex', flexDirection: 'column', gap: '0.2rem', width: '100%',
+                          padding: 0, textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)',
+                          display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '100%',
                           alignItems: 'flex-start'
                         }}
                       >
                         <div style={{
-                          fontSize: '0.8rem',
+                          fontSize: '0.85rem',
                           fontWeight: 700,
-                          color: '#0f172a',
+                          color: 'var(--text-main)',
                           lineHeight: 1.35,
-                          marginBottom: '0.2rem',
+                          marginBottom: '0.1rem',
                           textAlign: 'left'
                         }}>
                           {item.title}
                         </div>
                         <div style={{
-                          fontSize: '0.72rem',
-                          color: '#64748b',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-muted)',
                           lineHeight: 1.45,
                           wordBreak: 'break-word',
                           fontWeight: 400
@@ -390,12 +406,12 @@ export default function Header({ toggleMobileMenu }) {
                       </button>
 
                       <div style={{
-                        fontSize: '0.68rem',
-                        color: '#64748b',
+                        fontSize: '0.7rem',
+                        color: 'var(--text-muted)',
                         whiteSpace: 'nowrap',
                         paddingTop: '0.15rem',
                         textAlign: 'right',
-                        minWidth: '88px',
+                        minWidth: '70px',
                         fontWeight: 500
                       }}>
                         {formatNotificationGroupLabel(item.createdAt)}
@@ -406,15 +422,15 @@ export default function Header({ toggleMobileMenu }) {
 
                 {/* Footer */}
                 {filtered.length > 5 && (
-                  <div style={{ padding: '0.5rem 1rem', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+                  <div style={{ padding: '0.5rem 1rem', borderTop: '1px solid var(--border-light)', textAlign: 'center' }}>
                     <button
                       onClick={() => setShowAllNotifs((v) => !v)}
                       style={{
                         background: 'none', border: 'none', boxShadow: 'none',
-                        fontSize: '0.7rem', color: '#0284c7', cursor: 'pointer',
-                        fontWeight: 600, padding: '0.25rem 0.5rem', borderRadius: '0.25rem'
+                        fontSize: '0.75rem', color: 'var(--primary)', cursor: 'pointer',
+                        fontWeight: 600, padding: '0.4rem 0.75rem', borderRadius: '0.25rem'
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
                       onMouseLeave={e => e.currentTarget.style.background = 'none'}
                     >
                       {showAllNotifs ? '↑ Show less' : `View all ${filtered.length} notifications →`}

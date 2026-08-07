@@ -151,31 +151,32 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
       </div>
 
       {/* Lat/Lng display (read-only to show they are captured) */}
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-          <label style={{ fontSize: '0.8rem' }}>Latitude</label>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', width: '100%' }}>
+        <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
+          <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Latitude</label>
           <input 
             type="text" 
             value={position ? position.lat.toFixed(6) : ''} 
             readOnly 
-            style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)' }}
+            style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', width: '100%', minWidth: 0, padding: '0.75rem 1rem' }}
           />
         </div>
-        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-          <label style={{ fontSize: '0.8rem' }}>Longitude</label>
+        <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
+          <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Longitude</label>
           <input 
             type="text" 
             value={position ? (position.lng || position.lon || 0).toFixed(6) : ''} 
             readOnly
-            style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)' }}
+            style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', width: '100%', minWidth: 0, padding: '0.75rem 1rem' }}
           />
         </div>
-        {isFetchingName && (
-           <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, flexShrink: 0, marginTop: '1.2rem' }}>
-             Fetching name...
-           </div>
-        )}
       </div>
+      
+      {isFetchingName && (
+         <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, marginTop: '-0.25rem' }}>
+           Fetching location name...
+         </div>
+      )}
       
       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '-0.5rem' }}>
         <em>Drag the marker or click anywhere on the map to adjust the coordinates.</em>
