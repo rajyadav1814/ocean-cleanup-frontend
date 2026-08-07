@@ -37,6 +37,7 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
   const [position, setPosition] = useState(lat && lon ? { lat, lng: lon } : null);
   const [locationName, setLocationName] = useState(value || '');
   const [isFetchingName, setIsFetchingName] = useState(false);
+  const [isMapRequested, setIsMapRequested] = useState(Boolean(lat && lon));
   const markerRef = useRef(null);
 
   // Helper to reverse geocode lat/lng to a place name
@@ -64,9 +65,9 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
     }
   };
 
-  // Initialize with current location if no lat/lon is provided
+  // Initialize with current location if no lat/lon is provided and user has requested map access
   useEffect(() => {
-    if (!lat && !lon) {
+    if (isMapRequested && !lat && !lon && !position) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
@@ -87,7 +88,7 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
         fetchLocationName(51.505, -0.09);
       }
     }
-  }, [lat, lon]);
+  }, [lat, lon, isMapRequested, position]);
 
   // Sync internal state to parent when internal state changes
   useEffect(() => {
@@ -129,23 +130,31 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
 
       {/* Map Container */}
       <div style={{ position: 'relative', height: '300px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-light)' }}>
-        {position ? (
-          <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }}>
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <Marker 
-              position={position} 
-              draggable={true} 
-              eventHandlers={{ dragend: handleDragEnd }}
-              ref={markerRef}
-            />
-            <MapEvents position={position} setPosition={setPosition} onPositionChange={fetchLocationName} />
-          </MapContainer>
+        {isMapRequested ? (
+          position ? (
+            <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }}>
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <Marker 
+                position={position} 
+                draggable={true} 
+                eventHandlers={{ dragend: handleDragEnd }}
+                ref={markerRef}
+              />
+              <MapEvents position={position} setPosition={setPosition} onPositionChange={fetchLocationName} />
+            </MapContainer>
+          ) : (
+            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-hover)', color: 'var(--text-muted)' }}>
+              Loading map & locating you...
+            </div>
+          )
         ) : (
-          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-hover)', color: 'var(--text-muted)' }}>
-            Loading map...
+          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-hover)', padding: '2rem' }}>
+            <button type="button" className="bm-button" onClick={() => setIsMapRequested(true)} style={{ padding: '0.85rem 1.5rem', fontWeight: 600 }}>
+              Access Location & Load Map
+            </button>
           </div>
         )}
       </div>
