@@ -1,6 +1,6 @@
-# Ocean Cleanup Frontend
+# BlueMind Frontend
 
-This is the React frontend for the Ocean Cleanup tracking platform. It provides specialized dashboards for contributors, verifiers, and the general public to track and verify ocean cleanup efforts worldwide.
+This is the React frontend for the BlueMind activity tracking platform. It provides specialized dashboards for contributors, verifiers, and the general public to track and verify environmental impact activities worldwide.
 
 ## Features
 
@@ -14,7 +14,7 @@ This is the React frontend for the Ocean Cleanup tracking platform. It provides 
 - React
 - React Router DOM
 - Vite
-- Custom CSS (Oceanic Premium Dark Theme)
+- Custom CSS (BlueMind light and dark theme)
 
 ## Getting Started
 

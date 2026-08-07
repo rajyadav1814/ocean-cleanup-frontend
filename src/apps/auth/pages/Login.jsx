@@ -1,17 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import Logo from '../../../components/common/Logo';
 import { authLogin } from '../../../services/api';
 
 export default function Login() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    return () => {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    };
+  }, []);
 
   const getRedirectPath = (role) => {
     if (role === 'verifier') return '/verifier/pending';
@@ -24,7 +30,7 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const data = await authLogin(username, password);
+      const data = await authLogin(email, password);
       if (data.ok) {
         login(data.user, data.token);
         navigate(getRedirectPath(data.user.role), {
@@ -42,98 +48,47 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-container" style={{ flexDirection: 'column', gap: '1.5rem' }}>
-      <Logo />
+    <div className="auth-container">
+      <header className="auth-header">
+        <Link to="/" className="brand-wordmark" aria-label="BlueMind home">BLUEMIND</Link>
+      </header>
       <div className="card auth-card" style={{ textAlign: 'left' }}>
-        <h2 className="gradient-text" style={{ textAlign: 'center', fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.35rem' }}>
-          Welcome Back
-        </h2>
-        <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '2rem' }}>
-          Sign in to continue your ocean cleanup journey
-        </p>
+        <div className="auth-form-intro">
+          <h2>Welcome back</h2>
+          <p className="auth-subtitle">Sign in to keep mapping.</p>
+        </div>
 
         {error && (
-          <div style={{
-            background: 'rgba(239,68,68,0.12)',
-            border: '1px solid rgba(239,68,68,0.3)',
-            borderRadius: 'var(--radius-md)',
-            padding: '0.75rem 1rem',
-            color: '#f87171',
-            fontSize: '0.875rem',
-            marginBottom: '1.25rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="12" y1="8" x2="12" y2="12"></line>
-              <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            {error}
-          </div>
+          <p className="auth-error">{error}</p>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form onSubmit={handleSubmit} className="auth-email-form">
           <div className="form-group">
-            <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>Username</label>
+            <label htmlFor="login-email">Email</label>
             <input
+              id="login-email"
               type="text"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              autoComplete="username"
+              autoComplete="email"
               style={{ width: '100%' }}
             />
           </div>
 
           <div className="form-group">
-            <label style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-muted)' }}>Password</label>
-            <div style={{ position: 'relative', width: '100%' }}>
-              <input
-                type={showPass ? 'text' : 'password'}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                style={{ width: '100%', paddingRight: '3rem' }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass(v => !v)}
-                style={{
-                  position: 'absolute',
-                  right: '0.875rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                  padding: '0.25rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: 'none'
-                }}
-                tabIndex={-1}
-              >
-                {showPass ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                )}
-              </button>
-            </div>
+            <label htmlFor="login-password">Password</label>
+            <input
+              id="login-password"
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              style={{ width: '100%' }}
+            />
           </div>
 
           <button
@@ -168,14 +123,16 @@ export default function Login() {
                 animation: 'spin 0.7s linear infinite'
               }} />
             )}
-            {loading ? 'Signing in…' : 'Sign In'}
+            {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
 
-        <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-          Don't have an account?{' '}
+        <div className="auth-divider" aria-hidden="true"><span />or<span /></div>
+
+        <p className="auth-switch">
+          New here?{' '}
           <Link to="/signup" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>
-            Sign up
+            Create an account
           </Link>
         </p>
       </div>

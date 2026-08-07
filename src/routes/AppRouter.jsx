@@ -8,6 +8,7 @@ import MyActivities from '../apps/contributor/pages/MyActivities';
 import MyImpact from '../apps/contributor/pages/MyImpact';
 import ApprovedActivities from '../apps/contributor/pages/ApprovedActivities';
 import RejectedActivities from '../apps/contributor/pages/RejectedActivities';
+import ContributorOverview from '../apps/contributor/pages/ContributorOverview';
 import PendingQueue from '../apps/verifier/pages/PendingQueue';
 import ActivityReview from '../apps/verifier/pages/ActivityReview';
 import RejectedActivity from '../apps/verifier/pages/RejectedActivity';
@@ -31,7 +32,7 @@ function ProtectedRoute({ children, allowedRoles }) {
   if (allowedRoles && !allowedRoles.includes(role)) {
     if (role === 'verifier') return <Navigate to="/verifier/pending" replace />;
     if (role === 'admin') return <Navigate to="/dashboard/overview" replace />;
-    return <Navigate to="/contributor/submit" replace />;
+    return <Navigate to="/contributor/overview" replace />;
   }
 
   return children;
@@ -120,7 +121,7 @@ export default function AppRouter() {
   if (user && (location.pathname === '/login' || location.pathname === '/signup')) {
     if (role === 'verifier') return <Navigate to="/verifier/pending" replace />;
     if (role === 'admin') return <Navigate to="/dashboard/overview" replace />;
-    return <Navigate to="/contributor/submit" replace />;
+    return <Navigate to="/contributor/overview" replace />;
   }
 
   return (
@@ -133,11 +134,18 @@ export default function AppRouter() {
         <Route path="/" element={
           <ProtectedRoute>
             <MainLayout>
-              <Navigate to={role === 'verifier' ? '/verifier/pending' : role === 'admin' ? '/dashboard/overview' : '/contributor/submit'} replace />
+              <Navigate to={role === 'verifier' ? '/verifier/pending' : role === 'admin' ? '/dashboard/overview' : '/contributor/overview'} replace />
             </MainLayout>
           </ProtectedRoute>
         } />
 
+        <Route path="/contributor/overview" element={
+          <ProtectedRoute allowedRoles={['contributor', 'admin']}>
+            <MainLayout>
+              <ContributorOverview />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
         <Route path="/contributor/submit" element={
           <ProtectedRoute allowedRoles={['contributor', 'admin']}>
             <MainLayout>
@@ -159,20 +167,7 @@ export default function AppRouter() {
             </MainLayout>
           </ProtectedRoute>
         } />
-        <Route path="/contributor/approved-activities" element={
-          <ProtectedRoute allowedRoles={['contributor', 'admin']}>
-            <MainLayout>
-              <ApprovedActivities />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
-        <Route path="/contributor/rejected-activities" element={
-          <ProtectedRoute allowedRoles={['contributor', 'admin']}>
-            <MainLayout>
-              <RejectedActivities />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
+
         <Route path="/contributor/my-impact" element={
           <ProtectedRoute allowedRoles={['contributor', 'admin']}>
             <MainLayout>
