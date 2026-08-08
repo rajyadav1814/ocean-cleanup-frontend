@@ -22,14 +22,15 @@ import Organizations from '../apps/public-dashboard/pages/Organizations';
 import Login from '../apps/auth/pages/Login';
 import Signup from '../apps/auth/pages/Signup';
 import CitizenOverview from '../apps/citizen/pages/CitizenOverview';
+import LandingPage from '../app/page';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuth();
-  
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  
+
   if (allowedRoles && !allowedRoles.includes(role)) {
     if (role === 'verifier') return <Navigate to="/verifier/pending" replace />;
     if (role === 'admin') return <Navigate to="/dashboard/overview" replace />;
@@ -48,6 +49,19 @@ function MainLayout({ children }) {
       <main className="main-layout">
         <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
         <div className="main-content">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function PublicLayout({ children }) {
+  return (
+    <div className="app-shell force-dark" style={{ background: 'var(--bg-gradient)', color: 'var(--text-main)', minHeight: '100vh' }}>
+      <Header toggleMobileMenu={() => { }} hideActions={true} />
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--surface)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '2rem' }}>
           {children}
         </div>
       </main>
@@ -133,18 +147,30 @@ export default function AppRouter() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        
+
         <Route path="/" element={
-          <ProtectedRoute>
-            <MainLayout>
-              <Navigate to={
-                role === 'verifier' ? '/verifier/pending'
-                : role === 'admin' ? '/dashboard/overview'
-                : role === 'citizen' ? '/citizen/overview'
-                : '/contributor/overview'
-              } replace />
-            </MainLayout>
-          </ProtectedRoute>
+          user ? (
+            <ProtectedRoute>
+              <MainLayout>
+                <Navigate to={
+                  role === 'verifier' ? '/verifier/pending'
+                    : role === 'admin' ? '/dashboard/overview'
+                      : role === 'citizen' ? '/citizen/overview'
+                        : '/contributor/overview'
+                } replace />
+              </MainLayout>
+            </ProtectedRoute>
+          ) : (
+            <PublicLayout>
+              <LandingPage />
+            </PublicLayout>
+          )
+        } />
+
+        <Route path="/map" element={
+          <PublicLayout>
+            <ImpactMap />
+          </PublicLayout>
         } />
 
         <Route path="/contributor/overview" element={
