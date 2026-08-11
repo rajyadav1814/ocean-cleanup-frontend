@@ -30,7 +30,7 @@
 
   /* Fonts & Shadows */
   --font-sans: 'Outfit', system-ui, sans-serif;
-  --font-display: 'Syne', 'Syne Fallback', system-ui, sans-serif;
+  --font-display: 'Outfit', 'Syne Fallback', system-ui, sans-serif;
   --font-mono: var(--font-sans);
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
@@ -52,7 +52,8 @@
   --modal-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
 }
 
-[data-theme="dark"], .force-dark {
+[data-theme="dark"],
+.force-dark {
   /* BlueMind — dark ocean */
   color-scheme: dark;
   --brand-50: #071f33;
@@ -84,7 +85,7 @@
 
   /* Fonts & Shadows */
   --font-sans: 'Outfit', system-ui, sans-serif;
-  --font-display: 'Syne', 'Syne Fallback', system-ui, sans-serif;
+  --font-display: 'Outfit', 'Syne Fallback', system-ui, sans-serif;
   --font-mono: var(--font-sans);
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
