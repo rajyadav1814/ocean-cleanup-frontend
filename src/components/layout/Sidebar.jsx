@@ -70,6 +70,16 @@ const ICONS = {
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
+  ),
+  list: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
   )
 };
 
@@ -100,13 +110,13 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
   const links = {
     contributor: [
       { to: '/contributor/overview', label: 'Overview', icon: 'dashboard' },
-      { to: '/contributor/submit', label: 'Submit Activity', icon: 'zap' },
-      { to: '/contributor/my-activities', label: 'My Activities', icon: 'dashboard' },
+      { to: '/contributor/submit', label: 'Submit Activity', icon: 'plus' },
+      { to: '/contributor/my-activities', label: 'My Activities', icon: 'list' },
     ],
     citizen: [
       { to: '/citizen/overview', label: 'My Space',         icon: 'dashboard' },
-      { to: '/citizen/submit',   label: 'Submit Activity',  icon: 'zap' },
-      { to: '/citizen/my-activities', label: 'My Activities', icon: 'dashboard' },
+      { to: '/citizen/submit',   label: 'Submit Activity',  icon: 'plus' },
+      { to: '/citizen/my-activities', label: 'My Activities', icon: 'list' },
     ],
     verifier: [
       { to: '/verifier/pending', label: 'Pending Activities', icon: 'dashboard' },
@@ -145,7 +155,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', marginBottom: isMobile ? '1.5rem' : '2.5rem' }}>
           {!isCollapsed && (
-            <h2 style={{ margin: 0, fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>
               {getWorkspaceLabel(role)}
             </h2>
           )}
@@ -180,8 +190,9 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
                 padding: isCollapsed ? '0.75rem 0' : (isMobile ? '0.6rem 0.75rem' : '0.75rem 1rem'),
                 borderRadius: 'var(--radius-md)',
                 textDecoration: 'none',
-                fontWeight: 600,
-                fontSize: isMobile ? '0.95rem' : '1.05rem',
+                fontWeight: 500,
+                fontSize: isMobile ? '0.92rem' : '0.98rem',
+                fontFamily: 'var(--font-sans)',
                 transition: 'all 0.2s',
                 backgroundColor: isActive ? 'rgba(14, 165, 233, 0.15)' : 'transparent',
                 color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)',
@@ -198,7 +209,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
                   <div style={{ color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)', flexShrink: 0, transform: isMobile ? 'scale(0.9)' : 'none', display: 'flex' }}>
                     {ICONS[link.icon]}
                   </div>
-                  {!isCollapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontSize: isMobile ? '0.95rem' : '1.05rem' }}>{link.label}</span>}
+                  {!isCollapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontSize: isMobile ? '0.92rem' : '0.98rem', fontFamily: 'var(--font-sans)' }}>{link.label}</span>}
                 </>
               )}
             </NavLink>
@@ -218,9 +229,9 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
               borderRadius: 'var(--radius-md)',
               padding: '1rem 1.1rem',
             }}>
-              <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', fontWeight: 600 }}>Your impact</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--primary-hover)', margin: '0.2rem 0 0.1rem' }}>🌊 Active</div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Keep logging — every kg counts!</div>
+              <div style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-muted)', fontWeight: 400, fontFamily: 'var(--font-mono)' }}>Your impact</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 600, color: 'var(--primary-hover)', margin: '0.25rem 0 0.15rem', fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>🌊 Active</div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontFamily: 'var(--font-sans)', lineHeight: 1.5 }}>Keep logging — every kg counts!</div>
             </div>
           </div>
         )}

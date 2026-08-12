@@ -7,7 +7,9 @@ import {
   ArrowRight,
 } from 'lucide-react';
 
-const FONT = "'Outfit', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const FONT_SANS = "var(--font-sans)";
+const FONT_DISPLAY = "var(--font-display)";
+const FONT_MONO = "var(--font-mono)";
 
 export default function LandingPage() {
   return (
@@ -18,7 +20,7 @@ export default function LandingPage() {
         gap: '6rem',
         paddingTop: '1.5rem',
         paddingBottom: '1.5rem',
-        fontFamily: FONT,
+        fontFamily: FONT_SANS,
         fontStyle: 'normal',
       }}
     >
@@ -50,7 +52,7 @@ export default function LandingPage() {
               fontSize: '0.75rem',
               fontWeight: 600,
               color: '#7de7f0',
-              fontFamily: FONT,
+              fontFamily: FONT_MONO,
               letterSpacing: '0',
             }}
           >
@@ -74,7 +76,7 @@ export default function LandingPage() {
               lineHeight: 1.04,
               letterSpacing: '-0.045em',
               color: '#e8f2ff',
-              fontFamily: FONT,
+              fontFamily: FONT_DISPLAY,
               fontStyle: 'normal',
             }}
           >
@@ -100,7 +102,7 @@ export default function LandingPage() {
               lineHeight: 1.7,
               letterSpacing: '0',
               color: 'rgba(232,242,255,0.70)',
-              fontFamily: FONT,
+              fontFamily: FONT_SANS,
             }}
           >
             Every photo you take of trash in the wild becomes a data point in
@@ -129,11 +131,13 @@ export default function LandingPage() {
                 borderRadius: '9999px',
                 background: '#3dd6e0',
                 padding: '0.875rem 1.75rem',
-                fontSize: '1rem',
+                fontSize: '0.7rem',
                 fontWeight: 600,
                 color: '#041019',
                 textDecoration: 'none',
-                fontFamily: FONT,
+                fontFamily: FONT_MONO,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
                 boxShadow: '0 20px 40px rgba(61,214,224,0.25)',
                 transition: 'all 0.2s ease',
               }}
@@ -157,7 +161,8 @@ export default function LandingPage() {
             </Link>
 
             <Link
-              to="/"
+              to="https://forecast.bluemind.si/"
+              target='_blank'
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -166,11 +171,13 @@ export default function LandingPage() {
                 border: '1px solid var(--border-light)',
                 background: 'rgba(3,14,25,0.7)',
                 padding: '0.875rem 1.75rem',
-                fontSize: '1rem',
+                fontSize: '0.7rem',
                 fontWeight: 600,
                 color: '#e8f2ff',
                 textDecoration: 'none',
-                fontFamily: FONT,
+                fontFamily: FONT_MONO,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
                 transition: 'all 0.2s ease',
               }}
               onMouseEnter={(e) => {
@@ -233,7 +240,7 @@ export default function LandingPage() {
                   fontWeight: 600,
                   lineHeight: 1.2,
                   color: '#3dd6e0',
-                  fontFamily: FONT,
+                  fontFamily: FONT_DISPLAY,
                   letterSpacing: '-0.02em',
                 }}
               >
@@ -247,7 +254,7 @@ export default function LandingPage() {
                   fontWeight: 400,
                   color: 'rgba(232,242,255,0.70)',
                   lineHeight: 1.5,
-                  fontFamily: FONT,
+                  fontFamily: FONT_MONO,
                 }}
               >
                 {s.l}
@@ -274,7 +281,7 @@ export default function LandingPage() {
             lineHeight: 1.2,
             letterSpacing: '-0.025em',
             color: '#e8f2ff',
-            fontFamily: FONT,
+            fontFamily: FONT_DISPLAY,
           }}
         >
           Why BlueMind exists
@@ -289,7 +296,7 @@ export default function LandingPage() {
             fontWeight: 400,
             color: 'rgba(232,242,255,0.70)',
             lineHeight: 1.7,
-            fontFamily: FONT,
+            fontFamily: FONT_SANS,
           }}
         >
           Pollution is invisible until it is measured. Most litter is never
@@ -352,7 +359,7 @@ export default function LandingPage() {
               lineHeight: 1.2,
               letterSpacing: '-0.025em',
               color: '#e8f2ff',
-              fontFamily: FONT,
+              fontFamily: FONT_DISPLAY,
             }}
           >
             The impact of every report
@@ -373,7 +380,7 @@ export default function LandingPage() {
                 fontSize: '1rem',
                 fontWeight: 400,
                 lineHeight: 1.7,
-                fontFamily: FONT,
+                fontFamily: FONT_SANS,
               }}
             >
               A single bottle takes up to 450 years to break down.
@@ -389,7 +396,7 @@ export default function LandingPage() {
                 fontSize: '1rem',
                 fontWeight: 400,
                 lineHeight: 1.7,
-                fontFamily: FONT,
+                fontFamily: FONT_SANS,
               }}
             >
               As reports accumulate, patterns emerge: pollution hotspots,
@@ -408,12 +415,14 @@ export default function LandingPage() {
               borderRadius: '9999px',
               background: '#3dd6e0',
               padding: '0.75rem 1.5rem',
-              fontSize: '1rem',
+              fontSize: '0.7rem',
               fontWeight: 600,
               color: '#041019',
               textDecoration: 'none',
               transition: 'all 0.2s ease',
-              fontFamily: FONT,
+              fontFamily: FONT_MONO,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = '#22b8c7';
@@ -484,7 +493,7 @@ function Feature({
           fontWeight: 500,
           lineHeight: 1.3,
           color: '#e8f2ff',
-          fontFamily: FONT,
+          fontFamily: FONT_DISPLAY,
         }}
       >
         {title}
@@ -498,7 +507,7 @@ function Feature({
           fontWeight: 400,
           color: 'rgba(232,242,255,0.70)',
           lineHeight: 1.6,
-          fontFamily: FONT,
+          fontFamily: FONT_SANS,
         }}
       >
         {body}
