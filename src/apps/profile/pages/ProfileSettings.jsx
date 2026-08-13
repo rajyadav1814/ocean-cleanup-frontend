@@ -5,7 +5,7 @@ import LoadingSpinner from '../../../components/common/LoadingSpinner';
 
 export default function ProfileSettings() {
   const { user, updateUser } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -16,7 +16,7 @@ export default function ProfileSettings() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  
+
   const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
@@ -80,14 +80,14 @@ export default function ProfileSettings() {
         )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
+
           {/* Avatar Section */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border-light)' }}>
-            <div 
-              style={{ 
-                width: '100px', 
-                height: '100px', 
-                borderRadius: '50%', 
+          <div className="profile-avatar-section">
+            <div
+              style={{
+                width: '100px',
+                height: '100px',
+                borderRadius: '50%',
                 background: formData.profileImageUrl ? `url(${formData.profileImageUrl}) center/cover no-repeat` : 'var(--surface-hover)',
                 border: '2px dashed var(--border-light)',
                 display: 'flex',
@@ -109,16 +109,16 @@ export default function ProfileSettings() {
                 Upload a professional photo. Max size 2MB.
               </p>
               <div style={{ display: 'flex', gap: '1rem' }}>
-                <button 
-                  type="button" 
-                  className="secondary" 
+                <button
+                  type="button"
+                  className="secondary"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   Upload New
                 </button>
                 {formData.profileImageUrl && (
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 500 }}
                     onClick={() => setFormData(prev => ({ ...prev, profileImageUrl: '' }))}
                   >
@@ -126,17 +126,17 @@ export default function ProfileSettings() {
                   </button>
                 )}
               </div>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleImageChange} 
-                accept="image/*" 
-                style={{ display: 'none' }} 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageChange}
+                accept="image/*"
+                style={{ display: 'none' }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div className="profile-form-grid">
             <div className="form-group">
               <label htmlFor="firstName">First Name</label>
               <input
@@ -165,7 +165,7 @@ export default function ProfileSettings() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div className="profile-form-grid">
             <div className="form-group">
               <label htmlFor="jobTitle">Job Title</label>
               <input
@@ -193,13 +193,13 @@ export default function ProfileSettings() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-light)' }}>
-            <button 
-              type="submit" 
-              className="primary" 
+            <button
+              type="submit"
+              className="primary"
               disabled={saving}
               style={{ minWidth: '140px' }}
             >
-              {saving ? <LoadingSpinner size="sm" color="white" /> : 'Save Changes'}
+              {saving ? 'Saving Changes...' : 'Save Changes'}
             </button>
           </div>
 
