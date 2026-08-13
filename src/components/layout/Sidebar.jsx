@@ -80,6 +80,11 @@ const ICONS = {
       <line x1="3" y1="12" x2="3.01" y2="12" />
       <line x1="3" y1="18" x2="3.01" y2="18" />
     </svg>
+  ),
+  chevronLeft: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
   )
 };
 
@@ -99,11 +104,11 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
 
   const getWorkspaceLabel = (roleName) => {
     switch (roleName) {
-      case 'admin':       return 'Admin Space';
+      case 'admin': return 'Admin Space';
       case 'contributor': return 'Contributor Space';
-      case 'verifier':    return 'Verifier Space';
-      case 'citizen':     return 'Citizen Space';
-      default:            return 'Workspace';
+      case 'verifier': return 'Verifier Space';
+      case 'citizen': return 'Citizen Space';
+      default: return 'Workspace';
     }
   };
 
@@ -114,8 +119,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
       { to: '/contributor/my-activities', label: 'My Activities', icon: 'list' },
     ],
     citizen: [
-      { to: '/citizen/overview', label: 'My Space',         icon: 'dashboard' },
-      { to: '/citizen/submit',   label: 'Submit Activity',  icon: 'plus' },
+      { to: '/citizen/overview', label: 'My Space', icon: 'dashboard' },
+      { to: '/citizen/submit', label: 'Submit Activity', icon: 'plus' },
       { to: '/citizen/my-activities', label: 'My Activities', icon: 'list' },
     ],
     verifier: [
@@ -155,7 +160,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', marginBottom: isMobile ? '1.5rem' : '2.5rem' }}>
           {!isCollapsed && (
-            <h2 style={{ margin: 0, fontSize: isMobile ? '1.25rem' : '1.5rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? '0.9rem' : '1.2rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>
               {getWorkspaceLabel(role)}
             </h2>
           )}
@@ -168,8 +173,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
               boxShadow: 'none'
             }}
           >
-            <div style={{ transform: isMobile ? 'scale(0.85)' : 'none', display: 'flex' }}>
-              {ICONS.dashboard}
+            <div style={{ transform: `scale(${isMobile ? 0.65 : 0.75}) rotate(${isCollapsed ? 180 : 0}deg)`, display: 'flex', transition: 'transform 0.3s ease' }}>
+              {ICONS.chevronLeft}
             </div>
           </button>
         </div>
