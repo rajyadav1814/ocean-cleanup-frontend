@@ -23,6 +23,7 @@ import Login from '../apps/auth/pages/Login';
 import Signup from '../apps/auth/pages/Signup';
 import CitizenOverview from '../apps/citizen/pages/CitizenOverview';
 import LandingPage from '../app/page';
+import ProfileSettings from '../apps/profile/pages/ProfileSettings';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuth();
@@ -177,6 +178,14 @@ export default function AppRouter() {
           <ProtectedRoute allowedRoles={['contributor', 'admin']}>
             <MainLayout>
               <ContributorOverview />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <MainLayout>
+              <ProfileSettings />
             </MainLayout>
           </ProtectedRoute>
         } />

@@ -124,6 +124,10 @@ export async function authVerify(token) {
   return res.json();
 }
 
+export async function authUpdateProfile(payload) {
+  return apiPut('/api/auth/profile', payload);
+}
+
 // ─── Citizen API helpers ──────────────────────────────────────────────────────
 export const citizenApi = {
   getStats:       ()              => apiGet('/api/citizen/stats'),

@@ -453,15 +453,17 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
               onClick={() => setProfileOpen(!profileOpen)}
               style={{
                 width: '36px', height: '36px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+                background: user?.profileImageUrl ? `url(${user.profileImageUrl}) center/cover no-repeat` : 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
                 color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: 0, border: '2px solid var(--border-glow)', cursor: 'pointer',
                 boxShadow: 'var(--shadow-sm)'
               }}
             >
-              <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
-                {getDisplayInitial(user)}
-              </span>
+              {!user?.profileImageUrl && (
+                <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                  {getDisplayInitial(user)}
+                </span>
+              )}
             </button>
 
             {profileOpen && (
@@ -482,7 +484,7 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
 
                 <div style={{ display: 'flex', flexDirection: 'column', padding: '0.5rem 0' }}>
                   <button
-                    onClick={() => { setProfileOpen(false); /* navigate('/profile') if available */ }}
+                    onClick={() => { setProfileOpen(false); navigate('/profile'); }}
                     style={{
                       background: 'none', color: 'var(--text-main)', border: 'none', boxShadow: 'none',
                       padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.75rem',

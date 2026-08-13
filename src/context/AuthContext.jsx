@@ -80,7 +80,13 @@ export function AuthProvider({ children }) {
     setRole(null);
   };
 
-  const value = useMemo(() => ({ user, role, login, logout, loading }), [user, role, loading]);
+  const updateUser = (newUserData) => {
+    const normalizedUser = normalizeUser(newUserData);
+    localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
+    setUser(normalizedUser);
+  };
+
+  const value = useMemo(() => ({ user, role, login, logout, updateUser, loading }), [user, role, loading]);
 
   if (loading) {
     return (
