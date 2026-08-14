@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
 // A component to handle map clicks and drag events
 function MapEvents({ position, setPosition, onPositionChange }) {
   const map = useMap();
-  
+
   // Update map view when position changes externally
   useEffect(() => {
     if (position) {
@@ -40,23 +40,34 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
   const [isMapRequested, setIsMapRequested] = useState(Boolean(lat && lon));
   const markerRef = useRef(null);
 
-  // Helper to reverse geocode lat/lng to a place name
+  // Helper to reverse geocode lat/lng to a proper structured place name
   const fetchLocationName = async (lat, lng) => {
     try {
       setIsFetchingName(true);
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1&zoom=16`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
       const data = await res.json();
       if (data && data.display_name) {
-        // Use a shorter name if possible (e.g. city/town/village/suburb)
-        const address = data.address || {};
-        const shortName = address.amenity || address.road || address.village || address.suburb || address.city || address.town || data.name;
-        
-        // If we found a short recognizable name, use it + the broader region, else fallback to full display_name
-        if (shortName && address.state) {
-           setLocationName(`${shortName}, ${address.state}`);
-        } else {
-           setLocationName(data.display_name.split(',').slice(0, 3).join(','));
+        const a = data.address || {};
+
+        // Nominatim display_name is already ordered specific → broad (comma-separated)
+        // Take first 4-5 parts for a rich readable address
+        const displayParts = data.display_name
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+        // Try to prepend a specific named place (beach, park, amenity etc.) if it isn't already in display_name
+        const specificPlace = a.amenity || a.tourism || a.leisure || a.natural || a.waterway;
+        if (specificPlace && !displayParts[0].toLowerCase().includes(specificPlace.toLowerCase())) {
+          displayParts.unshift(specificPlace);
         }
+
+        // Take up to 5 parts, remove exact consecutive duplicates
+        const unique = displayParts.filter((p, i) => p !== displayParts[i - 1]);
+        setLocationName(unique.slice(0, 5).join(', '));
       }
     } catch (err) {
       console.warn('Reverse geocoding failed', err);
@@ -95,7 +106,7 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
     if (position) {
       onChange({ displayName: locationName, lat: position.lat, lon: position.lng });
     }
-  }, [position, locationName]); 
+  }, [position, locationName]);
 
   // When clicking on the map (handled in MapEvents), we want to fetch the name
   // To avoid modifying MapEvents, we can just hook into handleDragEnd and also map clicks.
@@ -116,12 +127,12 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-      
+
       {/* Name Input */}
       <div className="form-group" style={{ marginBottom: 0 }}>
-        <input 
-          type="text" 
-          placeholder="Enter a custom name for this location (e.g. Rozi Beach)..." 
+        <input
+          type="text"
+          placeholder="Enter a custom name for this location (e.g. Rozi Beach)..."
           value={locationName}
           onChange={(e) => setLocationName(e.target.value)}
           required
@@ -137,9 +148,9 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              <Marker 
-                position={position} 
-                draggable={true} 
+              <Marker
+                position={position}
+                draggable={true}
                 eventHandlers={{ dragend: handleDragEnd }}
                 ref={markerRef}
               />
@@ -163,30 +174,30 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', width: '100%' }}>
         <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
           <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Latitude</label>
-          <input 
-            type="text" 
-            value={position ? position.lat.toFixed(6) : ''} 
-            readOnly 
+          <input
+            type="text"
+            value={position ? position.lat.toFixed(6) : ''}
+            readOnly
             style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', width: '100%', minWidth: 0, padding: '0.75rem 1rem' }}
           />
         </div>
         <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
           <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Longitude</label>
-          <input 
-            type="text" 
-            value={position ? (position.lng || position.lon || 0).toFixed(6) : ''} 
+          <input
+            type="text"
+            value={position ? (position.lng || position.lon || 0).toFixed(6) : ''}
             readOnly
             style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', width: '100%', minWidth: 0, padding: '0.75rem 1rem' }}
           />
         </div>
       </div>
-      
+
       {isFetchingName && (
-         <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, marginTop: '-0.25rem' }}>
-           Fetching location name...
-         </div>
+        <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, marginTop: '-0.25rem' }}>
+          Fetching location name...
+        </div>
       )}
-      
+
       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '-0.5rem' }}>
         <em>Drag the marker or click anywhere on the map to adjust the coordinates.</em>
       </div>
