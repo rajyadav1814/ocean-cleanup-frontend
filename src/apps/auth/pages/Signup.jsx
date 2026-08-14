@@ -73,8 +73,7 @@ export default function Signup() {
       const { experience, confirmPassword, ...payload } = form;
       payload.yearsExperience = experience || null;
       delete payload.experience;
-      // Citizens share the established contributor workspace in the current API.
-      if (payload.role === 'citizen') payload.role = 'contributor';
+
       if (!payload.organizationId) delete payload.organizationId;
       const data = await authSignup(payload);
       if (data.ok) {
