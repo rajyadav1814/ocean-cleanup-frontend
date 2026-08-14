@@ -18,6 +18,7 @@ import ImpactMap from '../apps/public-dashboard/pages/ImpactMap';
 import AllActivities from '../apps/public-dashboard/pages/AllActivities';
 import VerifierList from '../apps/public-dashboard/pages/VerifierList';
 import ContributorsList from '../apps/public-dashboard/pages/ContributorsList';
+import CitizensList from '../apps/public-dashboard/pages/CitizensList';
 import Organizations from '../apps/public-dashboard/pages/Organizations';
 import Login from '../apps/auth/pages/Login';
 import Signup from '../apps/auth/pages/Signup';
@@ -310,6 +311,13 @@ export default function AppRouter() {
           <ProtectedRoute allowedRoles={['admin']}>
             <MainLayout>
               <ContributorsList />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/dashboard/citizens" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <MainLayout>
+              <CitizensList />
             </MainLayout>
           </ProtectedRoute>
         } />
