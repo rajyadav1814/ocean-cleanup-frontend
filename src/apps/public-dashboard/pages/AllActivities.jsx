@@ -45,10 +45,19 @@ function formatActivityTimestamp(timestamp) {
   return `${day}-${month}-${year}, ${hours}:${paddedMinutes} ${period}`;
 }
 
+const formatUserName = (user) => {
+  if (!user) return '—';
+  const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+  if (fullName) return fullName;
+  if (user.name) return user.name;
+  if (user.username) return user.username;
+  return user.id || '—';
+};
+
 export default function AllActivities() {
   const dispatch = useDispatch();
   const { activities, loading, error, refresh } = useActivities();
-  const { contributors, verifiers, admins, status: usersStatus } = useSelector((state) => state.users);
+  const { contributors, verifiers, admins, citizens, status: usersStatus } = useSelector((state) => state.users);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
 
@@ -104,11 +113,9 @@ export default function AllActivities() {
                     <td style={{ padding: '0.75rem 1rem' }}>{a.quantity}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>
                       {(() => {
-                        const allUsers = [...(contributors || []), ...(verifiers || []), ...(admins || [])];
-                        const contributor = allUsers.find((u) => u.id === a.contributorId);
-                        return contributor
-                          ? `${contributor.firstName || ''} ${contributor.lastName || contributor.username || ''}`.trim()
-                          : a.contributorId || '—';
+                        const allUsers = [...(contributors || []), ...(verifiers || []), ...(admins || []), ...(citizens || [])];
+                        const contributor = allUsers.find((u) => String(u.id) === String(a.contributorId));
+                        return contributor ? formatUserName(contributor) : (a.contributorId || '—');
                       })()}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
