@@ -139,7 +139,7 @@ export default function Signup() {
                 <div><span>Experience</span><strong>{form.experience || 'Not specified'}</strong></div>
                 <div><span>Organization</span><strong>{selectedOrganization}</strong></div>
               </div>
-              <div className="form-group"><label htmlFor="wallet-address">Wallet address <em>(optional)</em></label><input id="wallet-address" type="text" placeholder="addr_test1qz..." value={form.walletAddress} onChange={set('walletAddress')} /></div>
+              {/* <div className="form-group"><label htmlFor="wallet-address">Wallet address <em>(optional)</em></label><input id="wallet-address" type="text" placeholder="addr_test1qz..." value={form.walletAddress} onChange={set('walletAddress')} /></div> */}
             </section>}
 
             <div className="signup-actions">
