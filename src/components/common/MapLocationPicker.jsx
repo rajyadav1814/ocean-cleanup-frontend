@@ -11,6 +11,20 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+function toCoordinate(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const coordinate = Number(value);
+  return Number.isFinite(coordinate) ? coordinate : null;
+}
+
+function toPosition(lat, lon) {
+  const normalizedLat = toCoordinate(lat);
+  const normalizedLon = toCoordinate(lon);
+  return normalizedLat === null || normalizedLon === null
+    ? null
+    : { lat: normalizedLat, lng: normalizedLon };
+}
+
 // A component to handle map clicks and drag events
 function MapEvents({ position, setPosition, onPositionChange }) {
   const map = useMap();
@@ -34,11 +48,24 @@ function MapEvents({ position, setPosition, onPositionChange }) {
 }
 
 export default function MapLocationPicker({ value, lat, lon, onChange }) {
-  const [position, setPosition] = useState(lat && lon ? { lat, lng: lon } : null);
+  const suppliedPosition = toPosition(lat, lon);
+  const [position, setPosition] = useState(() => suppliedPosition);
   const [locationName, setLocationName] = useState(value || '');
   const [isFetchingName, setIsFetchingName] = useState(false);
-  const [isMapRequested, setIsMapRequested] = useState(Boolean(lat && lon));
+  const [isMapRequested, setIsMapRequested] = useState(Boolean(suppliedPosition));
   const markerRef = useRef(null);
+
+  // API responses may serialize coordinates as strings. Normalize them before
+  // passing them to Leaflet or formatting them with toFixed().
+  useEffect(() => {
+    if (
+      suppliedPosition &&
+      (!position || position.lat !== suppliedPosition.lat || position.lng !== suppliedPosition.lng)
+    ) {
+      setPosition(suppliedPosition);
+      setIsMapRequested(true);
+    }
+  }, [suppliedPosition?.lat, suppliedPosition?.lng]);
 
   // Helper to reverse geocode lat/lng to a proper structured place name
   const fetchLocationName = async (lat, lng) => {
@@ -78,7 +105,7 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
 
   // Initialize with current location if no lat/lon is provided and user has requested map access
   useEffect(() => {
-    if (isMapRequested && !lat && !lon && !position) {
+    if (isMapRequested && !suppliedPosition && !position) {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
@@ -99,7 +126,7 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
         fetchLocationName(51.505, -0.09);
       }
     }
-  }, [lat, lon, isMapRequested, position]);
+  }, [suppliedPosition, isMapRequested, position]);
 
   // Sync internal state to parent when internal state changes
   useEffect(() => {
@@ -176,7 +203,7 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
           <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Latitude</label>
           <input
             type="text"
-            value={position ? position.lat.toFixed(6) : ''}
+            value={position ? Number(position.lat).toFixed(6) : ''}
             readOnly
             style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', width: '100%', minWidth: 0, padding: '0.75rem 1rem' }}
           />
@@ -185,7 +212,7 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
           <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Longitude</label>
           <input
             type="text"
-            value={position ? (position.lng || position.lon || 0).toFixed(6) : ''}
+            value={position ? Number(position.lng ?? position.lon ?? 0).toFixed(6) : ''}
             readOnly
             style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', width: '100%', minWidth: 0, padding: '0.75rem 1rem' }}
           />

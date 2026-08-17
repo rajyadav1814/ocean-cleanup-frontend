@@ -26,6 +26,38 @@ const materials = [
   "Bottles and containers"
 ];
 
+const emptyDebrisLog = () => Object.fromEntries(materials.map((material) => [material, '']));
+
+function asImageUrls(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value !== 'string' || !value) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(Boolean) : [value];
+  } catch {
+    return [value];
+  }
+}
+
+function activityDebrisLog(activity) {
+  return {
+    ...emptyDebrisLog(),
+    ...(activity.debrisLog || {}),
+    'Cigarette butts': activity.debrisCigaretteButts ?? activity.debrisLog?.['Cigarette butts'] ?? '',
+    'Food wrappers': activity.debrisFoodWrappers ?? activity.debrisLog?.['Food wrappers'] ?? '',
+    'Bottle caps': activity.debrisBottleCaps ?? activity.debrisLog?.['Bottle caps'] ?? '',
+    'Fishing line and nets': activity.debrisFishingLine ?? activity.debrisLog?.['Fishing line and nets'] ?? '',
+    'Straws and bags': activity.debrisStraws ?? activity.debrisLog?.['Straws and bags'] ?? '',
+    'Bottles and containers': activity.debrisBottles ?? activity.debrisLog?.['Bottles and containers'] ?? ''
+  };
+}
+
+function positiveNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) && number > 0 ? number : null;
+}
+
 export default function SubmitActivity() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -38,14 +70,7 @@ export default function SubmitActivity() {
     shorelineType: 'Sandy beach',
     tideState: 'Low tide',
     cleanedBefore: false,
-    debrisLog: {
-      'Cigarette butts': '',
-      'Food wrappers': '',
-      'Bottle caps': '',
-      'Fishing line and nets': '',
-      'Straws and bags': '',
-      'Bottles and containers': ''
-    },
+    debrisLog: emptyDebrisLog(),
     microplastics: 'None observed',
     bulkItems: '',
     speciesSighted: '',
@@ -75,6 +100,8 @@ export default function SubmitActivity() {
   const [images, setImages] = useState([]);
   const [existingUrls, setExistingUrls] = useState([]);
   const [loadingActivity, setLoadingActivity] = useState(Boolean(activityId));
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activityStatus, setActivityStatus] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -104,6 +131,7 @@ export default function SubmitActivity() {
           setStatus('Failed to load activity for editing.');
           return;
         }
+        setActivityStatus(data.activity.status || 'pending');
         if (data.activity.status === 'approved') {
           setStatus('Approved activities cannot be edited.');
           return;
@@ -113,7 +141,7 @@ export default function SubmitActivity() {
           location: data.activity.location || '',
           lat: data.activity.lat,
           lon: data.activity.lon,
-          teamSize: data.activity.volunteers || '',
+          teamSize: data.activity.volunteers ?? data.activity.teamSize ?? '',
           quantity: data.activity.quantity || '',
           organizationId: data.activity.organizationId || '',
           category: data.activity.category || 'plastic',
@@ -122,31 +150,24 @@ export default function SubmitActivity() {
           shorelineType: data.activity.shorelineType || 'Sandy beach',
           tideState: data.activity.tideState || 'Low tide',
           cleanedBefore: data.activity.cleanedBefore || false,
-          debrisLog: data.activity.debrisLog || {
-            'Cigarette butts': '',
-            'Food wrappers': '',
-            'Bottle caps': '',
-            'Fishing line and nets': '',
-            'Straws and bags': '',
-            'Bottles and containers': ''
-          },
+          debrisLog: activityDebrisLog(data.activity),
           microplastics: data.activity.microplastics || 'None observed',
           bulkItems: data.activity.bulkItems || '',
           speciesSighted: data.activity.speciesSighted || '',
           condition: data.activity.condition || 'Healthy',
           habitatStress: data.activity.habitatStress || '',
-          hazards: data.activity.hazards || { medical: false, chemical: false, unstable: false },
+          hazards: {
+            medical: data.activity.hazards?.medical ?? data.activity.hazardsMedical ?? false,
+            chemical: data.activity.hazards?.chemical ?? data.activity.hazardsChemical ?? false,
+            unstable: data.activity.hazards?.unstable ?? data.activity.hazardsUnstable ?? false
+          },
           instrument: data.activity.instrument || 'Field scale',
           timeSpent: data.activity.timeSpent || '',
           secondVerifier: data.activity.secondVerifier || '',
           disposalMethod: data.activity.disposalMethod || 'Recycled',
           followUp: data.activity.followUp || false
         }));
-        const urls = Array.isArray(data.activity.imageGatewayUrl)
-          ? data.activity.imageGatewayUrl
-          : data.activity.imageGatewayUrl
-            ? [data.activity.imageGatewayUrl]
-            : [];
+        const urls = asImageUrls(data.activity.imageGatewayUrl || data.activity.imageUrls);
         setExistingUrls(urls);
       } catch (err) {
         setStatus('Failed to load activity for editing.');
@@ -160,19 +181,29 @@ export default function SubmitActivity() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (isSubmitting || activityStatus === 'approved') return;
+
+    const volunteers = positiveNumber(form.teamSize);
+    if (volunteers === null) {
+      setStep(5);
+      setStatus('Please provide a team size of at least 1 volunteer.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setStatus('');
     const payload = {
       organizationId: form.organizationId || null,
       contributorId: user?.id || null,
       category: form.category,
       location: form.location,
       quantity: form.quantity,
-      volunteers: form.teamSize,
+      volunteers,
       evidenceHash: form.evidenceHash,
       notes: form.notes,
       lat: form.lat,
       lon: form.lon,
-      gps: form.lat && form.lon ? `${form.lat}, ${form.lon}` : null,
-      timestamp: new Date().toISOString(),
+      gps: form.lat !== null && form.lat !== '' && form.lon !== null && form.lon !== '' && Number.isFinite(Number(form.lat)) && Number.isFinite(Number(form.lon)) ? `${form.lat}, ${form.lon}` : null,
       shorelineType: form.shorelineType,
       tideState: form.tideState,
       cleanedBefore: form.cleanedBefore,
@@ -197,22 +228,36 @@ export default function SubmitActivity() {
       followUp: form.followUp
     };
 
-    if (images.length > 0) {
-      payload.imageUrls = JSON.stringify(images.map((img) => img.dataUrl));
+    // Send the complete final image list. This preserves existing evidence, and
+    // makes a removed preview a persisted removal rather than a UI-only change.
+    if (activityId || images.length > 0) {
+      payload.imageUrls = JSON.stringify([
+        ...existingUrls,
+        ...images.map((img) => img.dataUrl)
+      ]);
     }
 
-    const response = activityId
-      ? await apiPatch(`/api/activities/${activityId}`, payload)
-      : await apiPost('/api/activities', payload);
+    try {
+      const response = activityId
+        ? await apiPatch(`/api/activities/${activityId}`, payload)
+        : await apiPost('/api/activities', payload);
 
-    if (response.ok) {
+      if (!response.ok) {
+        setStatus(response.error || response.message || (activityId ? 'Update failed. Please try again.' : 'Submission failed. Please try again.'));
+        return;
+      }
+
       dispatch(invalidateActivities());
       dispatch(invalidateDashboard());
-      setStatus(activityId ? 'Activity updated successfully!' : 'Activity submitted successfully!');
       const dest = user?.role === 'citizen' ? '/citizen/overview' : '/contributor/my-activities';
-      setTimeout(() => navigate(dest, { replace: true }), 250);
-    } else {
-      setStatus(activityId ? 'Update failed. Please try again.' : 'Submission failed. Please try again.');
+      navigate(dest, {
+        replace: true,
+        state: { flashMessage: activityId ? 'Cleanup activity updated.' : 'Cleanup activity submitted.' }
+      });
+    } catch {
+      setStatus(activityId ? 'Update failed. Check your connection and try again.' : 'Submission failed. Check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -257,6 +302,10 @@ export default function SubmitActivity() {
         return;
       }
     }
+    if (step === 5 && positiveNumber(form.teamSize) === null) {
+      setStatus('Please provide a team size of at least 1 volunteer.');
+      return;
+    }
     setStatus("");
     setStep(s => s + 1);
   };
@@ -270,6 +319,16 @@ export default function SubmitActivity() {
 
   if (loadingActivity) {
     return <LoadingSpinner layout="form" />;
+  }
+
+  if (activityId && activityStatus === 'approved') {
+    return (
+      <section className="card" style={{ maxWidth: '640px', margin: '2rem auto', padding: '2rem', textAlign: 'center' }}>
+        <h3>Approved cleanup activity</h3>
+        <p className="text-muted">Approved activities are locked to preserve their verified record.</p>
+        <button type="button" className="secondary" onClick={() => navigate(user?.role === 'citizen' ? '/citizen/my-activities' : '/contributor/my-activities')}>Back to my activities</button>
+      </section>
+    );
   }
 
   return (
@@ -514,7 +573,7 @@ export default function SubmitActivity() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Team size (Volunteers)</label>
-                  <input type="number" placeholder="6" value={form.teamSize} onChange={e => setForm({...form, teamSize: e.target.value})} required />
+                  <input type="number" min="1" step="1" placeholder="6" value={form.teamSize} onChange={e => setForm({...form, teamSize: e.target.value})} required />
                 </div>
                 <div className="form-group">
                   <label>Time spent (min)</label>
@@ -604,6 +663,7 @@ export default function SubmitActivity() {
             ) : (
               <button
                 type="submit"
+                disabled={isSubmitting}
                 style={{
                   flex: 1,
                   background: 'var(--primary)',
@@ -613,7 +673,7 @@ export default function SubmitActivity() {
                   border: 'none'
                 }}
               >
-                {activityId ? 'Update activity' : 'Submit activity'}
+                {isSubmitting ? 'Saving…' : activityId ? 'Update activity' : 'Submit activity'}
               </button>
             )}
           </div>
