@@ -168,7 +168,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', marginBottom: isMobile ? '1.5rem' : '2.5rem' }}>
           {!isCollapsed && (
-            <h2 style={{ margin: 0, fontSize: isMobile ? '0.9rem' : '1.2rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>
+            <h2 style={{ margin: 0, fontSize: isMobile ? '0.9rem' : '1.2rem', fontWeight: 500, color: 'var(--text-main)', whiteSpace: 'nowrap', fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>
               {getWorkspaceLabel(role)}
             </h2>
           )}
@@ -243,7 +243,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
               padding: '1rem 1.1rem',
             }}>
               <div style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--text-muted)', fontWeight: 400, fontFamily: 'var(--font-mono)' }}>Your impact</div>
-              <div style={{ fontSize: '1.35rem', fontWeight: 600, color: 'var(--primary-hover)', margin: '0.25rem 0 0.15rem', fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>🌊 Active</div>
+              <div style={{ fontSize: '1.35rem', fontWeight: 500, color: 'var(--primary-hover)', margin: '0.25rem 0 0.15rem', fontFamily: 'var(--font-display)', letterSpacing: '-0.01em' }}>🌊 Active</div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontFamily: 'var(--font-sans)', lineHeight: 1.5 }}>Keep logging — every kg counts!</div>
             </div>
           </div>
