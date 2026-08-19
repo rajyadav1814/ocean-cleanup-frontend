@@ -365,9 +365,6 @@ export default function SubmitActivity() {
         {/* Stepper Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <span style={{ fontWeight: 600, fontSize: '18px' }}>{activityId ? 'Edit cleanup activity' : 'Log a cleanup'}</span>
-          <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: 'var(--radius-md)', background: 'var(--bg-accent)', color: 'var(--text-accent)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
-            Contributor
-          </span>
         </div>
         <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
           Step {step} of 6 - {labels[step - 1]}

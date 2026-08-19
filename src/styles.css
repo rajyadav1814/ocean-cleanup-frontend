@@ -428,6 +428,56 @@ a {
   flex-direction: column;
 }
 
+/* Citizen Space uses the authentication screens' midnight-ocean palette in
+   dark mode, including the surrounding navigation chrome. */
+[data-theme="dark"] .citizen-space-shell {
+  --primary: #6fc9c4;
+  --primary-hover: #a9d8f0;
+  --secondary: #0b82c9;
+  --surface: rgba(4, 18, 31, 0.55);
+  --surface-hover: rgba(255, 255, 255, 0.055);
+  --border-light: rgba(160, 210, 240, 0.18);
+  --border-glow: rgba(127, 195, 232, 0.5);
+  --text-main: #f2f7fa;
+  --text-muted: rgba(233, 242, 247, 0.68);
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --bg-gradient:
+    radial-gradient(90% 60% at 78% 6%, #17587f 0%, transparent 58%),
+    radial-gradient(95% 70% at 10% 100%, #0a4f83 0%, transparent 62%),
+    linear-gradient(172deg, #05192e 0%, #072744 44%, #08395f 100%);
+  background: var(--bg-gradient);
+}
+
+[data-theme="dark"] .citizen-space-shell .topbar,
+[data-theme="dark"] .citizen-space-shell .sidebar-container {
+  background: linear-gradient(180deg, rgba(4, 18, 31, 0.76), rgba(4, 18, 31, 0.48));
+  border-color: rgba(160, 210, 240, 0.18);
+  box-shadow: 0 24px 48px -30px rgba(3, 12, 22, 0.65);
+}
+
+[data-theme="dark"] .citizen-space-shell .brand-wordmark {
+  color: #f2f7fa;
+}
+
+[data-theme="dark"] .citizen-space-shell .brand-wordmark:hover {
+  color: #a9d8f0;
+}
+
+[data-theme="dark"] .citizen-space-shell button.secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(160, 210, 240, 0.18);
+  color: #f2f7fa;
+}
+
+[data-theme="dark"] .citizen-space-shell button.secondary:hover {
+  background: rgba(127, 195, 232, 0.12);
+  border-color: #7fc3e8;
+  box-shadow: none;
+  filter: none;
+}
+
 /* Glassmorphism Header */
 .topbar {
   display: flex;
@@ -459,13 +509,21 @@ a {
 .brand-wordmark {
   color: rgba(232, 242, 255, 0.8);
   font-family: var(--font-sans);
-  font-size: 0.875rem;
-  font-weight: 500;
-  letter-spacing: 0.34em;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   line-height: 1;
   margin: 0;
-  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   transition: color 0.2s ease;
+}
+
+.brand-wordmark__mark {
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: 0 0 auto;
 }
 
 .brand-wordmark:hover {

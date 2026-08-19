@@ -45,8 +45,11 @@ function ProtectedRoute({ children, allowedRoles }) {
 
 function MainLayout({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const isCitizenSpace = location.pathname.startsWith('/citizen');
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell${isCitizenSpace ? ' citizen-space-shell' : ''}`}>
       <Header toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       <main className="main-layout">
         <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />

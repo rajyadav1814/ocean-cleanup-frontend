@@ -17,10 +17,30 @@ function memberSince(ts) {
   if (!ts) return 'recently';
   return new Date(ts).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
 }
+function getFeedStatus(item) {
+  const value = String(item.status || item.verificationStatus || item.activityStatus || 'pending')
+    .trim()
+    .toLowerCase();
+
+  if (['approved', 'verified', 'complete', 'completed'].includes(value)) {
+    return { label: 'Verified', variant: 'verified' };
+  }
+  if (['rejected', 'declined', 'failed'].includes(value)) {
+    return { label: 'Rejected', variant: 'rejected' };
+  }
+  if (value === 'pending' || value === 'in_review' || value === 'under_review') {
+    return { label: 'Pending', variant: 'pending' };
+  }
+
+  return {
+    label: value.replace(/[_-]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    variant: 'pending',
+  };
+}
 
 /* ── injected styles ──
    Bluemind ocean theme: Instrument Sans / Instrument Serif italic, the
-   navy → ocean → teal ramp, white card containers, wave motif. All the
+   navy → ocean → teal ramp, glass card containers, wave motif. All the
    original --primary / --surface / --border-light etc. tokens are kept
    (nothing downstream had to change) — they're just redefined locally
    to the brand palette, scoped to .co-root so the rest of the app is
@@ -55,6 +75,42 @@ const STYLES = `
     position: relative;
   }
 
+  /* Keep Citizen Space on the same midnight-ocean system as Login and
+     Signup. These variables intentionally live beneath the page root so
+     the dashboard can still offer its light theme without leaking styles
+     into the rest of the application. */
+  [data-theme="dark"] .co-root,
+  .force-dark .co-root {
+    --primary: #6FC9C4;
+    --primary-hover: #A9D8F0;
+    --secondary: #0B82C9;
+    --warning: #F8B84E;
+    --success: #6FC9C4;
+
+    --surface: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+    --surface-hover: rgba(255,255,255,.055);
+    --border-light: rgba(160,210,240,.18);
+    --border-glow: #7FC3E8;
+
+    --text-main: #F2F7FA;
+    --text-muted: rgba(233,242,247,.68);
+  }
+
+  [data-theme="dark"] .co-hero,
+  [data-theme="dark"] .co-stat,
+  [data-theme="dark"] .co-panel,
+  .force-dark .co-hero,
+  .force-dark .co-stat,
+  .force-dark .co-panel {
+    box-shadow: 0 24px 48px -30px rgba(3,12,22,.65);
+    backdrop-filter: blur(18px) saturate(1.3);
+    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  }
+
+  [data-theme="dark"] .co-hero-wave { opacity: .72; }
+  [data-theme="dark"] .co-badge.earned,
+  .force-dark .co-badge.earned { background: rgba(46,158,155,.12); }
+
   /* wave signature strip */
   .co-wavebar { position: absolute !important; left: 0; bottom: 0; width: 100%; height: 80px; overflow: hidden; background: var(--surface-hover); z-index: 0 !important; pointer-events: none; }
   .co-wavebar svg { position: absolute; left: 0; bottom: -1px; width: 200%; max-width: none; height: 100px; }
@@ -86,6 +142,16 @@ const STYLES = `
     color: var(--primary); margin-bottom: 0.8rem; opacity: 0.85;
     font-family: var(--font-mono); font-weight: 500;
   }
+  .co-hero-kicker { display: flex; align-items: center; gap: 0.8rem; }
+  .co-hero-kicker .co-eyebrow { margin-bottom: 0.8rem; }
+  .co-heading-wave {
+    width: 124px; height: 34px; margin-bottom: 0.8rem; overflow: visible;
+    color: var(--border-glow); opacity: .72;
+  }
+  .co-heading-wave path { fill: none; stroke: currentColor; stroke-linecap: round; }
+  .co-heading-wave .wave-1 { stroke-width: 1.15; opacity: .8; }
+  .co-heading-wave .wave-2 { stroke: var(--primary); stroke-width: 1.35; opacity: .6; }
+  .co-heading-wave .wave-3 { stroke-width: 1; opacity: .48; }
   .co-h1 {
     font-size: 1.9rem; font-weight: 500; line-height: 1.25;
     color: var(--text-main); margin: 0; max-width: 540px;
@@ -97,24 +163,34 @@ const STYLES = `
     margin-top: 0.7rem; max-width: 460px; line-height: 1.7;
   }
   .co-cta {
-    background: transparent !important;
-    border: 1px solid var(--border-glow) !important;
-    border-radius: var(--radius-md) !important;
-    color: var(--primary) !important;
-    font-size: 0.78rem !important; font-weight: 600 !important;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
+    min-height: 44px;
+    background: linear-gradient(135deg, #6FC9C4, #2E9E9B) !important;
+    border: 1px solid transparent !important;
+    border-radius: 999px !important;
+    color: #04121F !important;
+    font-size: 0.72rem !important; font-weight: 700 !important;
     letter-spacing: 0.1em !important; text-transform: uppercase !important;
-    padding: 0.75rem 1.6rem !important;
+    padding: 0.55rem 0.65rem 0.55rem 1.15rem !important;
     cursor: pointer; white-space: nowrap; flex-shrink: 0; align-self: flex-end;
-    box-shadow: none !important; transform: none !important; filter: none !important;
-    transition: background 0.2s, box-shadow 0.2s !important;
+    margin-bottom: 2.75rem;
+    box-shadow: 0 16px 30px -14px rgba(46,158,155,.72) !important;
+    transform: none !important; filter: none !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease !important;
     font-family: var(--font-mono) !important;
   }
-  .co-cta:hover {
-    background: rgba(46,158,155,0.08) !important;
-    box-shadow: 0 0 20px rgba(46,158,155,0.18) !important;
-    border-color: var(--primary) !important;
-    transform: none !important; filter: none !important;
+  .co-cta-arrow {
+    display: grid; place-items: center; width: 28px; height: 28px;
+    border-radius: 50%; background: rgba(4,18,31,.13); font-size: 1rem;
+    transition: transform 0.2s ease, background 0.2s ease;
   }
+  .co-cta:hover {
+    background: linear-gradient(135deg, #A9D8F0, #6FC9C4) !important;
+    box-shadow: 0 20px 34px -14px rgba(46,158,155,.85) !important;
+    border-color: transparent !important;
+    transform: translateY(-2px) !important; filter: none !important;
+  }
+  .co-cta:hover .co-cta-arrow { transform: translateX(2px); background: rgba(4,18,31,.2); }
 
   /* stat strip */
   .co-stats {
@@ -196,6 +272,7 @@ const STYLES = `
   }
   .co-pill.pending  { background: rgba(198,130,30,0.14) !important; color: var(--warning) !important; }
   .co-pill.verified { background: rgba(46,158,155,0.14) !important; color: var(--success) !important; }
+  .co-pill.rejected { background: rgba(239,68,68,0.14) !important; color: #EF4444 !important; }
 
   /* badges */
   .co-badges { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
@@ -250,11 +327,13 @@ const STYLES = `
     .co-h1    { font-size: 1.5rem; }
   }
   @media (max-width: 520px) {
+    .co-heading-wave { width: 92px; }
     .co-badges { grid-template-columns: repeat(2,1fr); }
     .co-stat   { padding: 1rem 1.1rem; }
     .co-stat-value { font-size: 1.4rem; }
     .co-panel  { padding: 1.2rem; }
     .co-hero   { padding: 1.4rem; }
+    .co-cta    { align-self: flex-start; margin-bottom: 2.4rem; }
   }
 `;
 
@@ -304,7 +383,14 @@ export default function CitizenOverview() {
           <path d="M0,125 Q50,90 100,125 T200,125 T300,125 T400,125" stroke="var(--border-glow)" strokeWidth="2" opacity=".4" />
         </svg>
         <div>
-          <div className="co-eyebrow">Citizen Space</div>
+          <div className="co-hero-kicker">
+            <div className="co-eyebrow">Citizen Space</div>
+            <svg className="co-heading-wave" viewBox="0 0 136 38" aria-hidden="true">
+              <path className="wave-1" d="M1 12c13-11 27-11 40 0s27 11 40 0 27-11 40 0" />
+              <path className="wave-2" d="M12 20c13-11 27-11 40 0s27 11 40 0 27-11 40 0" />
+              <path className="wave-3" d="M1 28c13-11 27-11 40 0s27 11 40 0 27-11 40 0" />
+            </svg>
+          </div>
           <h1 className="co-h1">
             Hi {firstName} — the coast is{' '}
             <em>a little cleaner</em> because you showed up.
@@ -315,7 +401,7 @@ export default function CitizenOverview() {
           </p>
         </div>
         <Link to="/citizen/submit" id="citizen-submit-hero" className="co-cta">
-          Submit a report →
+          <span>Submit a report →</span>
         </Link>
       </div>
 
@@ -352,6 +438,7 @@ export default function CitizenOverview() {
 
             {feed.slice(0, 6).map((item, i) => {
               const name = `${item.firstName || ''} ${item.lastName?.[0] ? item.lastName[0] + '.' : ''}`.trim();
+              const status = getFeedStatus(item);
               return (
                 <div key={item.id || i} className="co-feed-row">
                   <div className="co-feed-time">{timeAgo(item.submittedAt)}</div>
@@ -362,8 +449,7 @@ export default function CitizenOverview() {
                     <div className="co-feed-meta">
                       {item.quantity > 0 && <span>{item.quantity} kg</span>}
                       {item.volunteers > 0 && <span>· {item.volunteers} vol.</span>}
-                      {item.status === 'pending' && <span className="co-pill pending">Pending</span>}
-                      {item.status === 'approved' && <span className="co-pill verified">Verified</span>}
+                      <span className={`co-pill ${status.variant}`}>{status.label}</span>
                     </div>
                   </div>
                 </div>

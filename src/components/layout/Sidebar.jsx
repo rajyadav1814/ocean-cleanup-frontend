@@ -207,10 +207,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
                 fontSize: isMobile ? '0.92rem' : '0.98rem',
                 fontFamily: 'var(--font-sans)',
                 transition: 'all 0.2s',
-                backgroundColor: isActive ? 'rgba(14, 165, 233, 0.15)' : 'transparent',
+                backgroundColor: isActive ? 'rgba(11, 130, 201, 0.16)' : 'transparent',
                 color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)',
                 border: isActive ? '1px solid var(--border-glow)' : '1px solid transparent',
-                boxShadow: isActive ? 'inset 0 0 20px rgba(14, 165, 233, 0.05)' : 'none',
+                boxShadow: isActive ? 'inset 0 0 20px rgba(127, 195, 232, 0.08)' : 'none',
                 whiteSpace: 'nowrap',
                 width: '100%',
                 boxSizing: 'border-box',
@@ -237,7 +237,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
             borderTop: '1px solid var(--border-light)',
           }}>
             <div style={{
-              background: 'linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(61,214,224,0.1) 100%)',
+              background: 'linear-gradient(135deg, rgba(11,130,201,0.16) 0%, rgba(46,158,155,0.12) 100%)',
               border: '1px solid var(--border-glow)',
               borderRadius: 'var(--radius-md)',
               padding: '1rem 1.1rem',

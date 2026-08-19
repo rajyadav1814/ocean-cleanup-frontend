@@ -205,7 +205,12 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
     <header className="topbar">
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <Link to="/" className="brand-wordmark" aria-label="BlueMind home">
-          BLUEMIND
+          <svg className="brand-wordmark__mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="9.25" stroke="currentColor" strokeWidth="1.4" />
+            <path d="M2.9 9.6h18.2M2.9 14.4h18.2" stroke="currentColor" strokeWidth="1.1" opacity=".72" />
+            <path d="M12 2.75c2.6 2.6 3.9 5.7 3.9 9.25S14.6 18.65 12 21.25c-2.6-2.6-3.9-5.7-3.9-9.25S9.4 5.35 12 2.75Z" stroke="currentColor" strokeWidth="1.1" opacity=".72" />
+          </svg>
+          <span>Bluemind</span>
         </Link>
       </div>
       <div className="nav-links">
