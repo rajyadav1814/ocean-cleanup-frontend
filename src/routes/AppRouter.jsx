@@ -71,6 +71,16 @@ function PublicLayout({ children }) {
   );
 }
 
+function LandingLayout({ children }) {
+  return (
+    <div className="app-shell force-dark" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#05192E' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 0 }}>
+        {children}
+      </main>
+    </div>
+  );
+}
+
 function FlashMessageToast() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -163,9 +173,9 @@ export default function AppRouter() {
               </MainLayout>
             </ProtectedRoute>
           ) : (
-            <PublicLayout>
+            <LandingLayout>
               <LandingPage />
-            </PublicLayout>
+            </LandingLayout>
           )
         } />
 
@@ -182,7 +192,7 @@ export default function AppRouter() {
             </MainLayout>
           </ProtectedRoute>
         } />
-        
+
         <Route path="/profile" element={
           <ProtectedRoute>
             <MainLayout>

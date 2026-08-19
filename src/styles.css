@@ -1,6 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
+
 :root {
   /* BlueMind — dark ocean */
-  color-scheme: dark;
   --brand-50: #071f33;
   --brand-100: #0b2d4a;
   --brand-200: #16476b;
@@ -940,13 +941,15 @@ tr:hover td {
   align-items: center;
   min-height: 100vh;
   padding: 2rem;
-  background: var(--bg);
+  background: linear-gradient(180deg, #05192E 0%, #072744 46%, #0A4F83 100%);
+  font-family: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color: #F2F9FD;
 }
 
 .auth-header {
   align-items: center;
-  background: #06121c;
-  border-top: 1px solid rgba(232, 242, 255, 0.18);
+  background: transparent;
+  border-top: none;
   display: flex;
   height: 5rem;
   left: 0;
@@ -961,17 +964,20 @@ tr:hover td {
   max-width: 448px;
   padding: 1.65rem 1.5rem 1.5rem;
   text-align: center;
-  background: #0d1c26;
-  border: 1px solid rgba(232, 242, 255, 0.14);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.5rem;
-  box-shadow: none;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .auth-card h2 {
-  color: #f4f8ff;
-  font-size: 1.42rem;
-  font-weight: 500;
+  color: #ffffff;
+  font-family: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 1.65rem;
+  font-weight: 600;
   margin-bottom: 0.3rem;
   text-align: left;
 }
@@ -986,7 +992,7 @@ tr:hover td {
 }
 
 .auth-subtitle {
-  color: rgba(232, 242, 255, 0.68);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.875rem;
   margin: 0;
   text-align: left;
@@ -1016,12 +1022,13 @@ tr:hover td {
 
 .auth-card input,
 .auth-card select {
-  background: #0b1a24;
-  border-color: rgba(61, 214, 224, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0.8rem;
   color: #e8f2ff;
   min-height: 2.65rem;
   padding: 0.7rem 0.95rem;
+  transition: all 0.2s ease;
 }
 
 .auth-card input::placeholder {
@@ -1030,25 +1037,31 @@ tr:hover td {
 
 .auth-card input:focus,
 .auth-card select:focus {
-  background: #0b1a24;
+  background: rgba(0, 0, 0, 0.3);
   border-color: #3dd6e0;
   box-shadow: 0 0 0 3px rgba(61, 214, 224, 0.12);
+  outline: none;
 }
 
 .auth-card button[type="submit"] {
-  background: #3dd6e0 !important;
+  background: linear-gradient(135deg, #0A4F83 0%, #14669E 100%) !important;
+  color: #F2F9FD !important;
+  font-family: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif !important;
   border-radius: 999px !important;
-  box-shadow: 0 10px 20px rgba(61, 214, 224, 0.12) !important;
-  color: #062131 !important;
-  font-size: 0.9rem !important;
-  margin-top: 0.1rem !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.15), 0 3px 6px rgba(0,0,0,.15) !important;
+  font-size: 0.94rem !important;
+  font-weight: 500 !important;
+  margin-top: 0.25rem !important;
   min-height: 2.6rem;
-  padding: 0.7rem 1rem !important;
+  padding: 0.65rem 1.4rem !important;
+  border: none !important;
+  transition: all 0.25s ease !important;
 }
 
 .auth-card button[type="submit"]:hover {
-  background: #7de7f0 !important;
-  box-shadow: 0 10px 24px rgba(61, 214, 224, 0.22) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 5px 12px rgba(0,0,0,.2) !important;
+  filter: brightness(1.1) !important;
 }
 
 .auth-divider {
