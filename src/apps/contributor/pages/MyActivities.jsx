@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { apiDelete } from '../../../services/api';
 import ImageGalleryModal from '../../../components/common/ImageGalleryModal';
+import OceanWaveStrip from '../../../components/common/OceanWaveStrip';
 import { invalidateContributorStats } from '../../../store/contributorSlice';
 import { invalidateCitizenStats } from '../../../store/citizenSlice';
 
@@ -48,8 +49,10 @@ const STYLES = `
   .ma-hero {
     display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;
     background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-lg);
-    padding: 1.75rem 2rem; backdrop-filter: blur(16px);
+    padding: 1.75rem 2rem 4.5rem; backdrop-filter: blur(16px);
+    position: relative; overflow: hidden;
   }
+  .ma-hero > :not(.ocean-wave-strip) { position: relative; z-index: 1; }
   .ma-eyebrow { font-size: .62rem; letter-spacing: .24em; text-transform: uppercase; color: var(--primary); opacity: .85; font-family: var(--font-mono); margin-bottom: .55rem; }
   .ma-title { margin: 0; font-size: 1.55rem; font-weight: 600; letter-spacing: -.02em; color: var(--text-main); font-family: var(--font-display); }
   .ma-title em { font-style: italic; font-family: var(--font-serif); font-weight: 400; color: var(--primary); }
@@ -125,7 +128,7 @@ const STYLES = `
   }
 
   @media (max-width: 640px) {
-    .ma-hero { padding: 1.35rem 1.4rem; align-items: flex-start; }
+    .ma-hero { padding: 1.35rem 1.4rem 4rem; align-items: flex-start; }
     .ma-toolbar { flex-direction: column; align-items: flex-start; }
     .ma-grid { grid-template-columns: 1fr; }
   }
@@ -201,6 +204,7 @@ export default function MyActivities() {
       <section>
         {/* ── HERO ── */}
         <div className="ma-hero">
+          <OceanWaveStrip />
           <div>
             <div className="ma-eyebrow">Your Record</div>
             <h1 className="ma-title">My <em>activities.</em></h1>

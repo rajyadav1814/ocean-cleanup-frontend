@@ -222,10 +222,10 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
                 fontSize: isMobile ? '0.92rem' : '0.98rem',
                 fontFamily: 'var(--font-sans)',
                 transition: 'all 0.2s',
-                backgroundColor: isActive ? 'rgba(11, 130, 201, 0.16)' : 'transparent',
+                backgroundColor: isActive ? 'color-mix(in srgb, var(--primary) 16%, transparent)' : 'transparent',
                 color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)',
-                border: isActive ? '1px solid var(--border-glow)' : '1px solid transparent',
-                boxShadow: isActive ? 'inset 0 0 20px rgba(127, 195, 232, 0.08)' : 'none',
+                border: isActive ? '1px solid color-mix(in srgb, var(--primary) 45%, transparent)' : '1px solid transparent',
+                boxShadow: isActive ? 'inset 0 0 20px color-mix(in srgb, var(--primary) 8%, transparent)' : 'none',
                 whiteSpace: 'nowrap',
                 width: '100%',
                 boxSizing: 'border-box',
@@ -252,8 +252,8 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
             borderTop: '1px solid var(--border-light)',
           }}>
             <div style={{
-              background: 'linear-gradient(135deg, rgba(11,130,201,0.16) 0%, rgba(46,158,155,0.12) 100%)',
-              border: '1px solid var(--border-glow)',
+              background: 'linear-gradient(135deg, color-mix(in srgb, var(--secondary) 16%, transparent) 0%, color-mix(in srgb, var(--primary) 12%, transparent) 100%)',
+              border: '1px solid color-mix(in srgb, var(--primary) 45%, transparent)',
               borderRadius: 'var(--radius-md)',
               padding: '1rem 1.1rem',
             }}>
