@@ -271,9 +271,6 @@ export default function Login() {
           </button>
         </div>
 
-        <div className="bm-login__forgot-row">
-          <a className="bm-login__forgot" href="/forgot-password">Forgot password?</a>
-        </div>
 
         <button className="bm-login__btn" type="submit" disabled={loading}>
           {loading ? (
