@@ -31,7 +31,7 @@
 
   /* Fonts & Shadows */
   --font-sans: 'DM Sans', 'Outfit', system-ui, sans-serif;
-  --font-display: 'Syne', 'Outfit', system-ui, sans-serif;
+  --font-display: 'DM Sans', 'Outfit', system-ui, sans-serif;
   --font-mono: 'DM Mono', 'Outfit', monospace;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
@@ -86,7 +86,7 @@
 
   /* Fonts & Shadows */
   --font-sans: 'DM Sans', 'Outfit', system-ui, sans-serif;
-  --font-display: 'Syne', 'Outfit', system-ui, sans-serif;
+  --font-display: 'DM Sans', 'Outfit', system-ui, sans-serif;
   --font-mono: 'DM Mono', 'Outfit', monospace;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
@@ -428,8 +428,226 @@ a {
   flex-direction: column;
 }
 
-/* Citizen Space uses the authentication screens' midnight-ocean palette in
-   dark mode, including the surrounding navigation chrome. */
+/* Contributor and Citizen Spaces share the BlueMind ocean system used by the
+   authentication screens, including the surrounding navigation chrome. */
+.contributor-space-shell,
+.citizen-space-shell {
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
+  --primary: #2E9E9B;
+  --primary-hover: #24827F;
+  --secondary: #14669E;
+  --success: #2E9E9B;
+  --warning: #C6821E;
+  --surface: #FFFFFF;
+  --surface-hover: #F4F9FC;
+  --border-light: #E4EDF4;
+  --border-glow: #7FC3E8;
+  --text-main: #0A1E30;
+  --text-muted: #7B8FA1;
+  --radius-lg: 14px;
+  --radius-md: 10px;
+}
+
+/* The application has a global universal font declaration, so apply the
+   workspace font directly to every contributor/citizen element as well. */
+.contributor-space-shell,
+.contributor-space-shell *,
+.citizen-space-shell,
+.citizen-space-shell * {
+  font-family: var(--font-sans);
+}
+
+/* Animated wave signature shared with Citizen Space. */
+.ocean-wave-strip {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 0;
+  width: 100%;
+  height: 80px;
+  overflow: hidden;
+  background: var(--surface-hover);
+  pointer-events: none;
+}
+
+.ocean-wave-strip__layer {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 200%;
+  max-width: none;
+  height: 100px;
+}
+
+.ocean-wave-strip__layer--one {
+  fill: var(--primary);
+  opacity: .18;
+  animation: oceanWaveLeft 32s linear infinite;
+}
+
+.ocean-wave-strip__layer--two {
+  fill: var(--secondary);
+  opacity: .14;
+  animation: oceanWaveRight 44s linear infinite;
+}
+
+.ocean-wave-strip__layer--three {
+  fill: var(--border-glow);
+  opacity: .16;
+  animation: oceanWaveLeft 20s linear infinite;
+}
+
+.contributor-hero,
+.contributor-form-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.contributor-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  min-height: 246px;
+  padding: 2.45rem 2.2rem 5.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 2px rgba(10, 30, 50, .04);
+}
+
+.contributor-hero__content { max-width: 610px; }
+
+.contributor-hero__kicker {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  margin-bottom: .9rem;
+  color: var(--primary);
+  font-size: .62rem;
+  font-weight: 500;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+}
+
+.contributor-hero__mark {
+  width: 124px;
+  height: 34px;
+  overflow: visible;
+  color: var(--border-glow);
+  opacity: .72;
+}
+
+.contributor-hero__mark path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+}
+
+.contributor-hero__mark .wave-1 { stroke-width: 1.15; opacity: .8; }
+.contributor-hero__mark .wave-2 { stroke: var(--primary); stroke-width: 1.35; opacity: .6; }
+.contributor-hero__mark .wave-3 { stroke-width: 1; opacity: .48; }
+
+.contributor-hero__title {
+  margin: 0;
+  color: var(--text-main);
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 500;
+  letter-spacing: -.028em;
+  line-height: 1.25;
+}
+
+.contributor-hero__title em {
+  color: var(--primary);
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.contributor-hero__sub {
+  max-width: 525px;
+  margin: .7rem 0 0;
+  color: var(--text-muted);
+  font-size: .88rem;
+  line-height: 1.7;
+}
+
+.contributor-hero__cta,
+.ma-cta {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+  min-height: 44px;
+  margin-bottom: .2rem;
+  padding: .55rem .7rem .55rem 1.15rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #6FC9C4, #2E9E9B);
+  box-shadow: 0 16px 30px -14px rgba(46, 158, 155, .72);
+  color: #04121F;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.contributor-hero__cta:hover,
+.ma-cta:hover {
+  background: linear-gradient(135deg, #A9D8F0, #6FC9C4);
+  box-shadow: 0 20px 34px -14px rgba(46, 158, 155, .85);
+  filter: none;
+}
+
+.contributor-hero__cta span:last-child,
+.ma-cta span:last-child {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(4, 18, 31, .13);
+  font-size: 1rem;
+}
+
+.contributor-hero > :not(.ocean-wave-strip),
+.contributor-form-panel > :not(.ocean-wave-strip) {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes oceanWaveLeft {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes oceanWaveRight {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ocean-wave-strip__layer { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .contributor-hero {
+    flex-direction: column;
+    gap: 1.25rem;
+    min-height: 0;
+    padding: 1.4rem 1.25rem 5.5rem;
+  }
+
+  .contributor-hero__mark { width: 92px; }
+  .contributor-hero__cta,
+  .ma-cta { align-self: flex-start; margin-bottom: 0; }
+}
+
+[data-theme="dark"] .contributor-space-shell,
 [data-theme="dark"] .citizen-space-shell {
   --primary: #6fc9c4;
   --primary-hover: #a9d8f0;
@@ -440,9 +658,6 @@ a {
   --border-glow: rgba(127, 195, 232, 0.5);
   --text-main: #f2f7fa;
   --text-muted: rgba(233, 242, 247, 0.68);
-  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --bg-gradient:
     radial-gradient(90% 60% at 78% 6%, #17587f 0%, transparent 58%),
     radial-gradient(95% 70% at 10% 100%, #0a4f83 0%, transparent 62%),
@@ -450,28 +665,28 @@ a {
   background: var(--bg-gradient);
 }
 
-[data-theme="dark"] .citizen-space-shell .topbar,
-[data-theme="dark"] .citizen-space-shell .sidebar-container {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) .topbar,
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) .sidebar-container {
   background: linear-gradient(180deg, rgba(4, 18, 31, 0.76), rgba(4, 18, 31, 0.48));
   border-color: rgba(160, 210, 240, 0.18);
   box-shadow: 0 24px 48px -30px rgba(3, 12, 22, 0.65);
 }
 
-[data-theme="dark"] .citizen-space-shell .brand-wordmark {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) .brand-wordmark {
   color: #f2f7fa;
 }
 
-[data-theme="dark"] .citizen-space-shell .brand-wordmark:hover {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) .brand-wordmark:hover {
   color: #a9d8f0;
 }
 
-[data-theme="dark"] .citizen-space-shell button.secondary {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) button.secondary {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(160, 210, 240, 0.18);
   color: #f2f7fa;
 }
 
-[data-theme="dark"] .citizen-space-shell button.secondary:hover {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) button.secondary:hover {
   background: rgba(127, 195, 232, 0.12);
   border-color: #7fc3e8;
   box-shadow: none;

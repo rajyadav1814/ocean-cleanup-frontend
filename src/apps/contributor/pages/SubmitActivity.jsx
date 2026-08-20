@@ -5,6 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { apiGet, apiPatch, apiPost } from '../../../services/api';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import MapLocationPicker from '../../../components/common/MapLocationPicker';
+import OceanWaveStrip from '../../../components/common/OceanWaveStrip';
 import { invalidateActivities } from '../../../store/activitiesSlice';
 import { invalidateDashboard } from '../../../store/dashboardSlice';
 
@@ -361,7 +362,8 @@ export default function SubmitActivity() {
           width: 80px;
         }
       `}</style>
-      <section className="card cleanup-form" style={{ maxWidth: '640px', width: '100%', margin: '0 auto', padding: '2rem' }}>
+      <section className="card cleanup-form contributor-form-panel" style={{ maxWidth: '640px', width: '100%', margin: '0 auto', padding: '2rem' }}>
+        <OceanWaveStrip />
         {/* Stepper Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
           <span style={{ fontWeight: 600, fontSize: '18px' }}>{activityId ? 'Edit cleanup activity' : 'Log a cleanup'}</span>

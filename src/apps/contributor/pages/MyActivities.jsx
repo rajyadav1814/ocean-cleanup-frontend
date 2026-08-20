@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useActivities } from '../../../hooks/useActivities';
 import { useAuth } from '../../../context/AuthContext';
@@ -23,6 +23,110 @@ function formatActivityDate(timestamp) {
   return `${day}-${month}-${year}, ${hours}:${paddedMinutes} ${period}`;
 }
 
+const CAT_ICON = { plastic: '🧴', glass: '🍾', metal: '🥫', organic: '🍂', mixed: '🗑️', other: '📦' };
+
+const STATUS_META = {
+  approved: { bg: 'rgba(16,185,129,.12)', color: '#10b981', label: 'Approved' },
+  pending:  { bg: 'rgba(245,158,11,.12)', color: '#f59e0b', label: 'Pending' },
+  rejected: { bg: 'rgba(239,68,68,.12)',  color: '#ef4444', label: 'Rejected' },
+};
+
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'approved', label: 'Approved' },
+  { key: 'pending', label: 'Pending' },
+  { key: 'rejected', label: 'Rejected' },
+];
+
+/* ── injected styles — same token system as ContributorOverview / CitizenOverview ── */
+const STYLES = `
+  .ma-root { font-family: var(--font-sans); }
+
+  .ma-hero {
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;
+    background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-lg);
+    padding: 1.75rem 2rem; backdrop-filter: blur(16px);
+  }
+  .ma-eyebrow { font-size: .62rem; letter-spacing: .24em; text-transform: uppercase; color: var(--primary); opacity: .85; font-family: var(--font-mono); margin-bottom: .55rem; }
+  .ma-title { margin: 0; font-size: 1.55rem; font-weight: 600; letter-spacing: -.02em; color: var(--text-main); font-family: var(--font-display); }
+  .ma-title em { font-style: italic; font-family: var(--font-serif); font-weight: 400; color: var(--primary); }
+  .ma-sub { margin: .5rem 0 0; font-size: .85rem; color: var(--text-muted); max-width: 46ch; line-height: 1.6; }
+  .ma-cta {
+    display: inline-flex; align-items: center; gap: .5rem; padding: .75rem 1.5rem; border-radius: var(--radius-md);
+    background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; border: none; cursor: pointer;
+    font-size: .78rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
+    box-shadow: 0 12px 26px -12px rgba(46,158,155,.5); transition: transform .2s ease;
+    font-family: var(--font-mono);
+  }
+  .ma-cta:hover { transform: translateY(-1px); }
+
+  .ma-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.1rem; }
+  .ma-filters { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 5px; }
+  .ma-filter { border: none; background: transparent; border-radius: var(--radius-md); padding: .5rem 1rem; font-size: .8rem; font-weight: 600; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: .4rem; transition: all .2s ease; font-family: var(--font-sans); }
+  .ma-filter.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; box-shadow: 0 0 16px rgba(46,158,155,.22); }
+  .ma-filter:not(.active):hover { background: rgba(46,158,155,.06); color: var(--text-main); }
+  .ma-filter .n { font-size: .68rem; opacity: .75; }
+  .ma-count { font-size: .78rem; color: var(--text-muted); font-family: var(--font-mono); }
+
+  .ma-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1.25rem; }
+
+  .ma-card {
+    border: 1px solid var(--border-light); border-radius: var(--radius-lg); background: var(--surface);
+    overflow: hidden; position: relative; backdrop-filter: blur(16px);
+    transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+  }
+  .ma-card:hover { border-color: var(--border-glow); transform: translateY(-3px); box-shadow: 0 20px 40px -24px rgba(4,18,31,.35); }
+
+  .ma-media { position: relative; height: 172px; background: var(--surface-hover); overflow: hidden; }
+  .ma-media img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; transition: transform .35s ease; }
+  .ma-card:hover .ma-media img { transform: scale(1.035); }
+  .ma-media__placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+  .ma-media__more { position: absolute; bottom: .5rem; right: .5rem; background: rgba(4,18,31,.68); color: #fff; font-size: .68rem; font-weight: 700; padding: .18rem .5rem; border-radius: 999px; backdrop-filter: blur(4px); }
+  .ma-media__badge { position: absolute; top: .6rem; left: .6rem; padding: .22rem .65rem; border-radius: 999px; font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; backdrop-filter: blur(6px); }
+  .ma-media__date { position: absolute; top: .6rem; right: .6rem; background: rgba(4,18,31,.55); color: #fff; font-size: .66rem; font-weight: 600; padding: .22rem .6rem; border-radius: 999px; backdrop-filter: blur(6px); font-family: var(--font-mono); }
+
+  .ma-body { padding: 1.1rem 1.2rem 1.25rem; }
+  .ma-loc { margin: 0; font-size: .96rem; font-weight: 700; color: var(--primary-hover); line-height: 1.35; }
+
+  .ma-chips { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .7rem; }
+  .ma-chip {
+    display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .6rem; border-radius: 999px;
+    background: var(--surface-hover); border: 1px solid var(--border-light); font-size: .74rem; color: var(--text-main); font-weight: 500;
+  }
+  .ma-chip strong { font-weight: 700; }
+
+  .ma-actions { margin-top: 1.1rem; display: flex; justify-content: flex-end; gap: .55rem; }
+  .ma-btn {
+    flex: none; min-width: 96px; padding: .5rem .9rem; border-radius: var(--radius-md); font-size: .78rem; font-weight: 600;
+    cursor: pointer; text-align: center; transition: background .2s ease, border-color .2s ease, opacity .2s ease;
+    font-family: var(--font-sans);
+  }
+  .ma-btn--edit { background: transparent; border: 1px solid var(--border-glow); color: var(--primary); }
+  .ma-btn--edit:hover { background: rgba(46,158,155,.08); }
+  .ma-btn--delete { background: transparent; border: 1px solid rgba(239,68,68,.35); color: #ef4444; }
+  .ma-btn--delete:hover { background: rgba(239,68,68,.08); }
+  .ma-btn:disabled { opacity: .6; cursor: default; }
+
+  .ma-empty {
+    text-align: center; padding: 3.5rem 2rem; border: 1px dashed var(--border-light); border-radius: var(--radius-lg);
+    background: var(--surface); margin-top: 1.25rem;
+  }
+  .ma-empty__icon { font-size: 1.8rem; margin-bottom: .75rem; opacity: .7; }
+  .ma-empty p { margin: 0; color: var(--text-muted); font-size: .9rem; }
+  .ma-empty .ma-cta { margin-top: 1.1rem; }
+
+  .ma-error {
+    padding: .9rem 1.1rem; border: 1px solid rgba(239,68,68,.3); background: rgba(239,68,68,.08);
+    color: #f87171; border-radius: var(--radius-lg); font-size: .86rem; margin-top: 1.1rem;
+  }
+
+  @media (max-width: 640px) {
+    .ma-hero { padding: 1.35rem 1.4rem; align-items: flex-start; }
+    .ma-toolbar { flex-direction: column; align-items: flex-start; }
+    .ma-grid { grid-template-columns: 1fr; }
+  }
+`;
+
 export default function MyActivities() {
   const { activities, loading, refresh } = useActivities();
   const { user, role } = useAuth();
@@ -30,8 +134,25 @@ export default function MyActivities() {
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState('');
   const [gallery, setGallery] = useState(null);
+  const [filter, setFilter] = useState('all');
 
-  const visibleActivities = activities.filter((activity) => activity.contributorId === user?.id);
+  const visibleActivities = useMemo(
+    () => activities.filter((activity) => activity.contributorId === user?.id),
+    [activities, user]
+  );
+
+  const counts = useMemo(() => ({
+    all: visibleActivities.length,
+    approved: visibleActivities.filter((a) => a.status === 'approved').length,
+    pending: visibleActivities.filter((a) => a.status === 'pending').length,
+    rejected: visibleActivities.filter((a) => a.status === 'rejected').length,
+  }), [visibleActivities]);
+
+  const filtered = useMemo(
+    () => filter === 'all' ? visibleActivities : visibleActivities.filter((a) => (a.status || 'pending') === filter),
+    [visibleActivities, filter]
+  );
+
   const canModify = (activity) => (role === 'contributor' || role === 'citizen') && activity.contributorId === user?.id && activity.status !== 'approved';
 
   if (loading) return <LoadingSpinner layout="list" />;
@@ -59,7 +180,9 @@ export default function MyActivities() {
   }
 
   return (
-    <>
+    <div className="ma-root">
+      <style>{STYLES}</style>
+
       {gallery && (
         <ImageGalleryModal
           images={gallery.images}
@@ -68,112 +191,144 @@ export default function MyActivities() {
           onClose={() => setGallery(null)}
         />
       )}
+
       <section>
-        <div className="card mb-6" style={{ padding: '1.25rem 1.75rem' }}>
-          <h3 style={{ marginBottom: '0.25rem' }}>My Activities</h3>
-          <p className="text-muted" style={{ margin: 0 }}>A record of your environmental impact contributions.</p>
+        {/* ── HERO ── */}
+        <div className="ma-hero">
+          <div>
+            <div className="ma-eyebrow">Your Record</div>
+            <h1 className="ma-title">My <em>activities.</em></h1>
+            <p className="ma-sub">Every cleanup you've logged, in one place — a running record of your environmental impact contributions.</p>
+          </div>
+          <button type="button" className="ma-cta" onClick={() => navigate(`/${role}/submit`)}>
+            Log a cleanup <span aria-hidden="true">→</span>
+          </button>
         </div>
 
-        {error && (
-          <div className="card mb-6" style={{ padding: '0.9rem 1.1rem', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#f87171' }}>
-            {error}
+        {/* ── FILTER TOOLBAR ── */}
+        {visibleActivities.length > 0 && (
+          <div className="ma-toolbar">
+            <div className="ma-filters">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  className={`ma-filter${filter === f.key ? ' active' : ''}`}
+                  onClick={() => setFilter(f.key)}
+                >
+                  {f.label} <span className="n">({counts[f.key]})</span>
+                </button>
+              ))}
+            </div>
+            <span className="ma-count">Showing {filtered.length} of {visibleActivities.length}</span>
           </div>
         )}
 
+        {error && <div className="ma-error">{error}</div>}
+
+        {/* ── GRID / EMPTY STATE ── */}
         {visibleActivities.length === 0 ? (
-          <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-            <p className="text-muted">No activities submitted yet. Start cleaning!</p>
+          <div className="ma-empty">
+            <div className="ma-empty__icon">🌊</div>
+            <p>No activities submitted yet. Start cleaning!</p>
+            <button type="button" className="ma-cta" onClick={() => navigate(`/${role}/submit`)}>
+              Log your first cleanup <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="ma-empty">
+            <div className="ma-empty__icon">🔎</div>
+            <p>No {filter} activities to show.</p>
           </div>
         ) : (
-          <div className="content-grid">
-            {visibleActivities.map((activity) => {
+          <div className="ma-grid">
+            {filtered.map((activity) => {
               const isDeleting = deletingId === activity.id;
+              const status = activity.status || 'pending';
+              const meta = STATUS_META[status] || STATUS_META.pending;
+
+              const urls = Array.isArray(activity.imageGatewayUrl)
+                ? activity.imageGatewayUrl
+                : activity.imageGatewayUrl
+                  ? [activity.imageGatewayUrl]
+                  : [];
+              const firstUrl = urls[0];
 
               return (
-                <div key={activity.id} className="card" style={{ padding: 0, overflow: 'hidden', position: 'relative', opacity: isDeleting ? 0.75 : 1 }}>
-                  <div style={{ background: 'var(--surface-hover)', height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', overflow: 'hidden', position: 'relative' }}>
-                    {(() => {
-                      const urls = Array.isArray(activity.imageGatewayUrl)
-                        ? activity.imageGatewayUrl
-                        : activity.imageGatewayUrl
-                          ? [activity.imageGatewayUrl]
-                          : [];
-                      const firstUrl = urls[0];
-                      return firstUrl ? (
-                        <>
-                          <img
-                            src={firstUrl}
-                            alt="Cleanup evidence"
-                            onClick={() => setGallery({ images: urls, startAt: 0 })}
-                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGallery({ images: urls, startAt: 0 }); } }}
-                            role="button"
-                            tabIndex={0}
-                            title="Click to view photos"
-                            style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'zoom-in' }}
-                          />
-                          {urls.length > 1 && (
-                            <span style={{
-                              position: 'absolute', top: '0.4rem', right: '0.4rem',
-                              background: 'rgba(0,0,0,0.65)', color: 'white',
-                              fontSize: '0.7rem', padding: '0.15rem 0.45rem',
-                              borderRadius: '999px', fontWeight: 600, backdropFilter: 'blur(4px)'
-                            }}>+{urls.length - 1} more</span>
-                          )}
-                        </>
-                      ) : (
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div key={activity.id} className="ma-card" style={{ opacity: isDeleting ? 0.65 : 1 }}>
+                  <div className="ma-media">
+                    <span className="ma-media__badge" style={{ background: meta.bg, color: meta.color }}>
+                      {meta.label}
+                    </span>
+                    <span className="ma-media__date">{formatActivityDate(activity.timestamp || Date.now())}</span>
+
+                    {firstUrl ? (
+                      <>
+                        <img
+                          src={firstUrl}
+                          alt="Cleanup evidence"
+                          onClick={() => setGallery({ images: urls, startAt: 0 })}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGallery({ images: urls, startAt: 0 }); } }}
+                          role="button"
+                          tabIndex={0}
+                          title="Click to view photos"
+                        />
+                        {urls.length > 1 && <span className="ma-media__more">+{urls.length - 1} more</span>}
+                      </>
+                    ) : (
+                      <div className="ma-media__placeholder">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                           <circle cx="8.5" cy="8.5" r="1.5"></circle>
                           <polyline points="21 15 16 10 5 21"></polyline>
                         </svg>
-                      );
-                    })()}
+                      </div>
+                    )}
                   </div>
 
-                  <div style={{ padding: '1.25rem' }}>
-                    <div className="flex-between mb-4" style={{ gap: '0.75rem' }}>
-                      <span className={`badge ${activity.status || 'pending'}`} style={{ textTransform: 'capitalize' }}>
-                        {activity.status || 'Pending'}
+                  <div className="ma-body">
+                    <h4 className="ma-loc">{activity.location}</h4>
+
+                    <div className="ma-chips">
+                      <span className="ma-chip">
+                        {CAT_ICON[(activity.category || '').toLowerCase()] || '📦'}
+                        <strong style={{ textTransform: 'capitalize' }}>{activity.category || 'Other'}</strong>
                       </span>
-                      <span className="text-muted" style={{ fontSize: '0.85rem' }}>{formatActivityDate(activity.timestamp || Date.now())}</span>
+                      <span className="ma-chip">
+                        ⚖️ <strong>{activity.quantity} kg</strong>
+                      </span>
+                      {activity.volunteers > 0 && (
+                        <span className="ma-chip">
+                          🤝 <strong>{activity.volunteers}</strong> vol.
+                        </span>
+                      )}
                     </div>
 
-                    <h4 style={{ color: 'var(--primary-hover)' }}>{activity.location}</h4>
-
-                    <div className="mt-4" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <div className="flex-between">
-                        <span className="text-muted">Category:</span>
-                        <strong style={{ textTransform: 'capitalize' }}>{activity.category}</strong>
+                    {status === 'rejected' && activity.reviewNote && (
+                      <div style={{ marginTop: '.7rem', fontSize: '.74rem', color: '#f87171', background: 'rgba(239,68,68,.08)', borderRadius: '6px', padding: '.4rem .6rem', lineHeight: 1.4 }}>
+                        {activity.reviewNote}
                       </div>
-                      <div className="flex-between">
-                        <span className="text-muted">Quantity:</span>
-                        <strong>{activity.quantity} kg</strong>
-                      </div>
-                    </div>
+                    )}
 
-                    <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                      {canModify(activity) && (
+                    {canModify(activity) && (
+                      <div className="ma-actions">
                         <button
                           type="button"
+                          className="ma-btn ma-btn--edit"
                           onClick={() => navigate(`/${role}/my-activities/edit/${activity.id}`)}
-                          className="secondary"
-                          style={{ minWidth: '110px' }}
                         >
                           Edit
                         </button>
-                      )}
-                      {canModify(activity) && (
                         <button
                           type="button"
+                          className="ma-btn ma-btn--delete"
                           onClick={() => handleDelete(activity.id)}
                           disabled={isDeleting}
-                          className="danger"
-                          style={{ minWidth: '110px' }}
                         >
                           {isDeleting ? 'Deleting…' : 'Delete'}
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -181,6 +336,6 @@ export default function MyActivities() {
           </div>
         )}
       </section>
-    </>
+    </div>
   );
 }
