@@ -62,8 +62,12 @@ const STYLES = `
   .ma-cta { cursor: pointer; }
 
   .ma-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.1rem; }
-  .ma-filters { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 5px; }
-  .ma-filter { border: none; background: transparent; border-radius: var(--radius-md); padding: .5rem 1rem; font-size: .8rem; font-weight: 600; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: .4rem; transition: all .2s ease; font-family: var(--font-sans); }
+  .ma-filters {
+    display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 5px;
+    max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .ma-filters::-webkit-scrollbar { display: none; }
+  .ma-filter { border: none; background: transparent; border-radius: var(--radius-md); padding: .5rem 1rem; font-size: .8rem; font-weight: 600; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: .4rem; transition: all .2s ease; font-family: var(--font-sans); flex-shrink: 0; white-space: nowrap; }
   .ma-filter.active { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; box-shadow: 0 0 16px rgba(46,158,155,.22); }
   .ma-filter:not(.active):hover { background: rgba(46,158,155,.06); color: var(--text-main); }
   .ma-filter .n { font-size: .68rem; opacity: .75; }

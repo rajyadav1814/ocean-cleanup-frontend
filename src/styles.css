@@ -806,7 +806,12 @@ main {
   flex-direction: column;
   box-shadow: none;
   font-family: var(--font-sans);
-  overflow: hidden;
+  /* `overflow-x: hidden` still clips the collapse/expand width animation;
+     `overflow-y: auto` lets the nav list + impact card scroll into view
+     instead of being cut off when they don't fit the sidebar's height
+     (common on mobile, where the browser chrome shrinks the real viewport). */
+  overflow-x: hidden;
+  overflow-y: auto;
   /* Only animate the properties that actually change — `transition: all`
      forces the browser to watch and recompute every animatable property
      (including backdrop-filter/box-shadow) on every frame. */
@@ -820,6 +825,7 @@ main {
   top: 0;
   left: -100%;
   height: 100vh;
+  height: 100dvh;
   z-index: 1000;
   margin: 0;
   border-radius: 0;
