@@ -167,9 +167,9 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
       </div>
 
       {/* Map Container */}
-      <div style={{ position: 'relative', height: '300px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-light)' }}>
-        {isMapRequested ? (
-          position ? (
+      {isMapRequested ? (
+        <div style={{ position: 'relative', height: '260px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-light)' }}>
+          {position ? (
             <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }}>
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
@@ -187,47 +187,60 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-hover)', color: 'var(--text-muted)' }}>
               Loading map & locating you...
             </div>
-          )
-        ) : (
-          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-hover)', padding: '2rem' }}>
-            <button type="button" className="bm-button" onClick={() => setIsMapRequested(true)} style={{ padding: '0.85rem 1.5rem', fontWeight: 600 }}>
-              Access Location & Load Map
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Lat/Lng display (read-only to show they are captured) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', width: '100%' }}>
-        <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
-          <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Latitude</label>
-          <input
-            type="text"
-            value={position ? Number(position.lat).toFixed(6) : ''}
-            readOnly
-            style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', width: '100%', minWidth: 0, padding: '0.75rem 1rem' }}
-          />
+          )}
         </div>
-        <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
-          <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Longitude</label>
-          <input
-            type="text"
-            value={position ? Number(position.lng ?? position.lon ?? 0).toFixed(6) : ''}
-            readOnly
-            style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', width: '100%', minWidth: 0, padding: '0.75rem 1rem' }}
-          />
-        </div>
-      </div>
-
-      {isFetchingName && (
-        <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, marginTop: '-0.25rem' }}>
-          Fetching location name...
+      ) : (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.85rem', width: '100%',
+          padding: '0.9rem 1rem', borderRadius: 'var(--radius-md)',
+          border: '1px dashed var(--border-light)', background: 'var(--surface-hover)'
+        }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+            <circle cx="12" cy="10" r="3" />
+          </svg>
+          <span style={{ flex: 1, fontSize: '0.82rem', color: 'var(--text-muted)' }}>Pin the cleanup site on a map</span>
+          <button type="button" className="bm-button" onClick={() => setIsMapRequested(true)} style={{ padding: '0.55rem 1.1rem', fontWeight: 600, flexShrink: 0 }}>
+            Load map
+          </button>
         </div>
       )}
 
-      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '-0.5rem' }}>
-        <em>Drag the marker or click anywhere on the map to adjust the coordinates.</em>
-      </div>
+      {/* Lat/Lng display (read-only to show they are captured) — only once a point exists */}
+      {position && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', width: '100%' }}>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
+              <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Latitude</label>
+              <input
+                type="text"
+                value={Number(position.lat).toFixed(6)}
+                readOnly
+                style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', width: '100%', minWidth: 0, padding: '0.75rem 1rem' }}
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
+              <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Longitude</label>
+              <input
+                type="text"
+                value={Number(position.lng ?? position.lon ?? 0).toFixed(6)}
+                readOnly
+                style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)', width: '100%', minWidth: 0, padding: '0.75rem 1rem' }}
+              />
+            </div>
+          </div>
+
+          {isFetchingName && (
+            <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, marginTop: '-0.25rem' }}>
+              Fetching location name...
+            </div>
+          )}
+
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '-0.5rem' }}>
+            <em>Drag the marker or click anywhere on the map to adjust the coordinates.</em>
+          </div>
+        </>
+      )}
 
     </div>
   );
