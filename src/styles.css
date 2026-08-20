@@ -16,7 +16,15 @@
   --primary-hover: var(--brand-700);
   --secondary: var(--brand-400);
   --dark: var(--brand-50);
-  --bg-gradient: radial-gradient(circle at 90% -10%, rgba(61, 214, 224, 0.14), transparent 34%), linear-gradient(135deg, #06121c 0%, #071f33 55%, #0b2d4a 100%);
+  /* Four corner glows, each a different hue, layered over a static base —
+     paired with `background-attachment: fixed` on body so the glows stay
+     pinned to the viewport corners instead of drifting as the page scrolls. */
+  --bg-gradient:
+    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(53, 185, 214, 0.16), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(61, 214, 224, 0.16), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(30, 107, 145, 0.18), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 100% 100%, rgba(11, 45, 74, 0.22), transparent 55%),
+    linear-gradient(135deg, #06121c 0%, #071f33 55%, #0b2d4a 100%);
   --surface: rgba(3, 14, 25, 0.72);
   --surface-hover: rgba(11, 45, 74, 0.78);
   --border-light: rgba(61, 214, 224, 0.15);
@@ -72,7 +80,12 @@
   --primary-hover: var(--brand-700);
   --secondary: var(--brand-400);
   --dark: var(--brand-50);
-  --bg-gradient: radial-gradient(circle at 90% -10%, rgba(61, 214, 224, 0.14), transparent 34%), linear-gradient(135deg, #06121c 0%, #071f33 55%, #0b2d4a 100%);
+  --bg-gradient:
+    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(53, 185, 214, 0.16), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(61, 214, 224, 0.16), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(30, 107, 145, 0.18), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 100% 100%, rgba(11, 45, 74, 0.22), transparent 55%),
+    linear-gradient(135deg, #06121c 0%, #071f33 55%, #0b2d4a 100%);
   --surface: rgba(3, 14, 25, 0.72);
   --surface-hover: rgba(11, 45, 74, 0.78);
   --border-light: rgba(61, 214, 224, 0.15);
@@ -118,9 +131,15 @@
   --primary-hover: #04657c;
   --secondary: #1596b5;
   --dark: #ffffff;
-  /* Same teal/blue pairing as the ocean-wave-strip layers, washed top-to-bottom
-     instead of a single corner highlight. */
-  --bg-gradient: linear-gradient(180deg, rgba(61, 214, 224, 0.2) 0%, rgba(61, 214, 224, 0) 32%, rgba(11, 130, 201, 0) 70%, rgba(11, 130, 201, 0.16) 100%), linear-gradient(135deg, #ffffff 0%, #f4fbfd 52%, #e4f7fa 100%);
+  /* Same teal/blue pairing as the ocean-wave-strip layers, as four corner
+     glows pinned to the viewport (see `background-attachment: fixed` on
+     body) instead of a wash that drifted with scroll position. */
+  --bg-gradient:
+    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(61, 214, 224, 0.22), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(11, 130, 201, 0.18), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(11, 130, 201, 0.16), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 100% 100%, rgba(61, 214, 224, 0.2), transparent 55%),
+    linear-gradient(135deg, #ffffff 0%, #f4fbfd 52%, #e4f7fa 100%);
   --surface: rgba(255, 255, 255, 0.82);
   --surface-hover: rgba(235, 250, 252, 0.96);
   --border-light: rgba(8, 127, 156, 0.17);
@@ -376,6 +395,7 @@ body {
   font-family: var(--font-sans);
   color: var(--text-main);
   background: var(--bg-gradient);
+  background-attachment: fixed;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   transition: background 0.3s ease, color 0.3s ease;
@@ -627,10 +647,13 @@ a {
   --text-main: #f2f7fa;
   --text-muted: rgba(233, 242, 247, 0.68);
   --bg-gradient:
-    radial-gradient(90% 60% at 78% 6%, #17587f 0%, transparent 58%),
-    radial-gradient(95% 70% at 10% 100%, #0a4f83 0%, transparent 62%),
+    radial-gradient(60% 50% at 4% 4%, #0a3a5c 0%, transparent 58%),
+    radial-gradient(60% 50% at 96% 4%, #17587f 0%, transparent 58%),
+    radial-gradient(65% 55% at 4% 96%, #0a4f83 0%, transparent 62%),
+    radial-gradient(65% 55% at 96% 96%, #123f66 0%, transparent 62%),
     linear-gradient(172deg, #05192e 0%, #072744 44%, #08395f 100%);
   background: var(--bg-gradient);
+  background-attachment: fixed;
 }
 
 [data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) .topbar,
