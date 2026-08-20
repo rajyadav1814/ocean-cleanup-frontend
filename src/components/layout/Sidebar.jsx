@@ -124,6 +124,15 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
 
   const isMobile = windowWidth < 768;
 
+  useEffect(() => {
+    if (isMobile && isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobile, isMobileMenuOpen]);
+
   const getWorkspaceLabel = (roleName) => {
     switch (roleName) {
       case 'admin': return 'Admin Space';
@@ -187,19 +196,21 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
               {getWorkspaceLabel(role)}
             </h2>
           )}
-          <button
-            onClick={toggleCollapsed}
-            style={{
-              width: isMobile ? '32px' : '36px', height: isMobile ? '32px' : '36px', borderRadius: '50%', backgroundColor: 'var(--surface-hover)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffffff',
-              border: '1px solid var(--border-light)', cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'all 0.3s',
-              boxShadow: 'none'
-            }}
-          >
-            <div style={{ transform: `scale(${isMobile ? 0.65 : 0.75}) rotate(${isCollapsed ? 180 : 0}deg)`, display: 'flex', transition: 'transform 0.3s ease' }}>
-              {ICONS.chevronLeft}
-            </div>
-          </button>
+          {!isMobile && (
+            <button
+              onClick={toggleCollapsed}
+              style={{
+                width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--surface-hover)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffffff',
+                border: '1px solid var(--border-light)', cursor: 'pointer', flexShrink: 0, padding: 0, transition: 'all 0.3s',
+                boxShadow: 'none'
+              }}
+            >
+              <div style={{ transform: `scale(0.75) rotate(${isCollapsed ? 180 : 0}deg)`, display: 'flex', transition: 'transform 0.3s ease' }}>
+                {ICONS.chevronLeft}
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Navigation */}
