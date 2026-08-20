@@ -1,35 +1,28 @@
-import { useState, useEffect, useCallback } from 'react';
-import { apiGet } from '../services/api';
+import { useEffect, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchContributorStats, invalidateContributorStats } from '../store/contributorSlice';
 
 /**
- * useContributorStats — fetches /api/contributor/stats for the logged-in contributor.
- * Returns real-time aggregates: kg, volunteers, rank, monthly deltas, tokens.
+ * useContributorStats — reads from the global Redux store.
+ * The API is called at most once per session (cached globally), so
+ * switching sidebar tabs and coming back doesn't refetch.
  */
 export function useContributorStats() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const { stats, statsStatus, statsError } = useSelector((state) => state.contributor);
 
-  const fetchStats = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiGet('/api/contributor/stats');
-      if (data.ok && data.stats) {
-        setStats(data.stats);
-      } else {
-        setError(data.error || 'Failed to load stats');
-      }
-    } catch (err) {
-      setError(err.message || 'Network error');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const loading = statsStatus === 'idle' || statsStatus === 'loading';
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (statsStatus === 'idle') {
+      dispatch(fetchContributorStats());
+    }
+  }, [dispatch, statsStatus]);
 
-  return { stats, loading, error, refresh: fetchStats };
+  const refresh = useCallback(() => {
+    dispatch(invalidateContributorStats());
+    dispatch(fetchContributorStats());
+  }, [dispatch]);
+
+  return { stats, loading, error: statsError, refresh };
 }

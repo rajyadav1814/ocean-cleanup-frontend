@@ -1,35 +1,28 @@
-import { useState, useEffect, useCallback } from 'react';
-import { apiGet } from '../services/api';
+import { useEffect, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchContributorInsights, invalidateContributorStats } from '../store/contributorSlice';
 
 /**
- * useContributorInsights — fetches /api/contributor/insights for the logged-in
- * contributor: top locations, disposal method breakdown, and wildlife sightings.
+ * useContributorInsights — reads from the global Redux store.
+ * The API is called at most once per session (cached globally), so
+ * switching sidebar tabs and coming back doesn't refetch.
  */
 export function useContributorInsights() {
-  const [insights, setInsights] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const { insights, insightsStatus, insightsError } = useSelector((state) => state.contributor);
 
-  const fetchInsights = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiGet('/api/contributor/insights');
-      if (data.ok && data.insights) {
-        setInsights(data.insights);
-      } else {
-        setError(data.error || 'Failed to load insights');
-      }
-    } catch (err) {
-      setError(err.message || 'Network error');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const loading = insightsStatus === 'idle' || insightsStatus === 'loading';
 
   useEffect(() => {
-    fetchInsights();
-  }, [fetchInsights]);
+    if (insightsStatus === 'idle') {
+      dispatch(fetchContributorInsights());
+    }
+  }, [dispatch, insightsStatus]);
 
-  return { insights, loading, error, refresh: fetchInsights };
+  const refresh = useCallback(() => {
+    dispatch(invalidateContributorStats());
+    dispatch(fetchContributorInsights());
+  }, [dispatch]);
+
+  return { insights, loading, error: insightsError, refresh };
 }

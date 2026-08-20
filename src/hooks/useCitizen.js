@@ -1,55 +1,64 @@
-import { useState, useEffect, useCallback } from 'react';
-import { citizenApi } from '../services/api';
+import { useEffect, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  fetchCitizenStats,
+  fetchCitizenLeaderboard,
+  fetchCitizenFeed,
+  invalidateCitizenStats,
+} from '../store/citizenSlice';
+
+/**
+ * These read from the global Redux store — the API is called at most once
+ * per session (cached globally), so switching sidebar tabs and coming back
+ * doesn't refetch.
+ */
 
 export function useCitizenStats() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
+  const { stats, statsStatus, statsError } = useSelector((state) => state.citizen);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await citizenApi.getStats();
-      if (data.ok) setStats(data.stats);
-      else setError(data.error || 'Failed to load stats');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  const loading = statsStatus === 'idle' || statsStatus === 'loading';
+
+  useEffect(() => {
+    if (statsStatus === 'idle') {
+      dispatch(fetchCitizenStats());
     }
-  }, []);
+  }, [dispatch, statsStatus]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  const refresh = useCallback(() => {
+    dispatch(invalidateCitizenStats());
+    dispatch(fetchCitizenStats());
+  }, [dispatch]);
 
-  return { stats, loading, error, refresh };
+  return { stats, loading, error: statsError, refresh };
 }
 
 export function useCitizenLeaderboard() {
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [myRow, setMyRow] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const { leaderboard, myRow, leaderboardStatus } = useSelector((state) => state.citizen);
+
+  const loading = leaderboardStatus === 'idle' || leaderboardStatus === 'loading';
 
   useEffect(() => {
-    citizenApi.getLeaderboard().then(data => {
-      if (data.ok) {
-        setLeaderboard(data.leaderboard || []);
-        setMyRow(data.myRow || null);
-      }
-    }).catch(console.error).finally(() => setLoading(false));
-  }, []);
+    if (leaderboardStatus === 'idle') {
+      dispatch(fetchCitizenLeaderboard());
+    }
+  }, [dispatch, leaderboardStatus]);
 
   return { leaderboard, myRow, loading };
 }
 
 export function useCitizenFeed(limit = 15) {
-  const [feed, setFeed] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  const { feed, feedStatus } = useSelector((state) => state.citizen);
+
+  const loading = feedStatus === 'idle' || feedStatus === 'loading';
 
   useEffect(() => {
-    citizenApi.getFeed(limit).then(data => {
-      if (data.ok) setFeed(data.feed || []);
-    }).catch(console.error).finally(() => setLoading(false));
-  }, [limit]);
+    if (feedStatus === 'idle') {
+      dispatch(fetchCitizenFeed(limit));
+    }
+  }, [dispatch, feedStatus, limit]);
 
   return { feed, loading };
 }

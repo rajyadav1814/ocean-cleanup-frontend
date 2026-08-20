@@ -8,6 +8,8 @@ import MapLocationPicker from '../../../components/common/MapLocationPicker';
 import OceanWaveStrip from '../../../components/common/OceanWaveStrip';
 import { invalidateActivities } from '../../../store/activitiesSlice';
 import { invalidateDashboard } from '../../../store/dashboardSlice';
+import { invalidateContributorStats } from '../../../store/contributorSlice';
+import { invalidateCitizenStats } from '../../../store/citizenSlice';
 
 const labels = [
   "Site conditions",
@@ -64,6 +66,10 @@ export default function SubmitActivity() {
   const navigate = useNavigate();
   const { id: activityId } = useParams();
   const { user } = useAuth();
+  const isCitizen = user?.role === 'citizen';
+  // Citizens report casual sightings, not full cleanup drives — only collect
+  // site conditions, hazards/evidence, and the disposal/review summary.
+  const visibleSteps = isCitizen ? [1, 4, 6] : [1, 2, 3, 4, 5, 6];
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
@@ -184,7 +190,9 @@ export default function SubmitActivity() {
     e.preventDefault();
     if (isSubmitting || activityStatus === 'approved') return;
 
-    const volunteers = positiveNumber(form.teamSize);
+    // Citizens never see the Verification step (team size), so a lone
+    // reporter counts as a team of one.
+    const volunteers = positiveNumber(form.teamSize) ?? (isCitizen ? 1 : null);
     if (volunteers === null) {
       setStep(5);
       setStatus('Please provide a team size of at least 1 volunteer.');
@@ -250,6 +258,7 @@ export default function SubmitActivity() {
 
       dispatch(invalidateActivities());
       dispatch(invalidateDashboard());
+      dispatch(isCitizen ? invalidateCitizenStats() : invalidateContributorStats());
       const dest = user?.role === 'citizen' ? '/citizen/overview' : '/contributor/my-activities';
       navigate(dest, {
         replace: true,
@@ -308,15 +317,35 @@ export default function SubmitActivity() {
       return;
     }
     setStatus("");
-    setStep(s => s + 1);
+    const idx = visibleSteps.indexOf(step);
+    setStep(visibleSteps[idx + 1]);
   };
 
   const totalImageCount = existingUrls.length + images.length;
-  let score = 25;
-  if (form.location) score += 10;
-  if (form.quantity) score += 10;
-  score += totalImageCount * 8;
-  score = Math.min(100, score);
+
+  // Data completeness reflects what's actually been filled in on the steps
+  // this role sees — required fields (location, weight) plus every optional
+  // field that adds real detail to the report. Fields from steps a citizen
+  // never sees (debris log, wildlife, verification) aren't counted against
+  // them.
+  const completenessChecks = [
+    Boolean(form.location),
+    Boolean(form.quantity),
+    totalImageCount > 0,
+    Boolean(form.notes),
+    ...(isCitizen ? [] : [
+      Object.values(form.debrisLog).some((v) => Number(v) > 0),
+      Boolean(form.speciesSighted),
+      Boolean(form.bulkItems),
+      Boolean(form.habitatStress),
+      Boolean(form.organizationId),
+      Boolean(form.secondVerifier),
+      Boolean(form.timeSpent),
+    ]),
+  ];
+  const score = Math.round(
+    (completenessChecks.filter(Boolean).length / completenessChecks.length) * 100
+  );
 
   if (loadingActivity) {
     return <LoadingSpinner layout="form" />;
@@ -369,11 +398,11 @@ export default function SubmitActivity() {
           <span style={{ fontWeight: 600, fontSize: '18px' }}>{activityId ? 'Edit cleanup activity' : 'Log a cleanup'}</span>
         </div>
         <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-          Step {step} of 6 - {labels[step - 1]}
+          Step {visibleSteps.indexOf(step) + 1} of {visibleSteps.length} - {labels[step - 1]}
         </div>
         <div style={{ display: 'flex', gap: '6px', marginBottom: '1.5rem' }}>
-          {labels.map((_, i) => (
-            <div key={i} style={{ flex: 1, height: '4px', borderRadius: '2px', background: i + 1 <= step ? 'var(--primary)' : 'var(--border-light)', transition: 'background 0.3s' }}></div>
+          {visibleSteps.map((s, i) => (
+            <div key={s} style={{ flex: 1, height: '4px', borderRadius: '2px', background: i <= visibleSteps.indexOf(step) ? 'var(--primary)' : 'var(--border-light)', transition: 'background 0.3s' }}></div>
           ))}
         </div>
 
@@ -627,10 +656,10 @@ export default function SubmitActivity() {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '1rem' }}>
-            {step > 1 ? (
+            {visibleSteps.indexOf(step) > 0 ? (
               <button
                 type="button"
-                onClick={() => setStep(step - 1)}
+                onClick={() => setStep(visibleSteps[visibleSteps.indexOf(step) - 1])}
                 style={{
                   flex: 1,
                   background: 'transparent',
@@ -643,8 +672,8 @@ export default function SubmitActivity() {
                 Back
               </button>
             ) : <div style={{ flex: 1 }}></div>}
-            
-            {step < 6 ? (
+
+            {visibleSteps.indexOf(step) < visibleSteps.length - 1 ? (
               <button
                 type="button"
                 onClick={handleNext}

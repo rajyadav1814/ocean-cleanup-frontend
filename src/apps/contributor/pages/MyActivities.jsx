@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useActivities } from '../../../hooks/useActivities';
 import { useAuth } from '../../../context/AuthContext';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { apiDelete } from '../../../services/api';
 import ImageGalleryModal from '../../../components/common/ImageGalleryModal';
+import { invalidateContributorStats } from '../../../store/contributorSlice';
+import { invalidateCitizenStats } from '../../../store/citizenSlice';
 
 function formatActivityDate(timestamp) {
   const date = new Date(timestamp);
@@ -26,9 +29,9 @@ function formatActivityDate(timestamp) {
 const CAT_ICON = { plastic: '🧴', glass: '🍾', metal: '🥫', organic: '🍂', mixed: '🗑️', other: '📦' };
 
 const STATUS_META = {
-  approved: { bg: 'rgba(16,185,129,.12)', color: '#10b981', label: 'Approved' },
-  pending:  { bg: 'rgba(245,158,11,.12)', color: '#f59e0b', label: 'Pending' },
-  rejected: { bg: 'rgba(239,68,68,.12)',  color: '#ef4444', label: 'Rejected' },
+  approved: { bg: 'rgba(6,32,26,.82)', color: '#34d399', label: 'Approved' },
+  pending:  { bg: 'rgba(38,26,4,.82)', color: '#fbbf24', label: 'Pending' },
+  rejected: { bg: 'rgba(38,10,10,.82)', color: '#f87171', label: 'Rejected' },
 };
 
 const FILTERS = [
@@ -51,14 +54,9 @@ const STYLES = `
   .ma-title { margin: 0; font-size: 1.55rem; font-weight: 600; letter-spacing: -.02em; color: var(--text-main); font-family: var(--font-display); }
   .ma-title em { font-style: italic; font-family: var(--font-serif); font-weight: 400; color: var(--primary); }
   .ma-sub { margin: .5rem 0 0; font-size: .85rem; color: var(--text-muted); max-width: 46ch; line-height: 1.6; }
-  .ma-cta {
-    display: inline-flex; align-items: center; gap: .5rem; padding: .75rem 1.5rem; border-radius: var(--radius-md);
-    background: linear-gradient(135deg, var(--primary), var(--secondary)); color: #fff; border: none; cursor: pointer;
-    font-size: .78rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
-    box-shadow: 0 12px 26px -12px rgba(46,158,155,.5); transition: transform .2s ease;
-    font-family: var(--font-mono);
-  }
-  .ma-cta:hover { transform: translateY(-1px); }
+  /* Chrome (colors/shape/font/hover) comes from the shared .ma-cta rule in
+     styles.css — same button as the contributor and citizen hero CTAs. */
+  .ma-cta { cursor: pointer; }
 
   .ma-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.1rem; }
   .ma-filters { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-lg); padding: 5px; }
@@ -74,6 +72,10 @@ const STYLES = `
     border: 1px solid var(--border-light); border-radius: var(--radius-lg); background: var(--surface);
     overflow: hidden; position: relative; backdrop-filter: blur(16px);
     transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+    /* Skip layout/paint work for cards scrolled out of view — the big win
+       for a grid that can grow to dozens of blurred cards. */
+    content-visibility: auto;
+    contain-intrinsic-size: 0 380px;
   }
   .ma-card:hover { border-color: var(--border-glow); transform: translateY(-3px); box-shadow: 0 20px 40px -24px rgba(4,18,31,.35); }
 
@@ -81,9 +83,11 @@ const STYLES = `
   .ma-media img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; transition: transform .35s ease; }
   .ma-card:hover .ma-media img { transform: scale(1.035); }
   .ma-media__placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
-  .ma-media__more { position: absolute; bottom: .5rem; right: .5rem; background: rgba(4,18,31,.68); color: #fff; font-size: .68rem; font-weight: 700; padding: .18rem .5rem; border-radius: 999px; backdrop-filter: blur(4px); }
-  .ma-media__badge { position: absolute; top: .6rem; left: .6rem; padding: .22rem .65rem; border-radius: 999px; font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; backdrop-filter: blur(6px); }
-  .ma-media__date { position: absolute; top: .6rem; right: .6rem; background: rgba(4,18,31,.55); color: #fff; font-size: .66rem; font-weight: 600; padding: .22rem .6rem; border-radius: 999px; backdrop-filter: blur(6px); font-family: var(--font-mono); }
+  /* Solid backgrounds instead of nested backdrop-filter — stacking a blur
+     inside an already-blurred card multiplies compositing cost per card. */
+  .ma-media__more { position: absolute; bottom: .5rem; right: .5rem; background: rgba(4,18,31,.82); color: #fff; font-size: .68rem; font-weight: 700; padding: .18rem .5rem; border-radius: 999px; }
+  .ma-media__badge { position: absolute; top: .6rem; left: .6rem; padding: .22rem .65rem; border-radius: 999px; font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+  .ma-media__date { position: absolute; top: .6rem; right: .6rem; background: rgba(4,18,31,.72); color: #fff; font-size: .66rem; font-weight: 600; padding: .22rem .6rem; border-radius: 999px; font-family: var(--font-mono); }
 
   .ma-body { padding: 1.1rem 1.2rem 1.25rem; }
   .ma-loc { margin: 0; font-size: .96rem; font-weight: 700; color: var(--primary-hover); line-height: 1.35; }
@@ -128,6 +132,7 @@ const STYLES = `
 `;
 
 export default function MyActivities() {
+  const dispatch = useDispatch();
   const { activities, loading, refresh } = useActivities();
   const { user, role } = useAuth();
   const navigate = useNavigate();
@@ -172,6 +177,7 @@ export default function MyActivities() {
       }
 
       await refresh();
+      dispatch(role === 'citizen' ? invalidateCitizenStats() : invalidateContributorStats());
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -267,6 +273,8 @@ export default function MyActivities() {
                         <img
                           src={firstUrl}
                           alt="Cleanup evidence"
+                          loading="lazy"
+                          decoding="async"
                           onClick={() => setGallery({ images: urls, startAt: 0 })}
                           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGallery({ images: urls, startAt: 0 }); } }}
                           role="button"

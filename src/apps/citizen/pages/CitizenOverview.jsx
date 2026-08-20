@@ -162,35 +162,10 @@ const STYLES = `
     font-size: 0.88rem; color: var(--text-muted);
     margin-top: 0.7rem; max-width: 460px; line-height: 1.7;
   }
-  .co-cta {
-    display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
-    min-height: 44px;
-    background: linear-gradient(135deg, #6FC9C4, #2E9E9B) !important;
-    border: 1px solid transparent !important;
-    border-radius: 999px !important;
-    color: #04121F !important;
-    font-size: 0.72rem !important; font-weight: 700 !important;
-    letter-spacing: 0.1em !important; text-transform: uppercase !important;
-    padding: 0.55rem 0.65rem 0.55rem 1.15rem !important;
-    cursor: pointer; white-space: nowrap; flex-shrink: 0; align-self: flex-end;
-    margin-bottom: 2.75rem;
-    box-shadow: 0 16px 30px -14px rgba(46,158,155,.72) !important;
-    transform: none !important; filter: none !important;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease !important;
-    font-family: var(--font-mono) !important;
-  }
-  .co-cta-arrow {
-    display: grid; place-items: center; width: 28px; height: 28px;
-    border-radius: 50%; background: rgba(4,18,31,.13); font-size: 1rem;
-    transition: transform 0.2s ease, background 0.2s ease;
-  }
-  .co-cta:hover {
-    background: linear-gradient(135deg, #A9D8F0, #6FC9C4) !important;
-    box-shadow: 0 20px 34px -14px rgba(46,158,155,.85) !important;
-    border-color: transparent !important;
-    transform: translateY(-2px) !important; filter: none !important;
-  }
-  .co-cta:hover .co-cta-arrow { transform: translateX(2px); background: rgba(4,18,31,.2); }
+  /* Chrome (colors/shape/font/hover) comes from the shared .co-cta rule in
+     styles.css — same button as the contributor space and My Activities.
+     Only page-specific spacing is set here. */
+  .co-cta { cursor: pointer; flex-shrink: 0; margin-bottom: 2.75rem; }
 
   /* stat strip */
   .co-stats {
@@ -401,7 +376,7 @@ export default function CitizenOverview() {
           </p>
         </div>
         <Link to="/citizen/submit" id="citizen-submit-hero" className="co-cta">
-          <span>Submit a report →</span>
+          <span>Submit a report</span><span aria-hidden="true">→</span>
         </Link>
       </div>
 

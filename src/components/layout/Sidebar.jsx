@@ -95,16 +95,31 @@ const ICONS = {
   )
 };
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
   const { user, role } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const resizeTimeoutRef = useRef(null);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => () => {
+    clearTimeout(resizeTimeoutRef.current);
+    document.body.classList.remove('sidebar-resizing');
+  }, []);
+
+  const toggleCollapsed = useCallback(() => {
+    document.body.classList.add('sidebar-resizing');
+    clearTimeout(resizeTimeoutRef.current);
+    resizeTimeoutRef.current = setTimeout(() => {
+      document.body.classList.remove('sidebar-resizing');
+    }, 260);
+    setIsCollapsed(c => !c);
   }, []);
 
   const isMobile = windowWidth < 768;
@@ -173,7 +188,7 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
             </h2>
           )}
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={toggleCollapsed}
             style={{
               width: isMobile ? '32px' : '36px', height: isMobile ? '32px' : '36px', borderRadius: '50%', backgroundColor: 'var(--surface-hover)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffffff',
