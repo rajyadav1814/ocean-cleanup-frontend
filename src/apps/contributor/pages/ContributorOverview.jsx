@@ -1,11 +1,13 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
 import { useActivities } from '../../../hooks/useActivities';
 import { useContributorStats } from '../../../hooks/useContributorStats';
 import { useContributorInsights } from '../../../hooks/useContributorInsights';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import OceanWaveStrip from '../../../components/common/OceanWaveStrip';
+import { contributorApi } from '../../../services/api';
 
 /* ── Responsive hook ── */
 function useWindowWidth() {
@@ -22,6 +24,17 @@ function fmt(ts) {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+function toDateInputValue(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function defaultExportRange() {
+  const to = new Date();
+  const from = new Date();
+  from.setMonth(from.getMonth() - 6);
+  return { from: toDateInputValue(from), to: toDateInputValue(to) };
 }
 
 const CAT_COLOR = { plastic:'#1d9e75', glass:'#378add', metal:'#7f77dd', organic:'#e8a838', mixed:'#c14f2c', other:'#8299a0' };
@@ -84,6 +97,31 @@ const STYLES = `
   .contrib-status-row { display:flex; align-items:center; justify-content:space-between; gap:.75rem; color:var(--text-muted); font-size:.78rem; }
   .contrib-status-row strong { color:var(--text-main); font-size:.85rem; }
   .contrib-status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:.45rem; }
+  .contrib-hero-actions { display:flex; flex-direction:column; align-items:flex-end; gap:.6rem; }
+  .contrib-export-panel { max-width:640px; }
+  .contrib-export-head { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.1rem; }
+  .contrib-export-title { margin:0; font-size:.92rem; font-weight:700; color:var(--text-main); }
+  .contrib-export-sub { margin:.3rem 0 0; font-size:.78rem; color:var(--text-muted); line-height:1.5; }
+  .contrib-export-close {
+    flex-shrink:0; width:26px; height:26px; padding:0; border-radius:999px; display:grid; place-items:center;
+    background:transparent; border:1px solid var(--border-light); color:var(--text-muted); box-shadow:none;
+    font-size:.85rem; line-height:1; cursor:pointer; transition:border-color .2s, color .2s;
+  }
+  .contrib-export-close:hover { border-color:var(--border-glow); color:var(--text-main); }
+  .contrib-export-row { display:flex; flex-wrap:wrap; align-items:flex-end; gap:.9rem; }
+  .contrib-export-field { display:flex; flex-direction:column; gap:.35rem; }
+  .contrib-export-label { font-size:.66rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); }
+  .contrib-export-input {
+    height:40px; padding:0 .7rem; border-radius:var(--radius-md); border:1px solid var(--border-light);
+    background:var(--surface-hover); color:var(--text-main); font-family:var(--font-sans); font-size:.82rem;
+    box-shadow:none; transition:border-color .2s, background .2s;
+  }
+  .contrib-export-error { margin-top:.85rem; font-size:.78rem; color:#ef4444; background:rgba(239,68,68,.08); border-radius:6px; padding:.5rem .7rem; }
+  @media(max-width:640px){
+    .contrib-export-panel { max-width:none; }
+    .contrib-export-row { align-items:stretch; }
+    .contrib-export-field { flex:1 1 140px; }
+  }
   @media(max-width:768px){
     .contrib-card { padding: 1.15rem 1.25rem; }
     .contrib-stats { grid-template-columns:repeat(2,1fr); gap:0.75rem; }
@@ -91,6 +129,9 @@ const STYLES = `
     .contrib-pulse-row { grid-template-columns:1fr; }
     .contrib-community { flex-direction:column; align-items:flex-start; }
     .contrib-community-counts { gap:1.25rem; }
+  }
+  @media(max-width:640px){
+    .contrib-hero-actions { align-items:flex-start; width:100%; }
   }
   @media(max-width:480px){
     .contrib-card { padding: 1rem; }
@@ -180,6 +221,8 @@ const StatusChart = ({ items }) => {
 
 export default function ContributorOverview() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
   const navigate = useNavigate();
   const w = useWindowWidth();
   const isMobile = w < 640;
@@ -187,6 +230,24 @@ export default function ContributorOverview() {
   const { activities, loading: actsLoading } = useActivities();
   const { stats, loading: statsLoading } = useContributorStats();
   const { insights, loading: insightsLoading } = useContributorInsights();
+
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportRange, setExportRange] = useState(defaultExportRange);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
+
+  async function handleExport() {
+    setExporting(true);
+    setExportError('');
+    try {
+      await contributorApi.exportReport(exportRange.from, exportRange.to);
+      setExportOpen(false);
+    } catch (err) {
+      setExportError(err.message || 'Failed to generate report');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const myActivities = useMemo(() =>
     activities.filter(a => a.contributorId === user?.id), [activities, user]);
@@ -283,11 +344,83 @@ export default function ContributorOverview() {
           <p className="contributor-hero__sub">
             Every cleanup you log is verified on-chain and helps BlueMind track where pollution is concentrating.
           </p>
+           <button
+            id="export-report-btn"
+            type="button"
+            onClick={() => setExportOpen((o) => !o)}
+            style={{
+              background:'transparent', border:'1px solid var(--border-light)', borderRadius:'999px',
+              color:'var(--primary)', fontSize:'0.72rem', fontWeight:700, letterSpacing:'.08em',
+              textTransform:'uppercase', padding:'0.5rem 1rem', cursor:'pointer', boxShadow:'none',
+              fontFamily:'var(--font-sans)', whiteSpace:'nowrap', transition:'border-color .2s, background .2s',
+              marginTop: isMobile ? '0.75rem' : '0.5rem'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--border-glow)'; e.currentTarget.style.background = 'rgba(14,165,233,.06)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.background = 'transparent'; }}
+          >
+            Export field report
+          </button>
         </div>
-        <button id="hero-log-btn" className="contributor-hero__cta" onClick={() => navigate('/contributor/submit')}>
-          <span>Log a cleanup</span><span aria-hidden="true">→</span>
-        </button>
+        <div className="contrib-hero-actions">
+         
+          <button id="hero-log-btn" className="contributor-hero__cta" onClick={() => navigate('/contributor/submit')}>
+            <span>Log a cleanup</span><span aria-hidden="true">→</span>
+          </button>
+        </div>
       </div>
+
+      {/* ── EXPORT FIELD REPORT PANEL ── */}
+      {exportOpen && (
+        <Card className="contrib-export-panel">
+          <div className="contrib-export-head">
+            <div>
+              <h3 className="contrib-export-title">Export field report</h3>
+              <p className="contrib-export-sub">Download a PDF summary of your approved cleanups for a date range.</p>
+            </div>
+            <button
+              type="button"
+              className="contrib-export-close"
+              aria-label="Close export panel"
+              onClick={() => { setExportOpen(false); setExportError(''); }}
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="contrib-export-row">
+            <div className="contrib-export-field">
+              <label htmlFor="export-from" className="contrib-export-label">From</label>
+              <input
+                id="export-from"
+                type="date"
+                className="contrib-export-input"
+                value={exportRange.from}
+                max={exportRange.to}
+                onChange={(e) => setExportRange((r) => ({ ...r, from: e.target.value }))}
+                style={{ colorScheme: isLight ? 'light' : 'dark' }}
+              />
+            </div>
+            <div className="contrib-export-field">
+              <label htmlFor="export-to" className="contrib-export-label">To</label>
+              <input
+                id="export-to"
+                type="date"
+                className="contrib-export-input"
+                value={exportRange.to}
+                min={exportRange.from}
+                max={toDateInputValue(new Date())}
+                onChange={(e) => setExportRange((r) => ({ ...r, to: e.target.value }))}
+                style={{ colorScheme: isLight ? 'light' : 'dark' }}
+              />
+            </div>
+            <button type="button" className="ma-cta" disabled={exporting} onClick={handleExport} style={{ opacity: exporting ? 0.7 : 1, cursor: exporting ? 'default' : 'pointer' }}>
+              <span>{exporting ? 'Generating…' : 'Download PDF'}</span><span aria-hidden="true">{exporting ? '⏳' : '↓'}</span>
+            </button>
+          </div>
+
+          {exportError && <div className="contrib-export-error">{exportError}</div>}
+        </Card>
+      )}
 
       {/* ── STATS GRID ── */}
       <div className="contrib-stats">

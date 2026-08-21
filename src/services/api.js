@@ -74,6 +74,39 @@ export const orgApi = {
   setStatus: (id, isActive) => apiPatch(`/api/admin/organizations/${id}/status`, { isActive }),
 };
 
+// For binary downloads (e.g. generated PDFs) — reads the response as a blob
+// and triggers a browser save, using the server's Content-Disposition filename.
+export async function apiDownloadFile(path, fallbackFilename = 'download') {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: authHeaders()
+  });
+
+  if (!response.ok) {
+    let message = 'Download failed';
+    try {
+      const data = await response.json();
+      message = data.error || data.message || message;
+    } catch {
+      // response wasn't JSON — keep the default message
+    }
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition') || '';
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  const filename = match ? match[1] : fallbackFilename;
+
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 // For multipart form-data (file uploads) — do NOT set Content-Type manually
 export async function apiPostForm(path, formData) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -127,6 +160,12 @@ export async function authVerify(token) {
 export async function authUpdateProfile(payload) {
   return apiPut('/api/auth/profile', payload);
 }
+
+// ─── Contributor API helpers ──────────────────────────────────────────────────
+export const contributorApi = {
+  exportReport: (from, to) =>
+    apiDownloadFile(`/api/contributor/export?from=${from}&to=${to}&format=pdf`, `field-report-${from}-to-${to}.pdf`),
+};
 
 // ─── Citizen API helpers ──────────────────────────────────────────────────────
 export const citizenApi = {
