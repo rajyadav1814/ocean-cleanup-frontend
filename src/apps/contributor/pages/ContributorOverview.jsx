@@ -46,6 +46,29 @@ const DISPOSAL_LABEL = { landfill:'Landfill', recycled:'Recycled', composted:'Co
 const WILDLIFE_COLOR = { healthy:'#10b981', injured:'#f59e0b', entangled:'#ef4444', 'not specified':'#c8d4dc' };
 const WILDLIFE_LABEL = { healthy:'Healthy', injured:'Injured', entangled:'Entangled', 'not specified':'Condition not noted' };
 
+const DEBRIS_COLOR = {
+  cigaretteButts:'#c14f2c', foodWrappers:'#e8a838', bottleCaps:'#378add',
+  fishingLine:'#7f77dd', straws:'#1d9e75', bottles:'#8299a0',
+};
+
+const TREND_COLOR = {
+  improving: { bg:'rgba(29,158,117,.12)', color:'#1d9e75' },
+  stable:    { bg:'rgba(130,153,160,.16)', color:'#8299a0' },
+  worsening: { bg:'rgba(193,79,44,.12)',  color:'#c14f2c' },
+};
+
+const HAZARD_META = {
+  medical:   { icon:'🚑', label:'Medical' },
+  chemical:  { icon:'☣️', label:'Chemical' },
+  unstable:  { icon:'⚠️', label:'Unstable-terrain' },
+};
+
+const emptyStyle = { color:'var(--text-muted)', fontSize:'0.84rem', textAlign:'center', padding:'1.25rem 0' };
+
+function cap(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 const Delta = ({ value, unit = '' }) => {
   if (value === 0 || value == null) return <span style={{ color:'var(--text-muted)', fontSize:'0.75rem' }}>Same as last month</span>;
   const pos = value > 0;
@@ -98,6 +121,21 @@ const STYLES = `
   .contrib-status-row strong { color:var(--text-main); font-size:.85rem; }
   .contrib-status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:.45rem; }
   .contrib-hero-actions { display:flex; flex-direction:column; align-items:flex-end; gap:.6rem; }
+  .contrib-two-col { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; align-items:stretch; }
+  .contrib-two-col > .contrib-card { height:100%; }
+  .contrib-job-badge {
+    display:inline-flex; align-items:center; padding:.18rem .55rem; border-radius:999px; font-size:.68rem;
+    font-weight:700; background:rgba(46,158,155,.14); color:var(--primary-hover); white-space:nowrap;
+    text-transform:uppercase; letter-spacing:.04em;
+  }
+  .contrib-list-row { display:flex; align-items:center; gap:.6rem; padding:.5rem 0; }
+  .contrib-tag {
+    display:inline-flex; align-items:center; gap:.3rem; padding:.25rem .65rem; border-radius:999px;
+    background:var(--surface-hover); border:1px solid var(--border-light); font-size:.74rem; color:var(--text-main);
+  }
+  @media(max-width:768px){
+    .contrib-two-col { grid-template-columns:1fr; }
+  }
   .contrib-export-panel { max-width:640px; }
   .contrib-export-head { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1.1rem; }
   .contrib-export-title { margin:0; font-size:.92rem; font-weight:700; color:var(--text-main); }
@@ -289,6 +327,20 @@ export default function ContributorOverview() {
   const disposalStats = insights?.disposalStats || [];
   const wildlifeStats = insights?.wildlife || { total: 0, pctOfCleanups: 0, breakdown: [] };
 
+  const siteConditions = insights?.siteConditions || [];
+  const hazardCounts = insights?.hazardCounts || {
+    medical: { count: 0, lastLocation: null, lastSubmittedAt: null },
+    chemical: { count: 0, lastLocation: null, lastSubmittedAt: null },
+    unstable: { count: 0, lastLocation: null, lastSubmittedAt: null },
+  };
+  const debrisBreakdown = insights?.debrisBreakdown || [];
+  const pollutionSeverity = insights?.pollutionSeverity || { microplastics: [], bulkItemsLog: [] };
+  const habitatObservations = insights?.habitatObservations || { habitatStress: [], speciesSighted: [] };
+  const fieldEfficiency = insights?.fieldEfficiency || { totalHours: 0, avgKgPerHour: 0, instruments: [] };
+  const dataQuality = insights?.dataQuality || { dualVerifiedCount: 0, followUpCount: 0, followUpList: [] };
+  const monitoredSites = insights?.monitoredSites || [];
+  const microplasticsTotal = pollutionSeverity.microplastics.reduce((s, x) => s + x.count, 0) || 1;
+
   if (actsLoading || statsLoading || insightsLoading) return <LoadingSpinner />;
 
   const firstName = user?.firstName || user?.displayName?.split(' ')[0] || 'there';
@@ -332,6 +384,7 @@ export default function ContributorOverview() {
         <div className="contributor-hero__content">
           <div className="contributor-hero__kicker">
             <span>Contributor Space</span>
+            {user?.jobTitle && <span className="contrib-job-badge">{user.jobTitle}</span>}
             <svg className="contributor-hero__mark" viewBox="0 0 136 38" aria-hidden="true">
               <path className="wave-1" d="M1 12c13-11 27-11 40 0s27 11 40 0 27-11 40 0" />
               <path className="wave-2" d="M12 20c13-11 27-11 40 0s27 11 40 0 27-11 40 0" />
@@ -489,6 +542,123 @@ export default function ContributorOverview() {
         <Card>
           <CardHead title="Activity Status" sub={`${myActivities.length} cleanup${myActivities.length !== 1 ? 's' : ''} logged`} />
           <StatusChart items={statusChartItems} />
+        </Card>
+      </div>
+
+      {/* ── Site Conditions & Hazards + Debris Breakdown ── */}
+      <div className="contrib-two-col">
+
+        {/* Site conditions & hazards */}
+        <Card>
+          <CardHead title="Site Conditions & Hazards" sub="Shoreline and tide combinations across your approved cleanups" />
+          {siteConditions.length === 0 ? (
+            <p style={emptyStyle}>No approved activities yet.</p>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column' }}>
+              {siteConditions.slice(0, 6).map((sc, i, arr) => (
+                <div key={`${sc.shorelineType}-${sc.tideState}`} className="contrib-list-row"
+                  style={{ justifyContent:'space-between', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                  <span style={{ fontSize:'0.82rem', color:'var(--text-main)' }}>{sc.shorelineType} · {sc.tideState}</span>
+                  <strong style={{ fontSize:'0.78rem', color:'var(--text-muted)', flexShrink:0 }}>{sc.count} visit{sc.count !== 1 ? 's' : ''}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {['medical', 'chemical', 'unstable'].filter((type) => hazardCounts[type]?.count > 0).map((type) => (
+            <div key={type} style={{ marginTop:'0.7rem', background:'rgba(239,68,68,.08)', border:'1px solid rgba(239,68,68,.2)',
+              borderRadius:'var(--radius-md)', padding:'0.55rem 0.75rem', fontSize:'0.76rem', color:'#b91c1c',
+              display:'flex', gap:'0.55rem', alignItems:'flex-start' }}>
+              <span style={{ flexShrink:0 }}>{HAZARD_META[type].icon}</span>
+              <span style={{ lineHeight:1.4 }}>
+                <strong>{HAZARD_META[type].label}</strong> hazards flagged {hazardCounts[type].count}× — most recently at {hazardCounts[type].lastLocation} ({fmt(hazardCounts[type].lastSubmittedAt)}).
+              </span>
+            </div>
+          ))}
+          {siteConditions.length > 0 && ['medical', 'chemical', 'unstable'].every((type) => !hazardCounts[type]?.count) && (
+            <p style={{ marginTop:'0.7rem', fontSize:'0.76rem', color:'var(--text-muted)' }}>No hazards flagged — nice and safe out there.</p>
+          )}
+        </Card>
+
+        {/* Debris breakdown */}
+        <Card>
+          <CardHead title="Debris Breakdown" sub="Item-level counts across your approved cleanups" />
+          {debrisBreakdown.every((d) => d.total === 0) ? (
+            <p style={emptyStyle}>No approved activities yet.</p>
+          ) : (
+            debrisBreakdown.map((d) => (
+              <BarRow key={d.key} label={d.item} pct={d.pct} valueLabel={`${d.pct}% · ${d.total}`} color={DEBRIS_COLOR[d.key]} />
+            ))
+          )}
+        </Card>
+      </div>
+
+      {/* ── Pollution Severity + Habitat & Species Log ── */}
+      <div className="contrib-two-col">
+
+        {/* Pollution severity */}
+        <Card>
+          <CardHead title="Pollution Severity" sub="Microplastics prevalence and bulk / illegal-dumping items logged" />
+          {pollutionSeverity.microplastics.length === 0 ? (
+            <p style={emptyStyle}>No microplastics observations recorded.</p>
+          ) : (
+            pollutionSeverity.microplastics.map((m) => (
+              <BarRow key={m.key} label={cap(m.key)} pct={Math.round((m.count / microplasticsTotal) * 100)} valueLabel={`${m.count}×`} color="#c14f2c" />
+            ))
+          )}
+          <div style={{ marginTop:'1rem' }}>
+            <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.5rem' }}>
+              Bulk / illegal dumping log
+            </div>
+            {pollutionSeverity.bulkItemsLog.length === 0 ? (
+              <p style={{ ...emptyStyle, padding:'0.5rem 0' }}>No bulk items logged.</p>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column' }}>
+                {pollutionSeverity.bulkItemsLog.map((b, i, arr) => (
+                  <div key={i} style={{ fontSize:'0.8rem', padding:'0.4rem 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                    <span style={{ color:'var(--text-main)', fontWeight:600 }}>{b.items}</span>
+                    <span style={{ color:'var(--text-muted)' }}> — {b.location}, {fmt(b.submittedAt)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Habitat & species log */}
+        <Card>
+          <CardHead title="Habitat & Species Log" sub="Frequency of species sightings and habitat stress notes" />
+          <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.4rem' }}>
+            Species sighted
+          </div>
+          {habitatObservations.speciesSighted.length === 0 ? (
+            <p style={{ ...emptyStyle, padding:'0.5rem 0', marginBottom:'0.9rem' }}>No species observations recorded.</p>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', marginBottom:'0.9rem' }}>
+              {habitatObservations.speciesSighted.map((s, i, arr) => (
+                <div key={s.key} className="contrib-list-row" style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                  <span style={{ flex:1, fontSize:'0.8rem' }}>{s.label}</span>
+                  <strong style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>{s.count}×</strong>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.4rem' }}>
+            Habitat stress notes
+          </div>
+          {habitatObservations.habitatStress.length === 0 ? (
+            <p style={{ ...emptyStyle, padding:'0.5rem 0' }}>No habitat stress notes recorded.</p>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column' }}>
+              {habitatObservations.habitatStress.map((h, i, arr) => (
+                <div key={h.key} className="contrib-list-row" style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                  <span style={{ flex:1, fontSize:'0.8rem' }}>{h.label}</span>
+                  <strong style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>{h.count}×</strong>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -651,7 +821,84 @@ export default function ContributorOverview() {
             </>
           )}
         </Card>
+
+        {/* Field efficiency & data quality */}
+        <Card style={{ gridColumn:'1 / -1' }}>
+          <CardHead title="Field Efficiency & Data Quality" sub="How efficiently you work, and how thoroughly your reports are documented" />
+          <div style={{ display:'flex', flexWrap:'wrap', gap:'1.75rem' }}>
+            <div>
+              <div style={{ fontSize:'0.68rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--text-muted)' }}>Avg. kg / hour</div>
+              <div style={{ fontSize:'1.5rem', fontWeight:700, color:'var(--primary-hover)' }}>{fieldEfficiency.totalHours > 0 ? fieldEfficiency.avgKgPerHour : '—'}</div>
+            </div>
+            <div>
+              <div style={{ fontSize:'0.68rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--text-muted)' }}>Dual-verified</div>
+              <div style={{ fontSize:'1.5rem', fontWeight:700, color:'var(--primary-hover)' }}>{dataQuality.dualVerifiedCount}</div>
+            </div>
+            <div>
+              <div style={{ fontSize:'0.68rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--text-muted)' }}>Flagged for follow-up</div>
+              <div style={{ fontSize:'1.5rem', fontWeight:700, color:'var(--primary-hover)' }}>{dataQuality.followUpCount}</div>
+            </div>
+          </div>
+
+          {fieldEfficiency.instruments.length > 0 && (
+            <div style={{ marginTop:'1.1rem' }}>
+              <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.5rem' }}>
+                Instruments / methods used
+              </div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:'0.5rem' }}>
+                {fieldEfficiency.instruments.map((i) => (
+                  <span key={i.key} className="contrib-tag">{i.label} <strong style={{ color:'var(--text-muted)' }}>×{i.count}</strong></span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {dataQuality.followUpList.length > 0 && (
+            <div style={{ marginTop:'1.1rem' }}>
+              <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.5rem' }}>
+                Needs follow-up
+              </div>
+              <div style={{ display:'flex', flexDirection:'column' }}>
+                {dataQuality.followUpList.map((f, i, arr) => (
+                  <div key={i} style={{ fontSize:'0.8rem', padding:'0.35rem 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                    {f.location} <span style={{ color:'var(--text-muted)' }}>· {fmt(f.submittedAt)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {fieldEfficiency.totalHours === 0 && dataQuality.dualVerifiedCount === 0 && dataQuality.followUpCount === 0 && fieldEfficiency.instruments.length === 0 && (
+            <p style={{ ...emptyStyle, padding:'0.75rem 0 0' }}>No field-efficiency or verification data recorded yet.</p>
+          )}
+        </Card>
       </div>
+
+      {/* ── SITES YOU MONITOR ── */}
+      <Card>
+        <CardHead title="Sites You Monitor" sub="Locations you've returned to more than once, and how they're trending" />
+        {monitoredSites.length === 0 ? (
+          <p style={emptyStyle}>Visit the same site twice to start tracking its trend here.</p>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column' }}>
+            {monitoredSites.map((site, i, arr) => (
+              <div key={site.location} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'0.75rem', padding:'0.6rem 0',
+                borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:'0.85rem', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{site.location}</div>
+                  <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:'0.15rem' }}>
+                    {site.visitCount} visits · last {fmt(site.lastVisitAt)}{site.cleanedBeforeCount > 0 ? ` · ${site.cleanedBeforeCount} marked pre-cleaned` : ''}
+                  </div>
+                </div>
+                <span style={{ flexShrink:0, padding:'0.22rem 0.65rem', borderRadius:'999px', fontSize:'0.68rem', fontWeight:700, textTransform:'uppercase',
+                  background:TREND_COLOR[site.trend].bg, color:TREND_COLOR[site.trend].color }}>
+                  {site.trend}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
 
       {/* ── COMMUNITY STRIP ── */}
       <Card style={{
