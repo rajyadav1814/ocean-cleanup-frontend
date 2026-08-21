@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '../../context/ThemeContext';
 
 /**
@@ -71,7 +72,7 @@ export default function ImageGalleryModal({ images = [], startAt = 0, alt = 'Ima
   };
   // ──────────────────────────────────────────────────────────────────────────
 
-  return (
+  return createPortal(
     <div
       role="presentation"
       onClick={onClose}
@@ -85,8 +86,9 @@ export default function ImageGalleryModal({ images = [], startAt = 0, alt = 'Ima
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '3rem 1rem 1rem',
+        justifyContent: 'flex-start',
+        overflowY: 'auto',
+        padding: 'clamp(1rem, 5vw, 3rem) 1rem 1rem',
         transition: 'background 0.25s ease'
       }}
     >
@@ -99,7 +101,7 @@ export default function ImageGalleryModal({ images = [], startAt = 0, alt = 'Ima
         style={{
           position: 'relative',
           width: 'min(96vw, 1100px)',
-          maxHeight: '92vh',
+          margin: 'auto 0',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -116,8 +118,8 @@ export default function ImageGalleryModal({ images = [], startAt = 0, alt = 'Ima
             top: '-0.25rem',
             right: '-0.25rem',
             zIndex: 2,
-            width: '2.25rem',
-            height: '2.25rem',
+            width: 'clamp(1.9rem, 5vw, 2.25rem)',
+            height: 'clamp(1.9rem, 5vw, 2.25rem)',
             borderRadius: '999px',
             background: t.btnBg,
             color: t.btnColor,
@@ -165,8 +167,8 @@ export default function ImageGalleryModal({ images = [], startAt = 0, alt = 'Ima
                 left: '0.6rem',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '2.5rem',
-                height: '2.5rem',
+                width: 'clamp(2rem, 6vw, 2.5rem)',
+                height: 'clamp(2rem, 6vw, 2.5rem)',
                 borderRadius: '999px',
                 background: t.btnBg,
                 border: `1px solid ${t.btnBorder}`,
@@ -199,8 +201,8 @@ export default function ImageGalleryModal({ images = [], startAt = 0, alt = 'Ima
                 right: '0.6rem',
                 top: '50%',
                 transform: 'translateY(-50%)',
-                width: '2.5rem',
-                height: '2.5rem',
+                width: 'clamp(2rem, 6vw, 2.5rem)',
+                height: 'clamp(2rem, 6vw, 2.5rem)',
                 borderRadius: '999px',
                 background: t.btnBg,
                 border: `1px solid ${t.btnBorder}`,
@@ -290,8 +292,8 @@ export default function ImageGalleryModal({ images = [], startAt = 0, alt = 'Ima
                 aria-label={`Thumbnail ${i + 1}`}
                 style={{
                   flexShrink: 0,
-                  width: '3.5rem',
-                  height: '3.5rem',
+                  width: 'clamp(2.5rem, 8vw, 3.5rem)',
+                  height: 'clamp(2.5rem, 8vw, 3.5rem)',
                   borderRadius: '0.4rem',
                   overflow: 'hidden',
                   border: i === current
@@ -322,6 +324,7 @@ export default function ImageGalleryModal({ images = [], startAt = 0, alt = 'Ima
           to   { opacity: 1; transform: scale(1); }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }
