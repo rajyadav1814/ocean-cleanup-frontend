@@ -81,9 +81,9 @@ const Delta = ({ value, unit = '' }) => {
 
 const StatusPill = ({ status }) => {
   const m = {
-    approved: { bg:'rgba(16,185,129,.12)', color:'#10b981', label:'Approved' },
-    pending:  { bg:'rgba(245,158,11,.12)',  color:'#f59e0b', label:'Pending' },
-    rejected: { bg:'rgba(239,68,68,.12)',   color:'#ef4444', label:'Rejected' },
+    approved: { bg:'rgba(16,185,129,.12)', color:'var(--success)', label:'Approved' },
+    pending:  { bg:'rgba(245,158,11,.12)',  color:'var(--warning)', label:'Pending' },
+    rejected: { bg:'rgba(239,68,68,.12)',   color:'var(--danger)', label:'Rejected' },
   };
   const s = m[status] || m.pending;
   return (
