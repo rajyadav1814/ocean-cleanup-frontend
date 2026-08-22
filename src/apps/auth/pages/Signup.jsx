@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight, ArrowLeft, User, Mail, Lock, Briefcase, Building2, CheckCircle2 } from 'lucide-react';
-import { authSignup, apiGet } from '../../../services/api';
+import { authSignup, authCheckEmail, apiGet } from '../../../services/api';
 
 const STEPS = [
   { label: 'Personal details',  title: <>Tell us <span className="serif">about yourself.</span></>,           description: 'Start with the basics.' },
@@ -276,9 +276,29 @@ export default function Signup() {
 
   const selectedOrganization = organizations.find((o) => o.orgId === form.organizationId)?.name || 'Not specified';
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (step === 1 && (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim())) {
       setError('Please complete your name and email address.'); return;
+    }
+    if (step === 1) {
+      setError('');
+      setLoading(true);
+      try {
+        const data = await authCheckEmail(form.email.trim());
+        if (!data.ok) {
+          setError(data.message || 'Unable to check email availability.');
+          return;
+        }
+        if (!data.available) {
+          setError('Email already exists');
+          return;
+        }
+      } catch {
+        setError('Unable to check email availability. Please try again.');
+        return;
+      } finally {
+        setLoading(false);
+      }
     }
     if (step === 3 && (!form.username.trim() || !form.password || !form.confirmPassword)) {
       setError('Please choose a username and confirm your password.'); return;
@@ -292,7 +312,7 @@ export default function Signup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (step < STEPS.length) { nextStep(); return; }
+    if (step < STEPS.length) { await nextStep(); return; }
     setError(''); setLoading(true);
     try {
       const { confirmPassword, experience, ...payload } = form;
@@ -496,7 +516,7 @@ export default function Signup() {
             </button>
             <button type="submit" className="bm-signup__next" disabled={loading}>
               {loading ? (
-                <><span className="bm-signup__spinner" /> Creating…</>
+                <><span className="bm-signup__spinner" /> {step === 1 ? 'Checking email…' : 'Creating…'}</>
               ) : step === STEPS.length ? (
                 <><CheckCircle2 size={15} /> Create account</>
               ) : (

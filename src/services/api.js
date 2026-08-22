@@ -150,6 +150,11 @@ export async function authSignup(payload) {
   return res.json();
 }
 
+export async function authCheckEmail(email) {
+  const res = await fetch(`${API_BASE_URL}/api/auth/email-availability?email=${encodeURIComponent(email)}`);
+  return res.json();
+}
+
 export async function authVerify(token) {
   const res = await fetch(`${API_BASE_URL}/api/auth/verify`, {
     headers: { Authorization: `Bearer ${token}` }
