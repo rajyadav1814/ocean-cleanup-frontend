@@ -340,6 +340,8 @@ export default function ContributorOverview() {
   const dataQuality = insights?.dataQuality || { dualVerifiedCount: 0, followUpCount: 0, followUpList: [] };
   const monitoredSites = insights?.monitoredSites || [];
   const microplasticsTotal = pollutionSeverity.microplastics.reduce((s, x) => s + x.count, 0) || 1;
+  const topBrands = insights?.brandFrequency?.topBrands || [];
+  const topBrandsMax = topBrands[0]?.count || 1;
 
   if (actsLoading || statsLoading || insightsLoading) return <LoadingSpinner />;
 
@@ -582,7 +584,7 @@ export default function ContributorOverview() {
 
         {/* Debris breakdown */}
         <Card>
-          <CardHead title="Debris Breakdown" sub="Item-level counts across your approved cleanups" />
+          <CardHead title="Debris Breakdown" sub="Item-level counts and brand attribution across your approved cleanups" />
           {debrisBreakdown.every((d) => d.total === 0) ? (
             <p style={emptyStyle}>No approved activities yet.</p>
           ) : (
@@ -590,6 +592,19 @@ export default function ContributorOverview() {
               <BarRow key={d.key} label={d.item} pct={d.pct} valueLabel={`${d.pct}% · ${d.total}`} color={DEBRIS_COLOR[d.key]} />
             ))
           )}
+
+          <div style={{ marginTop:'1rem' }}>
+            <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.5rem' }}>
+              Top brands identified
+            </div>
+            {topBrands.length === 0 ? (
+              <p style={{ ...emptyStyle, padding:'0.5rem 0' }}>No brand data logged yet.</p>
+            ) : (
+              topBrands.slice(0, 5).map((b) => (
+                <BarRow key={b.key} label={b.label} pct={Math.round((b.count / topBrandsMax) * 100)} valueLabel={`${b.count}×`} color="#378add" />
+              ))
+            )}
+          </div>
         </Card>
       </div>
 

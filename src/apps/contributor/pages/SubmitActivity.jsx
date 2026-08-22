@@ -29,7 +29,17 @@ const materials = [
   "Bottles and containers"
 ];
 
+const BRAND_PLACEHOLDERS = {
+  "Cigarette butts": "e.g. Gold Flake",
+  "Food wrappers": "e.g. Lay's",
+  "Bottle caps": "e.g. Coca-Cola",
+  "Fishing line and nets": "e.g. Rapala",
+  "Straws and bags": "e.g. Ziploc",
+  "Bottles and containers": "e.g. Bisleri"
+};
+
 const emptyDebrisLog = () => Object.fromEntries(materials.map((material) => [material, '']));
+const emptyBrandLog = () => Object.fromEntries(materials.map((material) => [material, []]));
 
 function asImageUrls(value) {
   if (Array.isArray(value)) return value.filter(Boolean);
@@ -56,6 +66,13 @@ function activityDebrisLog(activity) {
   };
 }
 
+function activityBrandLog(activity) {
+  return {
+    ...emptyBrandLog(),
+    ...(activity.brandsIdentified || {})
+  };
+}
+
 function positiveNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : null;
@@ -78,6 +95,7 @@ export default function SubmitActivity() {
     tideState: 'Low tide',
     cleanedBefore: false,
     debrisLog: emptyDebrisLog(),
+    brandLog: emptyBrandLog(),
     microplastics: 'None observed',
     bulkItems: '',
     speciesSighted: '',
@@ -158,6 +176,7 @@ export default function SubmitActivity() {
           tideState: data.activity.tideState || 'Low tide',
           cleanedBefore: data.activity.cleanedBefore || false,
           debrisLog: activityDebrisLog(data.activity),
+          brandLog: activityBrandLog(data.activity),
           microplastics: data.activity.microplastics || 'None observed',
           bulkItems: data.activity.bulkItems || '',
           speciesSighted: data.activity.speciesSighted || '',
@@ -199,6 +218,17 @@ export default function SubmitActivity() {
       return;
     }
 
+    // Drop rows with a blank brand name (e.g. an auto-added row nobody filled
+    // in), then drop materials left with no brands — so a debris count with
+    // no brands logged sends no brand data at all.
+    const brandsIdentified = {};
+    Object.entries(form.brandLog).forEach(([material, brands]) => {
+      const cleaned = brands
+        .filter((b) => b.name && b.name.trim())
+        .map((b) => ({ name: b.name.trim(), count: b.count ? Number(b.count) : 0 }));
+      if (cleaned.length > 0) brandsIdentified[material] = cleaned;
+    });
+
     setIsSubmitting(true);
     setStatus('');
     const payload = {
@@ -222,6 +252,7 @@ export default function SubmitActivity() {
       debrisFishingLine: form.debrisLog['Fishing line and nets'] ? Number(form.debrisLog['Fishing line and nets']) : undefined,
       debrisStraws: form.debrisLog['Straws and bags'] ? Number(form.debrisLog['Straws and bags']) : undefined,
       debrisBottles: form.debrisLog['Bottles and containers'] ? Number(form.debrisLog['Bottles and containers']) : undefined,
+      brands_identified: brandsIdentified,
       microplastics: form.microplastics,
       bulkItems: form.bulkItems,
       speciesSighted: form.speciesSighted,
@@ -300,6 +331,44 @@ export default function SubmitActivity() {
     setForm(prev => ({ ...prev, location: displayName, lat, lon }));
   }
 
+  function handleDebrisCountChange(material, value) {
+    setForm(prev => {
+      const countIsPositive = Number(value) > 0;
+      const shouldSeedBrandRow = countIsPositive && (prev.brandLog[material]?.length ?? 0) === 0;
+      return {
+        ...prev,
+        debrisLog: { ...prev.debrisLog, [material]: value },
+        brandLog: shouldSeedBrandRow
+          ? { ...prev.brandLog, [material]: [{ name: '', count: '' }] }
+          : prev.brandLog
+      };
+    });
+  }
+
+  function addBrandRow(material) {
+    setForm(prev => ({
+      ...prev,
+      brandLog: { ...prev.brandLog, [material]: [...prev.brandLog[material], { name: '', count: '' }] }
+    }));
+  }
+
+  function removeBrandRow(material, index) {
+    setForm(prev => ({
+      ...prev,
+      brandLog: { ...prev.brandLog, [material]: prev.brandLog[material].filter((_, i) => i !== index) }
+    }));
+  }
+
+  function updateBrandRow(material, index, field, value) {
+    setForm(prev => ({
+      ...prev,
+      brandLog: {
+        ...prev.brandLog,
+        [material]: prev.brandLog[material].map((row, i) => i === index ? { ...row, [field]: value } : row)
+      }
+    }));
+  }
+
   const handleNext = () => {
     if (step === 1 && !form.location) {
       setStatus("Please provide a location before proceeding.");
@@ -323,11 +392,13 @@ export default function SubmitActivity() {
 
   const totalImageCount = existingUrls.length + images.length;
 
-  // Data completeness reflects what's actually been filled in on the steps
+  // Data confidence reflects what's actually been filled in on the steps
   // this role sees — required fields (location, weight) plus every optional
   // field that adds real detail to the report. Fields from steps a citizen
   // never sees (debris log, wildlife, verification) aren't counted against
-  // them.
+  // them. Brand attribution is carved out as a fixed 20-point slice of the
+  // score (contributors only), so logging brands has a guaranteed, visible
+  // effect instead of being diluted among the other checks.
   const completenessChecks = [
     Boolean(form.location),
     Boolean(form.quantity),
@@ -343,9 +414,15 @@ export default function SubmitActivity() {
       Boolean(form.timeSpent),
     ]),
   ];
-  const score = Math.round(
-    (completenessChecks.filter(Boolean).length / completenessChecks.length) * 100
-  );
+  const baseScore = (completenessChecks.filter(Boolean).length / completenessChecks.length) * 100;
+
+  const materialsWithCount = materials.filter((m) => Number(form.debrisLog[m]) > 0);
+  const materialsWithBrands = materialsWithCount.filter((m) => (form.brandLog[m] || []).some((b) => b.name && b.name.trim()));
+  const brandCompletionRatio = materialsWithCount.length > 0 ? materialsWithBrands.length / materialsWithCount.length : 0;
+
+  const score = isCitizen
+    ? Math.round(baseScore)
+    : Math.round(baseScore * 0.8 + brandCompletionRatio * 20);
 
   if (loadingActivity) {
     return <LoadingSpinner layout="form" />;
@@ -406,6 +483,25 @@ export default function SubmitActivity() {
           ))}
         </div>
 
+        {/* Runs across every step since it reflects fields from the whole form, not just the current screen. */}
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Data confidence</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: score >= 80 ? 'var(--success)' : 'var(--primary)' }}>{score}%</span>
+          </div>
+          <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden' }}>
+            <div style={{ height: '100%', background: 'var(--success)', width: `${score}%`, transition: 'width 0.3s ease' }}></div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
+            <span style={{ fontSize: '11px', lineHeight: 1 }}>{score >= 80 ? '✓' : 'ℹ️'}</span>
+            <span style={{ fontSize: '11px', color: score >= 80 ? 'var(--success)' : 'var(--text-muted)' }}>
+              {score >= 80
+                ? 'High confidence — reports like this tend to get approved faster.'
+                : 'Reports with 80%+ data confidence tend to get approved faster.'}
+            </span>
+          </div>
+        </div>
+
         {status && (
           <div className={`mb-4 p-4 rounded badge ${status.includes('failed') || status.includes('Please') ? 'rejected' : 'approved'}`} style={{ display: 'block', padding: '0.75rem', textAlign: 'center', marginBottom: '1rem' }}>
             {status}
@@ -458,13 +554,61 @@ export default function SubmitActivity() {
               <div className="form-group">
                 <label style={{ marginBottom: '12px', display: 'block' }}>Debris log, by item count</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {materials.map(m => (
-                    <div key={m} className="debris-row" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                      <span style={{ flex: 1, fontSize: '14px', color: 'var(--text-main)' }}>{m}</span>
-                      <input type="number" placeholder="0" style={{ width: '80px', padding: '6px 10px', minHeight: '36px' }} 
-                        value={form.debrisLog[m]} onChange={e => setForm({...form, debrisLog: {...form.debrisLog, [m]: e.target.value}})} />
-                    </div>
-                  ))}
+                  {materials.map(m => {
+                    const hasCount = Number(form.debrisLog[m]) > 0;
+                    const brands = form.brandLog[m] || [];
+                    return (
+                      <div key={m}>
+                        <div className="debris-row" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <span style={{ flex: 1, fontSize: '14px', color: 'var(--text-main)' }}>{m}</span>
+                          <input type="number" placeholder="0" style={{ width: '80px', padding: '6px 10px', minHeight: '36px' }}
+                            value={form.debrisLog[m]} onChange={e => handleDebrisCountChange(m, e.target.value)} />
+                        </div>
+                        {hasCount && (
+                          <div style={{
+                            marginTop: '8px', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
+                            padding: '10px 12px', background: 'var(--surface-hover)'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)' }}>Brands identified</span>
+                              <span style={{
+                                fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em',
+                                color: 'var(--text-muted)', background: 'var(--surface)', border: '1px solid var(--border-light)',
+                                borderRadius: '999px', padding: '2px 8px'
+                              }}>optional</span>
+                              <span style={{
+                                fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em',
+                                color: 'var(--primary)', background: 'rgba(14,165,233,.1)', border: '1px solid rgba(14,165,233,.25)',
+                                borderRadius: '999px', padding: '2px 8px'
+                              }}>+20% confidence</span>
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {brands.map((b, i) => (
+                                <div key={i} className="debris-row" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                  <input type="text" placeholder={BRAND_PLACEHOLDERS[m] || 'Brand name'} style={{ flex: 1, padding: '6px 10px', minHeight: '36px' }}
+                                    value={b.name} onChange={e => updateBrandRow(m, i, 'name', e.target.value)} />
+                                  <input type="number" placeholder="0" style={{ width: '80px', padding: '6px 10px', minHeight: '36px' }}
+                                    value={b.count} onChange={e => updateBrandRow(m, i, 'count', e.target.value)} />
+                                  <button type="button" onClick={() => removeBrandRow(m, i)} aria-label={`Remove brand row ${i + 1}`}
+                                    style={{
+                                      background: 'transparent', border: 'none', color: 'var(--text-muted)',
+                                      cursor: 'pointer', padding: '4px', boxShadow: 'none', lineHeight: 1
+                                    }}>✕</button>
+                                </div>
+                              ))}
+                            </div>
+                            <button type="button" onClick={() => addBrandRow(m)} style={{
+                              marginTop: '8px', background: 'transparent', border: '1px dashed var(--border-light)',
+                              borderRadius: 'var(--radius-md)', color: 'var(--primary)', fontSize: '12px', fontWeight: 600,
+                              padding: '6px 10px', cursor: 'pointer', boxShadow: 'none'
+                            }}>
+                              + Add brand
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               <div className="form-group">
@@ -644,13 +788,6 @@ export default function SubmitActivity() {
                     <tr><td style={{ color: 'var(--text-secondary)', padding: '6px 0' }}>Photos attached</td><td style={{ textAlign: 'right', fontWeight: 500 }}>{totalImageCount}</td></tr>
                   </tbody>
                 </table>
-              </div>
-
-              <div className="form-group">
-                <label style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Data completeness</label>
-                <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: 'var(--success)', width: `${score}%`, transition: 'width 0.3s ease' }}></div>
-                </div>
               </div>
             </div>
           )}
