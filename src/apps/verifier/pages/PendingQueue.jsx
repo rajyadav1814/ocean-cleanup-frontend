@@ -266,6 +266,36 @@ export default function PendingQueue() {
                         <span>Submitted</span>
                         <strong style={{ color: 'var(--text-main)' }}>{activity.timestamp ? formatTimestamp(activity.timestamp) : '—'}</strong>
                       </div>
+                      {activity.debrisSource && (
+                        <div className="flex-between">
+                          <span>Debris source</span>
+                          <strong style={{ color: 'var(--text-main)' }}>{activity.debrisSource}</strong>
+                        </div>
+                      )}
+                      {(activity.surveyLengthM || activity.surveyAreaSqm || (activity.surveyMethod && activity.surveyMethod !== 'Not measured')) && (
+                        <div className="flex-between">
+                          <span>Survey</span>
+                          <strong style={{ color: 'var(--text-main)' }}>
+                            {[
+                              activity.surveyLengthM ? `${activity.surveyLengthM} m` : null,
+                              activity.surveyAreaSqm ? `${activity.surveyAreaSqm} m²` : null,
+                              activity.surveyMethod && activity.surveyMethod !== 'Not measured' ? activity.surveyMethod : null
+                            ].filter(Boolean).join(' · ')}
+                          </strong>
+                        </div>
+                      )}
+                      {(activity.weatherConditions || activity.daysSinceRain != null || activity.windSpeedKmh != null) && (
+                        <div className="flex-between">
+                          <span>Weather</span>
+                          <strong style={{ color: 'var(--text-main)' }}>
+                            {[
+                              activity.weatherConditions,
+                              activity.daysSinceRain != null ? `${activity.daysSinceRain}d since rain` : null,
+                              activity.windSpeedKmh != null ? `${activity.windSpeedKmh} km/h wind` : null
+                            ].filter(Boolean).join(' · ')}
+                          </strong>
+                        </div>
+                      )}
 
                     </div>
 

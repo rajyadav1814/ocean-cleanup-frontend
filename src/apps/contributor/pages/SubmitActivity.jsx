@@ -94,6 +94,10 @@ export default function SubmitActivity() {
     shorelineType: 'Sandy beach',
     tideState: 'Low tide',
     cleanedBefore: false,
+    surveyLengthM: '',
+    surveyAreaSqm: '',
+    surveyMethod: 'Not measured',
+    debrisSource: 'Unknown',
     debrisLog: emptyDebrisLog(),
     brandLog: emptyBrandLog(),
     microplastics: 'None observed',
@@ -175,6 +179,10 @@ export default function SubmitActivity() {
           shorelineType: data.activity.shorelineType || 'Sandy beach',
           tideState: data.activity.tideState || 'Low tide',
           cleanedBefore: data.activity.cleanedBefore || false,
+          surveyLengthM: data.activity.surveyLengthM ?? '',
+          surveyAreaSqm: data.activity.surveyAreaSqm ?? '',
+          surveyMethod: data.activity.surveyMethod || 'Not measured',
+          debrisSource: data.activity.debrisSource || 'Unknown',
           debrisLog: activityDebrisLog(data.activity),
           brandLog: activityBrandLog(data.activity),
           microplastics: data.activity.microplastics || 'None observed',
@@ -246,6 +254,10 @@ export default function SubmitActivity() {
       shorelineType: form.shorelineType,
       tideState: form.tideState,
       cleanedBefore: form.cleanedBefore,
+      surveyLengthM: form.surveyLengthM ? Number(form.surveyLengthM) : undefined,
+      surveyAreaSqm: form.surveyAreaSqm ? Number(form.surveyAreaSqm) : undefined,
+      surveyMethod: form.surveyMethod,
+      debrisSource: form.debrisSource,
       debrisCigaretteButts: form.debrisLog['Cigarette butts'] ? Number(form.debrisLog['Cigarette butts']) : undefined,
       debrisFoodWrappers: form.debrisLog['Food wrappers'] ? Number(form.debrisLog['Food wrappers']) : undefined,
       debrisBottleCaps: form.debrisLog['Bottle caps'] ? Number(form.debrisLog['Bottle caps']) : undefined,
@@ -424,6 +436,16 @@ export default function SubmitActivity() {
     ? Math.round(baseScore)
     : Math.round(baseScore * 0.8 + brandCompletionRatio * 20);
 
+  // Loose calibration guides for the survey inputs, derived from team size
+  // where known — never written to form state, just contextual copy.
+  const surveyVolunteers = Number(form.teamSize) || 0;
+  const surveyLengthHint = surveyVolunteers > 0
+    ? `Rough guide: with ${surveyVolunteers} volunteer${surveyVolunteers !== 1 ? 's' : ''}, a typical cleanup covers around ${surveyVolunteers * 15}m of shoreline. Enter your own estimate above.`
+    : 'Estimate the length of shoreline you covered — a solo cleanup typically covers 30–50m, a group of 5–10 covers 100–150m.';
+  const surveyAreaHint = surveyVolunteers > 0
+    ? `Rough guide: with ${surveyVolunteers} volunteer${surveyVolunteers !== 1 ? 's' : ''}, a typical cleanup covers around ${surveyVolunteers * 40}m² of area. Enter your own estimate above.`
+    : 'Estimate the area you covered — a solo cleanup typically covers 150–250m², a group of 5–10 covers 600–900m².';
+
   if (loadingActivity) {
     return <LoadingSpinner layout="form" />;
   }
@@ -540,16 +562,27 @@ export default function SubmitActivity() {
 
           {step === 2 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div className="form-group">
-                <label>Primary Waste Category</label>
-                <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-                  <option value="plastic">Plastic</option>
-                  <option value="glass">Glass</option>
-                  <option value="metal">Metal</option>
-                  <option value="organic">Organic</option>
-                  <option value="mixed">Mixed Waste</option>
-                  <option value="other">Other</option>
-                </select>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Primary Waste Category</label>
+                  <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                    <option value="plastic">Plastic</option>
+                    <option value="glass">Glass</option>
+                    <option value="metal">Metal</option>
+                    <option value="organic">Organic</option>
+                    <option value="mixed">Mixed Waste</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Debris source</label>
+                  <select value={form.debrisSource} onChange={e => setForm({...form, debrisSource: e.target.value})}>
+                    <option>Land-based litter</option>
+                    <option>Ocean-based (washed up)</option>
+                    <option>Fishing-related</option>
+                    <option>Unknown</option>
+                  </select>
+                </div>
               </div>
               <div className="form-group">
                 <label style={{ marginBottom: '12px', display: 'block' }}>Debris log, by item count</label>
@@ -751,6 +784,34 @@ export default function SubmitActivity() {
                   <label>Time spent (min)</label>
                   <input type="number" placeholder="90" value={form.timeSpent} onChange={e => setForm({...form, timeSpent: e.target.value})} />
                 </div>
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Survey length (m)</label>
+                    <input type="number" placeholder="e.g. 100" value={form.surveyLengthM} onChange={e => setForm({...form, surveyLengthM: e.target.value})} />
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                      {surveyLengthHint}
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Survey area (m²)</label>
+                    <input type="number" placeholder="e.g. 500" value={form.surveyAreaSqm} onChange={e => setForm({...form, surveyAreaSqm: e.target.value})} />
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                      {surveyAreaHint}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>
+                  Fill whichever matches how you measured your survey area.
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Survey method</label>
+                <select value={form.surveyMethod} onChange={e => setForm({...form, surveyMethod: e.target.value})}>
+                  <option>Linear transect</option><option>Grid area</option>
+                  <option>Full site cleanup</option><option>Not measured</option>
+                </select>
               </div>
               <div className="form-group">
                 <label>Second verifier (optional)</label>
