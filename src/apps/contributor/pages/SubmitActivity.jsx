@@ -386,12 +386,9 @@ export default function SubmitActivity() {
       setStatus("Please provide a location before proceeding.");
       return;
     }
-    if (step === 4) {
-      const anyHazard = Object.values(form.hazards).some(v => v);
-      if (anyHazard && images.length === 0 && existingUrls.length === 0) {
-        setStatus("Please attach a hazard photo.");
-        return;
-      }
+    if (step === 4 && images.length === 0 && existingUrls.length === 0) {
+      setStatus("Please attach at least one photo before proceeding.");
+      return;
     }
     if (step === 5 && positiveNumber(form.teamSize) === null) {
       setStatus('Please provide a team size of at least 1 volunteer.');
@@ -824,7 +821,7 @@ export default function SubmitActivity() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div className="form-group">
                 <label>Total weight collected (kg)</label>
-                <input type="number" placeholder="18" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} required />
+                <input type="number" placeholder="e.g., 18" value={form.quantity} onChange={e => setForm({...form, quantity: e.target.value})} required />
               </div>
               <div className="form-group">
                 <label>Disposal method</label>
@@ -875,13 +872,16 @@ export default function SubmitActivity() {
               <button
                 type="button"
                 onClick={handleNext}
+                disabled={step === 4 && totalImageCount === 0}
                 style={{
                   flex: 1,
                   background: 'var(--primary)',
                   color: 'white',
                   padding: '0.85rem',
                   borderRadius: 'var(--radius-md)',
-                  border: 'none'
+                  border: 'none',
+                  opacity: (step === 4 && totalImageCount === 0) ? 0.5 : 1,
+                  cursor: (step === 4 && totalImageCount === 0) ? 'not-allowed' : 'pointer'
                 }}
               >
                 Next
