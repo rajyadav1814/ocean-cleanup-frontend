@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ocean-cleanup-cardano.vercel.app';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ocean-cleanup-cardano-v2.vercel.app';
 
 // Retrieve the stored JWT token
 function getToken() {
