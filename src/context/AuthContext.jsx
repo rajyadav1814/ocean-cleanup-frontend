@@ -1,6 +1,12 @@
 import { createContext, useContext, useMemo, useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
 import { TOKEN_KEY, USER_KEY, authVerify, authLogout } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { invalidateActivities } from '../store/activitiesSlice';
+import { invalidateDashboard } from '../store/dashboardSlice';
+import { invalidateUsers } from '../store/usersSlice';
+import { invalidateContributorStats } from '../store/contributorSlice';
+import { invalidateCitizenStats } from '../store/citizenSlice';
 
 const AuthContext = createContext(null);
 
@@ -26,9 +32,22 @@ function normalizeUser(userData) {
 }
 
 export function AuthProvider({ children }) {
+  const dispatch = useDispatch();
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // These slices cache per-session, keyed only by fetch status — not by user.
+  // Without clearing them, switching accounts in the same tab (logout, then
+  // login as someone else) leaves the new session reading the previous
+  // user's cached stats/activities until a hard refresh.
+  const resetCachedData = () => {
+    dispatch(invalidateActivities());
+    dispatch(invalidateDashboard());
+    dispatch(invalidateUsers());
+    dispatch(invalidateContributorStats());
+    dispatch(invalidateCitizenStats());
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -62,6 +81,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
     setUser(normalizedUser);
     setRole(normalizedUser.role);
+    resetCachedData();
   };
 
   const logout = async () => {
@@ -78,6 +98,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(USER_KEY);
     setUser(null);
     setRole(null);
+    resetCachedData();
   };
 
   const updateUser = (newUserData) => {
