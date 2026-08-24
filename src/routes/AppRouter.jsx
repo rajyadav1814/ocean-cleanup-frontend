@@ -92,6 +92,7 @@ function FlashMessageToast() {
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const message = location.state?.flashMessage;
+  const duration = location.state?.flashDuration || 2200;
 
   useEffect(() => {
     if (!message) {
@@ -103,10 +104,10 @@ function FlashMessageToast() {
     const timer = window.setTimeout(() => {
       setVisible(false);
       navigate(location.pathname, { replace: true, state: null });
-    }, 2200);
+    }, duration);
 
     return () => window.clearTimeout(timer);
-  }, [message, location.pathname, navigate]);
+  }, [message, duration, location.pathname, navigate]);
 
   if (!message || !visible) return null;
 
@@ -116,7 +117,7 @@ function FlashMessageToast() {
       top: '1rem',
       right: '1rem',
       zIndex: 2000,
-      maxWidth: 'min(92vw, 360px)',
+      maxWidth: 'min(92vw, 400px)',
       padding: '0.9rem 1rem',
       borderRadius: 'var(--radius-md)',
       background: 'rgba(15, 118, 110, 0.92)',

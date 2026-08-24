@@ -320,7 +320,13 @@ export default function Signup() {
       if (!payload.organizationId) delete payload.organizationId;
       const data = await authSignup(payload);
       if (data.ok) {
-        navigate('/login', { replace: true, state: { flashMessage: 'Account created successfully' } });
+        navigate('/login', {
+          replace: true,
+          state: {
+            flashMessage: 'Account created! A verification email has been sent — please check your inbox (or spam folder) to verify your account.',
+            flashDuration: 6000,
+          },
+        });
       } else {
         setError(data.message || 'Signup failed');
       }
