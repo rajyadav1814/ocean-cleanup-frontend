@@ -56,24 +56,6 @@ export async function apiPut(path, body) {
   return response.json();
 }
 
-export async function apiGetNotifications() {
-  return apiGet('/api/dashboard/notifications');
-}
-
-export async function apiMarkNotificationRead(id) {
-  return apiPatch(`/api/dashboard/notifications/${id}/read`);
-}
-
-// ─── Organization API helpers (admin-only) ────────────────────────────────────
-export const orgApi = {
-  list: (active) => apiGet(`/api/admin/organizations${active !== undefined ? `?active=${active}` : ''}`),
-  getById: (id) => apiGet(`/api/admin/organizations/${id}`),
-  create: (data) => apiPost(`/api/admin/organizations`, data),
-  update: (id, data) => apiPut(`/api/admin/organizations/${id}`, data),
-  remove: (id) => apiDelete(`/api/admin/organizations/${id}`),
-  setStatus: (id, isActive) => apiPatch(`/api/admin/organizations/${id}/status`, { isActive }),
-};
-
 // For binary downloads (e.g. generated PDFs) — reads the response as a blob
 // and triggers a browser save, using the server's Content-Disposition filename.
 export async function apiDownloadFile(path, fallbackFilename = 'download') {

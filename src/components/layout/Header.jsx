@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { apiGetNotifications, apiMarkNotificationRead } from '../../services/api';
 import WalletConnectButton from '../wallet/WalletConnectButton';
 
 function getDisplayName(user) {
@@ -18,40 +17,14 @@ function getDisplayInitial(user) {
   return (user?.displayInitial || getDisplayName(user) || 'U').trim().charAt(0).toUpperCase();
 }
 
-function formatNotificationGroupLabel(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Recently';
-
-  const now = new Date();
-  const currentDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const itemDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffDays = Math.round((currentDay - itemDay) / 86400000);
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 30) return `${diffDays} days ago`;
-
-  return date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-}
-
 export default function Header({ toggleMobileMenu, hideActions = false }) {
   const { user, role, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [notificationOpen, setNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [notifTab, setNotifTab] = useState('all');   // 'all' | 'unread' | 'read'
-  const [showAllNotifs, setShowAllNotifs] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const profileRef = useRef(null);
-  const notificationRef = useRef(null);
   const isMobile = windowWidth < 768;
 
   useEffect(() => {
@@ -60,76 +33,15 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const demoNotifications = [];
-
-  const notificationItems = notifications.length > 0 ? notifications : [];
-
   useEffect(() => {
     function handleClick(e) {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setProfileOpen(false);
       }
-      if (notificationRef.current && !notificationRef.current.contains(e.target)) {
-        setNotificationOpen(false);
-      }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
-
-  useEffect(() => {
-    async function fetchNotifications() {
-      if (role !== 'admin') {
-        setNotifications([]);
-        setUnreadCount(0);
-        return;
-      }
-
-      try {
-        const data = await apiGetNotifications();
-        if (data.ok) {
-          setNotifications(data.notifications || []);
-          setUnreadCount(data.unreadCount || 0);
-        }
-      } catch (err) {
-        console.error('Failed to load notifications:', err);
-      }
-    }
-
-    fetchNotifications();
-  }, [role]);
-
-  async function handleNotificationClick(notification) {
-    if (!notification) return;
-
-    if (!notification.isRead) {
-      try {
-        await apiMarkNotificationRead(notification.id);
-        setNotifications((current) => current.map((item) =>
-          item.id === notification.id ? { ...item, isRead: true } : item
-        ));
-        setUnreadCount((count) => Math.max(0, count - 1));
-      } catch (err) {
-        console.error('Failed to mark notification read:', err);
-      }
-    }
-  }
-
-  function handleDismiss(e, id) {
-    e.stopPropagation();
-    setNotifications((prev) => {
-      const removed = prev.find((n) => n.id === id);
-      if (removed && !removed.isRead) setUnreadCount((c) => Math.max(0, c - 1));
-      return prev.filter((n) => n.id !== id);
-    });
-  }
-
-  async function handleMarkAllRead() {
-    const unread = notifications.filter((n) => !n.isRead);
-    await Promise.allSettled(unread.map((n) => apiMarkNotificationRead(n.id)));
-    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    setUnreadCount(0);
-  }
 
   const handleLogout = () => {
     setShowLogoutConfirm(false);
@@ -235,219 +147,6 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
                 </svg>
               )}
             </button>
-            <div ref={notificationRef} style={{ position: 'relative' }}>
-              <button
-                className="secondary"
-                aria-label="Notifications"
-                onClick={() => setNotificationOpen((open) => !open)}
-                style={{ padding: '0.5rem', borderRadius: '50%', position: 'relative', width: '42px', height: '42px' }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-                {unreadCount > 0 && (
-                  <span style={{
-                    position: 'absolute',
-                    top: '4px',
-                    right: '4px',
-                    minWidth: '16px',
-                    height: '16px',
-                    borderRadius: '999px',
-                    background: 'var(--danger)',
-                    color: 'white',
-                    fontSize: '0.65rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '0 5px',
-                    transform: 'translate(20%, -20%)'
-                  }}>
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-              {notificationOpen && (() => {
-            const readCount = notifications.filter((n) => n.isRead).length;
-            const unreadTabCount = unreadCount;
-            const filtered = [...notifications]
-              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-              .filter((n) =>
-                notifTab === 'unread' ? !n.isRead
-                  : notifTab === 'read' ? n.isRead
-                    : true
-              );
-            const visible = showAllNotifs ? filtered : filtered.slice(0, 5);
-            const TABS = [
-              { key: 'all', label: 'All', count: notifications.length },
-              { key: 'unread', label: 'Unread', count: unreadTabCount },
-              { key: 'read', label: 'Read', count: readCount },
-            ];
-            return (
-              <div style={{
-                position: isMobile ? 'fixed' : 'absolute',
-                top: isMobile ? '4.5rem' : 'calc(100% + 0.5rem)',
-                right: isMobile ? 'auto' : 0,
-                left: isMobile ? '50%' : 'auto',
-                transform: isMobile ? 'translateX(-50%)' : 'none',
-                width: isMobile ? '320px' : '460px',
-                maxWidth: 'calc(100vw - 1rem)',
-                background: 'var(--surface-card)',
-                border: '1px solid var(--border-light)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-lg), 0 4px 30px rgba(0,0,0,0.15)',
-                overflow: 'hidden',
-                zIndex: 100,
-                display: 'flex',
-                flexDirection: 'column',
-                maxHeight: isMobile ? 'calc(100vh - 5.5rem)' : 'auto'
-              }}>
-                {/* Header */}
-                <div style={{ padding: '0.75rem 1rem 0', borderBottom: '1px solid var(--border-light)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.55rem' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.01em' }}>Notifications</span>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={handleMarkAllRead}
-                        style={{
-                          background: 'none', border: 'none', boxShadow: 'none', padding: '0.15rem 0.4rem',
-                          fontSize: '0.68rem', color: 'var(--primary)', cursor: 'pointer',
-                          fontWeight: 600, borderRadius: '0.25rem'
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                      >Mark all read</button>
-                    )}
-                  </div>
-                  {/* Tabs */}
-                  <div style={{ display: 'flex', gap: 0 }}>
-                    {TABS.map((tab) => (
-                      <button
-                        key={tab.key}
-                        onClick={() => { setNotifTab(tab.key); setShowAllNotifs(false); }}
-                        style={{
-                          background: 'none', border: 'none', boxShadow: 'none', padding: '0.35rem 0.7rem',
-                          fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', borderRadius: 0,
-                          color: notifTab === tab.key ? 'var(--primary-hover)' : 'var(--text-muted)',
-                          borderBottom: notifTab === tab.key ? '2px solid var(--primary-hover)' : '2px solid transparent',
-                          display: 'flex', alignItems: 'center', gap: '0.4rem',
-                          transition: 'color 0.15s, border-color 0.15s'
-                        }}
-                      >
-                        {tab.label}
-                        <span style={{
-                          background: notifTab === tab.key ? 'var(--primary)' : 'var(--border-light)',
-                          color: notifTab === tab.key ? 'white' : 'var(--text-muted)',
-                          fontSize: '0.65rem', fontWeight: 700, padding: '0 0.4rem',
-                          borderRadius: '999px', minWidth: '1rem', textAlign: 'center',
-                          lineHeight: '1.5', display: 'inline-block', transition: 'background 0.15s'
-                        }}>{tab.count}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* List */}
-                <div style={{
-                  overflowY: 'auto',
-                  flex: 1,
-                  maxHeight: isMobile ? 'none' : (showAllNotifs ? '420px' : 'auto'),
-                }}>
-                  {visible.length === 0 ? (
-                    <div style={{ padding: '1.25rem 1rem', color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center' }}>
-                      No {notifTab === 'all' ? '' : notifTab} notifications.
-                    </div>
-                  ) : visible.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '8px minmax(0, 1fr) auto',
-                        alignItems: 'flex-start',
-                        gap: '0.85rem',
-                        padding: '0.95rem 1rem',
-                        borderBottom: '1px solid var(--border-light)',
-                        background: 'transparent',
-                        transition: 'background 0.15s'
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <span style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        marginTop: '0.4rem',
-                        background: item.isRead ? 'transparent' : 'var(--primary)',
-                        boxShadow: item.isRead ? 'none' : '0 0 0 2px var(--border-glow)'
-                      }} />
-
-                      <button
-                        onClick={() => handleNotificationClick(item)}
-                        style={{
-                          background: 'none', border: 'none', boxShadow: 'none',
-                          padding: 0, textAlign: 'left', cursor: 'pointer', color: 'var(--text-main)',
-                          display: 'flex', flexDirection: 'column', gap: '0.25rem', width: '100%',
-                          alignItems: 'flex-start'
-                        }}
-                      >
-                        <div style={{
-                          fontSize: '0.85rem',
-                          fontWeight: 700,
-                          color: 'var(--text-main)',
-                          lineHeight: 1.35,
-                          marginBottom: '0.1rem',
-                          textAlign: 'left'
-                        }}>
-                          {item.title}
-                        </div>
-                        <div style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--text-muted)',
-                          lineHeight: 1.45,
-                          wordBreak: 'break-word',
-                          fontWeight: 400
-                        }}>
-                          {item.message}
-                        </div>
-                      </button>
-
-                      <div style={{
-                        fontSize: '0.7rem',
-                        color: 'var(--text-muted)',
-                        whiteSpace: 'nowrap',
-                        paddingTop: '0.15rem',
-                        textAlign: 'right',
-                        minWidth: '70px',
-                        fontWeight: 500
-                      }}>
-                        {formatNotificationGroupLabel(item.createdAt)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Footer */}
-                {filtered.length > 5 && (
-                  <div style={{ padding: '0.5rem 1rem', borderTop: '1px solid var(--border-light)', textAlign: 'center' }}>
-                    <button
-                      onClick={() => setShowAllNotifs((v) => !v)}
-                      style={{
-                        background: 'none', border: 'none', boxShadow: 'none',
-                        fontSize: '0.75rem', color: 'var(--primary)', cursor: 'pointer',
-                        fontWeight: 600, padding: '0.4rem 0.75rem', borderRadius: '0.25rem'
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                    >
-                      {showAllNotifs ? '↑ Show less' : `View all ${filtered.length} notifications →`}
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-            </div>
           </>
         )}
         {!hideActions && <WalletConnectButton />}

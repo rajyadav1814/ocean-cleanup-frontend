@@ -189,7 +189,6 @@ export default function Login() {
 
   const getRedirectPath = (role) => {
     if (role === "verifier") return "/verifier/pending";
-    if (role === "admin") return "/dashboard/overview";
     if (role === "citizen") return "/citizen/overview";
     return "/contributor/overview";
   };
@@ -201,6 +200,10 @@ export default function Login() {
     try {
       const data = await authLogin(email, password);
       if (data.ok) {
+        if (data.user.role === "admin") {
+          setError("Admin accounts cannot sign in here — use the admin portal instead.");
+          return;
+        }
         login(data.user, data.token);
         navigate(getRedirectPath(data.user.role), {
           replace: true,

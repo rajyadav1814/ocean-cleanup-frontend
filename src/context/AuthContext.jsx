@@ -4,7 +4,6 @@ import { TOKEN_KEY, USER_KEY, authVerify, authLogout } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { invalidateActivities } from '../store/activitiesSlice';
 import { invalidateDashboard } from '../store/dashboardSlice';
-import { invalidateUsers } from '../store/usersSlice';
 import { invalidateContributorStats } from '../store/contributorSlice';
 import { invalidateCitizenStats } from '../store/citizenSlice';
 
@@ -44,7 +43,6 @@ export function AuthProvider({ children }) {
   const resetCachedData = () => {
     dispatch(invalidateActivities());
     dispatch(invalidateDashboard());
-    dispatch(invalidateUsers());
     dispatch(invalidateContributorStats());
     dispatch(invalidateCitizenStats());
   };
@@ -55,7 +53,7 @@ export function AuthProvider({ children }) {
       if (token) {
         try {
           const data = await authVerify(token);
-          if (data.ok && data.user) {
+          if (data.ok && data.user && data.user.role !== 'admin') {
             const normalizedUser = normalizeUser(data.user);
             setUser(normalizedUser);
             setRole(normalizedUser.role);
@@ -75,13 +73,18 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, []);
 
+  // Admin accounts belong to the separate admin app — this app must never
+  // grant them a session, even if credentials are valid.
   const login = (userData, token) => {
+    if (userData?.role === 'admin') return false;
+
     const normalizedUser = normalizeUser(userData);
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
     setUser(normalizedUser);
     setRole(normalizedUser.role);
     resetCachedData();
+    return true;
   };
 
   const logout = async () => {
