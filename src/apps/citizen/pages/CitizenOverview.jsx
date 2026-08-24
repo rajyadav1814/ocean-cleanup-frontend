@@ -310,7 +310,37 @@ const STYLES = `
     .co-hero   { padding: 1.4rem; }
     .co-cta    { align-self: flex-start; margin-bottom: 2.4rem; }
   }
+
+  /* empty state — brand-new citizens instead of a wall of zeros */
+  .co-empty-state {
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    padding: 3.5rem 1.5rem; gap: 1rem;
+  }
+  .co-empty-icon {
+    width: 64px; height: 64px; border-radius: 18px;
+    background: linear-gradient(135deg, rgba(46,158,155,.16), rgba(125,231,240,.10));
+    display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+  }
+  .co-empty-title { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main); font-family: var(--font-display); }
+  .co-empty-sub { margin: 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; max-width: 420px; }
 `;
+
+/* ── Empty state shown to brand-new citizens instead of a wall of zeros ── */
+const NoDataYet = () => (
+  <div className="co-panel">
+    <div className="co-empty-state">
+      <div className="co-empty-icon">📋</div>
+      <h3 className="co-empty-title">Submit your first report to unlock your activity feed</h3>
+      <p className="co-empty-sub">
+        Once your first report is logged, this space fills in with the community feed, your badges,
+        and where you rank among nearby citizens.
+      </p>
+      <Link to="/citizen/submit" id="citizen-submit-empty" className="co-cta" style={{ alignSelf: 'center', marginBottom: 0, marginTop: '0.4rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+        <span>Submit a report</span><span aria-hidden="true">→</span>
+      </Link>
+    </div>
+  </div>
+);
 
 export default function CitizenOverview() {
   const { user } = useAuth();
@@ -330,6 +360,7 @@ export default function CitizenOverview() {
 
   const firstName = user?.firstName || user?.displayName?.split(' ')[0] || 'there';
   const sinceLabel = memberSince(s.memberSince);
+  const isNewUser = (s.totalReports || 0) === 0;
 
   return (
     <div className="co-root">
@@ -380,6 +411,11 @@ export default function CitizenOverview() {
         </Link>
       </div>
 
+      {isNewUser ? (
+        /* ── NEW USER: single friendly call-to-action instead of a wall of zero stats ── */
+        <NoDataYet />
+      ) : (
+        <>
       {/* ── Stat strip ── */}
       <div className="co-stats">
         {[
@@ -481,6 +517,8 @@ export default function CitizenOverview() {
 
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
