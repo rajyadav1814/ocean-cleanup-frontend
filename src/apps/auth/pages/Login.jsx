@@ -102,7 +102,7 @@ const TOKENS = `
   }
   .bm-field__toggle:hover { color: var(--on-dark) !important; }
 
-  .bm-login__forgot-row { display: flex; justify-content: flex-end; margin-top: .6rem; }
+  .bm-login__forgot-row { display: flex; justify-content: space-between; align-items: center; margin-top: .6rem; gap: .75rem; }
   .bm-login__forgot { color: var(--sky-2); font-size: .82rem; font-weight: 500; text-decoration: none; }
   .bm-login__forgot:hover { color: #fff; }
 
@@ -271,6 +271,10 @@ export default function Login() {
           </button>
         </div>
 
+        <div className="bm-login__forgot-row">
+          <span style={{ fontSize: '.82rem', color: 'var(--on-dark-3)' }}>Need access help?</span>
+          <Link className="bm-login__forgot" to="/forgot-password">Forgot password?</Link>
+        </div>
 
         <button className="bm-login__btn" type="submit" disabled={loading}>
           {loading ? (

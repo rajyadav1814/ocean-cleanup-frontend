@@ -22,6 +22,7 @@ import CitizensList from '../apps/public-dashboard/pages/CitizensList';
 import Organizations from '../apps/public-dashboard/pages/Organizations';
 import Login from '../apps/auth/pages/Login';
 import Signup from '../apps/auth/pages/Signup';
+import ForgotPassword from '../apps/auth/pages/ForgotPassword';
 import CitizenOverview from '../apps/citizen/pages/CitizenOverview';
 import LandingPage from '../app/page';
 import ProfileSettings from '../apps/profile/pages/ProfileSettings';
@@ -164,6 +165,7 @@ export default function AppRouter() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         <Route path="/" element={
           user ? (
