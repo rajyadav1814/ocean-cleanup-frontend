@@ -663,7 +663,7 @@ export default function ContributorOverview() {
 
             {/* Pollution severity */}
             <Card>
-              <CardHead title="Pollution Severity" sub="Microplastics prevalence and bulk / illegal-dumping items logged" />
+              <CardHead title="Pollution Severity" sub="Microplastics prevalence and bulk / duplicate-dumping items logged" />
               {pollutionSeverity.microplastics.length === 0 ? (
                 <p style={emptyStyle}>No microplastics observations recorded.</p>
               ) : (
@@ -673,8 +673,11 @@ export default function ContributorOverview() {
               )}
               <div style={{ marginTop:'1rem' }}>
                 <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.5rem' }}>
-                  Bulk / illegal dumping log
+                  Bulk / duplicate dumping log
                 </div>
+                <p style={{ margin:'0 0 0.7rem', fontSize:'0.74rem', color:'var(--text-muted)', lineHeight:1.45 }}>
+                  The same item appears more than once, those are separate reports from different submissions rather than a duplicate display.
+                </p>
                 {pollutionSeverity.bulkItemsLog.length === 0 ? (
                   <p style={{ ...emptyStyle, padding:'0.5rem 0' }}>No bulk items logged.</p>
                 ) : (
