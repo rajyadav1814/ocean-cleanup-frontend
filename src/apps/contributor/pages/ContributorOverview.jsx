@@ -43,8 +43,8 @@ const CAT_LABEL = { plastic:'Plastic', glass:'Glass', metal:'Metal', organic:'Or
 const DISPOSAL_COLOR = { landfill:'#8299a0', recycled:'#1d9e75', composted:'#e8a838', 'hazardous facility':'#c14f2c', other:'#7f77dd', 'not specified':'#c8d4dc' };
 const DISPOSAL_LABEL = { landfill:'Landfill', recycled:'Recycled', composted:'Composted', 'hazardous facility':'Hazardous facility', other:'Other', 'not specified':'Not specified' };
 
-const WILDLIFE_COLOR = { healthy:'#10b981', injured:'#f59e0b', entangled:'#ef4444', 'not specified':'#c8d4dc' };
-const WILDLIFE_LABEL = { healthy:'Healthy', injured:'Injured', entangled:'Entangled', 'not specified':'Condition not noted' };
+const WILDLIFE_COLOR = { healthy:'#10b981', injured:'#f59e0b', entangled:'#ef4444', deceased:'#6b7280', 'not applicable':'#8299a0', 'not specified':'#c8d4dc' };
+const WILDLIFE_LABEL = { healthy:'Healthy', injured:'Injured', entangled:'Entangled', deceased:'Deceased', 'not applicable':'Not applicable', 'not specified':'Condition not noted' };
 
 const DEBRIS_COLOR = {
   cigaretteButts:'#c14f2c', foodWrappers:'#e8a838', bottleCaps:'#378add',
@@ -126,7 +126,7 @@ const STYLES = `
   .contrib-job-badge {
     display:inline-flex; align-items:center; padding:.18rem .55rem; border-radius:999px; font-size:.68rem;
     font-weight:700; background:rgba(46,158,155,.14); color:var(--primary-hover); white-space:nowrap;
-    text-transform:uppercase; letter-spacing:.04em;
+    text-transform:uppercase; letter-spacing:.04em; max-width:220px; overflow:hidden; text-overflow:ellipsis;
   }
   .contrib-list-row { display:flex; align-items:center; gap:.6rem; padding:.5rem 0; }
   .contrib-tag {
@@ -206,6 +206,21 @@ const CardHead = ({ title, sub }) => (
     <p style={{ margin:'0 0 1rem', fontSize:'0.78rem', color:'var(--text-muted)' }}>{sub}</p>
   </>
 );
+
+/* Small uppercase sub-heading used inside a Card, with an optional one-line
+   explainer right under it. Kept as one component so every section's label
+   style stays in sync instead of being copy-pasted inline per card. */
+const SectionLabel = ({ children, hint, style }) => (
+  <div style={{ marginBottom: hint ? '0.2rem' : '0.5rem', ...style }}>
+    <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em' }}>
+      {children}
+    </div>
+    {hint && <p style={{ margin:'0.15rem 0 0.6rem', fontSize:'0.74rem', color:'var(--text-muted)', lineHeight:1.4 }}>{hint}</p>}
+  </div>
+);
+
+/* Formats numbers with thousands separators for readability at scale. */
+const nf = (n) => Number(n || 0).toLocaleString('en-IN');
 
 const BarRow = ({ label, pct, valueLabel, color }) => (
   <div className="contrib-bar-row">
@@ -412,11 +427,11 @@ export default function ContributorOverview() {
   ];
 
   const statCards = [
-    { label:'Waste Collected',      value:`${totalKg} kg`, sub:<Delta value={kgDelta} unit=" kg" />, icon:'♻️' },
-    { label:'Volunteers Mobilized', value:totalVol,        sub:<Delta value={volDelta} />,            icon:'🤝' },
-    { label:'Activities Logged',    value:myActivities.length, sub:`${pendingCount} awaiting review`, icon:'📋' },
+    { label:'Waste Collected',      value:`${nf(totalKg)} kg`, sub:<Delta value={kgDelta} unit=" kg" />, icon:'♻️' },
+    { label:'Volunteers Mobilized', value:nf(totalVol),        sub:<Delta value={volDelta} />,            icon:'🤝' },
+    { label:'Activities Logged',    value:nf(myActivities.length), sub:`${pendingCount} awaiting review`, icon:'📋' },
     { label:'Approval Rate',        value:`${approvalRate}%`,  sub:`${rejectedCount} rejected`,       icon:'✅', accent: approvalRate>=70?'#10b981':'#f59e0b' },
-    { label:'OCEAN Tokens',         value:totalTokens,     sub:'From approved cleanups',              icon:'🪙', accent:'#f59e0b' },
+    { label:'OCEAN Tokens',         value:nf(totalTokens),     sub:'From approved cleanups',              icon:'🪙', accent:'#f59e0b' },
     rank ? { label:'Your Rank', value:`#${rank}`, sub: topPercent ? `Top ${topPercent}% of contributors` : `of ${stats.totalContributors} contributors`, icon:'🏆', accent:'#818cf8' } : null,
   ].filter(Boolean);
 
@@ -431,7 +446,7 @@ export default function ContributorOverview() {
         <div className="contributor-hero__content">
           <div className="contributor-hero__kicker">
             <span>Contributor Space</span>
-            {user?.jobTitle && <span className="contrib-job-badge">{user.jobTitle}</span>}
+            {user?.jobTitle && <span className="contrib-job-badge" title={user.jobTitle}>{user.jobTitle}</span>}
             <svg className="contributor-hero__mark" viewBox="0 0 136 38" aria-hidden="true">
               <path className="wave-1" d="M1 12c13-11 27-11 40 0s27 11 40 0 27-11 40 0" />
               <path className="wave-2" d="M12 20c13-11 27-11 40 0s27 11 40 0 27-11 40 0" />
@@ -549,7 +564,7 @@ export default function ContributorOverview() {
 
             {/* Waste composition */}
             <Card className="contrib-composition-card">
-              <CardHead title="Waste Composition" sub={`From your ${approvedCount} approved cleanups — total ${totalKg} kg`} />
+              <CardHead title="Waste Composition" sub={`From your ${approvedCount} approved cleanups — total ${nf(totalKg)} kg`} />
               {composition.length === 0 ? (
                 <p style={{ color:'var(--text-muted)', fontSize:'0.88rem', textAlign:'center', padding:'1.5rem 0' }}>
                   No approved activities yet.
@@ -567,7 +582,7 @@ export default function ContributorOverview() {
                       <div key={cat} style={{ display:'flex', alignItems:'center', gap:'0.35rem', fontSize:'0.8rem', color:'var(--text-muted)' }}>
                         <span style={{ width:'8px', height:'8px', borderRadius:'2px', background:CAT_COLOR[cat]||CAT_COLOR.other, flexShrink:0 }} />
                         {CAT_LABEL[cat]||cat} <strong style={{ color:'var(--text-main)' }}>{pct}%</strong>
-                        <span style={{ opacity:.55 }}>({kg} kg)</span>
+                        <span style={{ opacity:.55 }}>({nf(kg)} kg)</span>
                       </div>
                     ))}
                   </div>
@@ -624,7 +639,8 @@ export default function ContributorOverview() {
                   display:'flex', gap:'0.55rem', alignItems:'flex-start' }}>
                   <span style={{ flexShrink:0 }}>{HAZARD_META[type].icon}</span>
                   <span style={{ lineHeight:1.4 }}>
-                    <strong>{HAZARD_META[type].label}</strong> hazards flagged {hazardCounts[type].count}× — most recently at {hazardCounts[type].lastLocation} ({fmt(hazardCounts[type].lastSubmittedAt)}).
+                    <strong>{HAZARD_META[type].label}</strong> hazard flagged in {hazardCounts[type].count} report{hazardCounts[type].count !== 1 ? 's' : ''}.
+                    <br />Most recent: {hazardCounts[type].lastLocation}, {fmt(hazardCounts[type].lastSubmittedAt)}.
                   </span>
                 </div>
               ))}
@@ -645,14 +661,12 @@ export default function ContributorOverview() {
               )}
 
               <div style={{ marginTop:'1rem' }}>
-                <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.5rem' }}>
-                  Top brands identified
-                </div>
+                <SectionLabel>Top brands identified</SectionLabel>
                 {topBrands.length === 0 ? (
                   <p style={{ ...emptyStyle, padding:'0.5rem 0' }}>No brand data logged yet.</p>
                 ) : (
                   topBrands.slice(0, 5).map((b) => (
-                    <BarRow key={b.key} label={b.label} pct={Math.round((b.count / topBrandsMax) * 100)} valueLabel={`${b.count}×`} color="#378add" />
+                    <BarRow key={b.key} label={b.label} pct={Math.round((b.count / topBrandsMax) * 100)} valueLabel={`${b.count} report${b.count !== 1 ? 's' : ''}`} color="#378add" />
                   ))
                 )}
               </div>
@@ -666,27 +680,21 @@ export default function ContributorOverview() {
             <Card>
               <CardHead title="Pollution Severity" sub="Microplastic contamination and large dumping found at your cleanup sites" />
 
-              <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.2rem' }}>
+              <SectionLabel hint="How often each severity level was recorded across your cleanups.">
                 Microplastics severity
-              </div>
-              <p style={{ margin:'0 0 0.6rem', fontSize:'0.74rem', color:'var(--text-muted)', lineHeight:1.4 }}>
-                How often each severity level was recorded across your cleanups.
-              </p>
+              </SectionLabel>
               {pollutionSeverity.microplastics.length === 0 ? (
                 <p style={{ ...emptyStyle, padding:'0.5rem 0' }}>No microplastics observations recorded.</p>
               ) : (
                 pollutionSeverity.microplastics.map((m) => (
-                  <BarRow key={m.key} label={cap(m.key)} pct={Math.round((m.count / microplasticsTotal) * 100)} valueLabel={`${m.count}×`} color="#c14f2c" />
+                  <BarRow key={m.key} label={cap(m.key)} pct={Math.round((m.count / microplasticsTotal) * 100)} valueLabel={`${m.count} report${m.count !== 1 ? 's' : ''}`} color="#c14f2c" />
                 ))
               )}
 
               <div style={{ marginTop:'1.1rem' }}>
-                <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.2rem' }}>
+                <SectionLabel hint="Large or unusual items you've spotted during your cleanups, like tires, drums, or appliances.">
                   Bulk items & illegal dumping
-                </div>
-                <p style={{ margin:'0 0 0.6rem', fontSize:'0.74rem', color:'var(--text-muted)', lineHeight:1.4 }}>
-                  Large or unusual items you've spotted during your cleanups, like tires, drums, or appliances.
-                </p>
+                </SectionLabel>
                 {pollutionSeverity.bulkItemsLog.length === 0 ? (
                   <p style={{ ...emptyStyle, padding:'0.5rem 0' }}>No bulk items logged.</p>
                 ) : (
@@ -706,9 +714,7 @@ export default function ContributorOverview() {
             {/* Habitat & species log */}
             <Card>
               <CardHead title="Habitat & Species Log" sub="Frequency of species sightings and habitat stress notes" />
-              <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.4rem' }}>
-                Species sighted
-              </div>
+              <SectionLabel>Species sighted</SectionLabel>
               {habitatObservations.speciesSighted.length === 0 ? (
                 <p style={{ ...emptyStyle, padding:'0.5rem 0', marginBottom:'0.9rem' }}>No species observations recorded.</p>
               ) : (
@@ -716,15 +722,13 @@ export default function ContributorOverview() {
                   {habitatObservations.speciesSighted.map((s, i, arr) => (
                     <div key={s.key} className="contrib-list-row" style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                       <span style={{ flex:1, fontSize:'0.8rem' }}>{s.label}</span>
-                      <strong style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>{s.count}×</strong>
+                      <strong style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>{s.count} sighting{s.count !== 1 ? 's' : ''}</strong>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.4rem' }}>
-                Habitat stress notes
-              </div>
+              <SectionLabel>Habitat stress notes</SectionLabel>
               {habitatObservations.habitatStress.length === 0 ? (
                 <p style={{ ...emptyStyle, padding:'0.5rem 0' }}>No habitat stress notes recorded.</p>
               ) : (
@@ -732,7 +736,7 @@ export default function ContributorOverview() {
                   {habitatObservations.habitatStress.map((h, i, arr) => (
                     <div key={h.key} className="contrib-list-row" style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                       <span style={{ flex:1, fontSize:'0.8rem' }}>{h.label}</span>
-                      <strong style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>{h.count}×</strong>
+                      <strong style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>{h.count} note{h.count !== 1 ? 's' : ''}</strong>
                     </div>
                   ))}
                 </div>
@@ -806,7 +810,7 @@ export default function ContributorOverview() {
                         {String(i+1).padStart(2,'0')}
                       </span>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:'0.82rem', fontWeight:600, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }} title={loc.location}>
+                        <div style={{ fontSize:'0.82rem', fontWeight:600, lineHeight:1.3, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }} title={loc.location}>
                           {loc.location}
                         </div>
                         <div style={{ height:'5px', borderRadius:'4px', background:'rgba(130,153,160,.14)', marginTop:'0.3rem', overflow:'hidden' }}>
@@ -814,7 +818,7 @@ export default function ContributorOverview() {
                         </div>
                       </div>
                       <div style={{ textAlign:'right', flexShrink:0 }}>
-                        <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--text-main)' }}>{loc.kg} kg</div>
+                        <div style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--text-main)' }}>{nf(loc.kg)} kg</div>
                         <div style={{ fontSize:'0.66rem', color:'var(--text-muted)' }}>{loc.count} log{loc.count!==1?'s':''}</div>
                       </div>
                     </div>
@@ -837,7 +841,7 @@ export default function ContributorOverview() {
                       key={key}
                       label={DISPOSAL_LABEL[key] || key}
                       pct={pct}
-                      valueLabel={`${pct}% · ${kg}kg`}
+                      valueLabel={`${pct}% · ${nf(kg)}kg`}
                       color={DISPOSAL_COLOR[key] || DISPOSAL_COLOR.other}
                     />
                   ))}
@@ -873,7 +877,7 @@ export default function ContributorOverview() {
                       key={key}
                       label={WILDLIFE_LABEL[key] || key}
                       pct={pct}
-                      valueLabel={`${count}x`}
+                      valueLabel={`${count} sighting${count !== 1 ? 's' : ''}`}
                       color={WILDLIFE_COLOR[key] || WILDLIFE_COLOR['not specified']}
                     />
                   ))}
@@ -891,40 +895,41 @@ export default function ContributorOverview() {
 
             {/* Field efficiency & data quality */}
             <Card style={{ gridColumn:'1 / -1' }}>
-              <CardHead title="Field Efficiency & Data Quality" sub="How efficiently you work, and how thoroughly your reports are documented" />
-              <div style={{ display:'flex', flexWrap:'wrap', gap:'1.75rem' }}>
+              <CardHead title="Field Efficiency & Data Quality" sub="How much you collect per hour in the field, and how well-documented your reports are" />
+
+              <SectionLabel hint="Kilograms collected per hour of field time you've logged, and what you measured or weighed with.">
+                Field efficiency
+              </SectionLabel>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:'1.75rem', marginBottom: fieldEfficiency.instruments.length > 0 ? '0.9rem' : 0 }}>
                 <div>
                   <div style={{ fontSize:'0.68rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--text-muted)' }}>Avg. kg / hour</div>
                   <div style={{ fontSize:'1.5rem', fontWeight:700, color:'var(--primary-hover)' }}>{fieldEfficiency.totalHours > 0 ? fieldEfficiency.avgKgPerHour : '—'}</div>
                 </div>
-                <div>
-                  <div style={{ fontSize:'0.68rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--text-muted)' }}>Dual-verified</div>
-                  <div style={{ fontSize:'1.5rem', fontWeight:700, color:'var(--primary-hover)' }}>{dataQuality.dualVerifiedCount}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize:'0.68rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--text-muted)' }}>Flagged for follow-up</div>
-                  <div style={{ fontSize:'1.5rem', fontWeight:700, color:'var(--primary-hover)' }}>{dataQuality.followUpCount}</div>
-                </div>
               </div>
-
               {fieldEfficiency.instruments.length > 0 && (
-                <div style={{ marginTop:'1.1rem' }}>
-                  <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.5rem' }}>
-                    Instruments / methods used
-                  </div>
-                  <div style={{ display:'flex', flexWrap:'wrap', gap:'0.5rem' }}>
-                    {fieldEfficiency.instruments.map((i) => (
-                      <span key={i.key} className="contrib-tag">{i.label} <strong style={{ color:'var(--text-muted)' }}>×{i.count}</strong></span>
-                    ))}
-                  </div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:'0.5rem' }}>
+                  {fieldEfficiency.instruments.map((i) => (
+                    <span key={i.key} className="contrib-tag">{i.label} <strong style={{ color:'var(--text-muted)' }}>{i.count} use{i.count !== 1 ? 's' : ''}</strong></span>
+                  ))}
                 </div>
               )}
 
-              {dataQuality.followUpList.length > 0 && (
-                <div style={{ marginTop:'1.1rem' }}>
-                  <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.5rem' }}>
-                    Needs follow-up
+              <div style={{ marginTop:'1.3rem' }}>
+                <SectionLabel hint="Dual-verified means a second person co-signed the report on-site. Follow-up flags a site you marked as needing another visit.">
+                  Data quality &amp; verification
+                </SectionLabel>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:'1.75rem', marginBottom: dataQuality.followUpList.length > 0 ? '0.9rem' : 0 }}>
+                  <div>
+                    <div style={{ fontSize:'0.68rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--text-muted)' }}>Dual-verified</div>
+                    <div style={{ fontSize:'1.5rem', fontWeight:700, color:'var(--primary-hover)' }}>{nf(dataQuality.dualVerifiedCount)}</div>
                   </div>
+                  <div>
+                    <div style={{ fontSize:'0.68rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--text-muted)' }}>Flagged for follow-up</div>
+                    <div style={{ fontSize:'1.5rem', fontWeight:700, color:'var(--primary-hover)' }}>{nf(dataQuality.followUpCount)}</div>
+                  </div>
+                </div>
+
+                {dataQuality.followUpList.length > 0 && (
                   <div style={{ display:'flex', flexDirection:'column' }}>
                     {dataQuality.followUpList.map((f, i, arr) => (
                       <div key={i} style={{ fontSize:'0.8rem', padding:'0.35rem 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
@@ -932,8 +937,8 @@ export default function ContributorOverview() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {fieldEfficiency.totalHours === 0 && dataQuality.dualVerifiedCount === 0 && dataQuality.followUpCount === 0 && fieldEfficiency.instruments.length === 0 && (
                 <p style={{ ...emptyStyle, padding:'0.75rem 0 0' }}>No field-efficiency or verification data recorded yet.</p>
