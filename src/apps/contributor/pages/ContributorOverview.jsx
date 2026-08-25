@@ -664,29 +664,38 @@ export default function ContributorOverview() {
 
             {/* Pollution severity */}
             <Card>
-              <CardHead title="Pollution Severity" sub="Microplastics prevalence and bulk / duplicate-dumping items logged" />
+              <CardHead title="Pollution Severity" sub="Microplastic contamination and large dumping found at your cleanup sites" />
+
+              <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.2rem' }}>
+                Microplastics severity
+              </div>
+              <p style={{ margin:'0 0 0.6rem', fontSize:'0.74rem', color:'var(--text-muted)', lineHeight:1.4 }}>
+                How often each severity level was recorded across your cleanups.
+              </p>
               {pollutionSeverity.microplastics.length === 0 ? (
-                <p style={emptyStyle}>No microplastics observations recorded.</p>
+                <p style={{ ...emptyStyle, padding:'0.5rem 0' }}>No microplastics observations recorded.</p>
               ) : (
                 pollutionSeverity.microplastics.map((m) => (
                   <BarRow key={m.key} label={cap(m.key)} pct={Math.round((m.count / microplasticsTotal) * 100)} valueLabel={`${m.count}×`} color="#c14f2c" />
                 ))
               )}
-              <div style={{ marginTop:'1rem' }}>
-                <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.5rem' }}>
-                  Bulk / duplicate dumping log
+
+              <div style={{ marginTop:'1.1rem' }}>
+                <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em', marginBottom:'0.2rem' }}>
+                  Bulk items & illegal dumping
                 </div>
-                <p style={{ margin:'0 0 0.7rem', fontSize:'0.74rem', color:'var(--text-muted)', lineHeight:1.45 }}>
-                  The same item appears more than once, those are separate reports from different submissions rather than a duplicate display.
+                <p style={{ margin:'0 0 0.6rem', fontSize:'0.74rem', color:'var(--text-muted)', lineHeight:1.4 }}>
+                  Large or unusual items you've spotted during your cleanups, like tires, drums, or appliances.
                 </p>
                 {pollutionSeverity.bulkItemsLog.length === 0 ? (
                   <p style={{ ...emptyStyle, padding:'0.5rem 0' }}>No bulk items logged.</p>
                 ) : (
                   <div style={{ display:'flex', flexDirection:'column' }}>
                     {pollutionSeverity.bulkItemsLog.map((b, i, arr) => (
-                      <div key={i} style={{ fontSize:'0.8rem', padding:'0.4rem 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                        <span style={{ color:'var(--text-main)', fontWeight:600 }}>{b.items}</span>
-                        <span style={{ color:'var(--text-muted)' }}> — {b.location}, {fmt(b.submittedAt)}</span>
+                      <div key={i} style={{ display:'flex', flexDirection:'column', gap:'0.1rem', padding:'0.5rem 0',
+                        borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                        <span style={{ fontSize:'0.8rem', color:'var(--text-main)', fontWeight:600 }}>{b.items}</span>
+                        <span style={{ fontSize:'0.72rem', color:'var(--text-muted)' }}>{b.location} · {fmt(b.submittedAt)}</span>
                       </div>
                     ))}
                   </div>
