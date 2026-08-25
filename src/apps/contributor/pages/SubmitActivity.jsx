@@ -6,6 +6,9 @@ import { apiGet, apiPatch, apiPost } from '../../../services/api';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import MapLocationPicker from '../../../components/common/MapLocationPicker';
 import OceanWaveStrip from '../../../components/common/OceanWaveStrip';
+import OrganizationSelect from '../../../components/common/OrganizationSelect';
+import Select from '../../../components/common/Select';
+import useOrganizations from '../../../hooks/useOrganizations';
 import { invalidateActivities } from '../../../store/activitiesSlice';
 import { invalidateDashboard } from '../../../store/dashboardSlice';
 import { invalidateContributorStats } from '../../../store/contributorSlice';
@@ -123,29 +126,13 @@ export default function SubmitActivity() {
     notes: ''
   });
 
-  const [organizations, setOrganizations] = useState([]);
-  const [orgsLoading, setOrgsLoading] = useState(true);
+  const { organizations, orgsLoading, addOrganization } = useOrganizations();
   const [status, setStatus] = useState('');
   const [images, setImages] = useState([]);
   const [existingUrls, setExistingUrls] = useState([]);
   const [loadingActivity, setLoadingActivity] = useState(Boolean(activityId));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activityStatus, setActivityStatus] = useState(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    apiGet('/api/dashboard/organizations')
-      .then((data) => {
-        if (isMounted && data.ok) {
-          setOrganizations(data.organizations || []);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (isMounted) setOrgsLoading(false);
-      });
-    return () => { isMounted = false; };
-  }, []);
 
   useEffect(() => {
     if (!activityId) return;
@@ -538,16 +525,19 @@ export default function SubmitActivity() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Shoreline type</label>
-                  <select value={form.shorelineType} onChange={e => setForm({...form, shorelineType: e.target.value})}>
-                    <option>Sandy beach</option><option>Rocky shore</option><option>Mangrove</option>
-                    <option>Urban outfall</option><option>Riverbank</option>
-                  </select>
+                  <Select
+                    value={form.shorelineType}
+                    onChange={(v) => setForm({...form, shorelineType: v})}
+                    options={['Sandy beach', 'Rocky shore', 'Mangrove', 'Urban outfall', 'Riverbank']}
+                  />
                 </div>
                 <div className="form-group">
                   <label>Tide state</label>
-                  <select value={form.tideState} onChange={e => setForm({...form, tideState: e.target.value})}>
-                    <option>Low tide</option><option>Mid tide</option><option>High tide</option>
-                  </select>
+                  <Select
+                    value={form.tideState}
+                    onChange={(v) => setForm({...form, tideState: v})}
+                    options={['Low tide', 'Mid tide', 'High tide']}
+                  />
                 </div>
               </div>
               <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -562,24 +552,35 @@ export default function SubmitActivity() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Primary Waste Category</label>
-                  <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-                    <option value="plastic">Plastic</option>
-                    <option value="glass">Glass</option>
-                    <option value="metal">Metal</option>
-                    <option value="organic">Organic</option>
-                    <option value="mixed">Mixed Waste</option>
-                    <option value="other">Other</option>
-                  </select>
+                  <Select
+                    value={form.category}
+                    onChange={(v) => setForm({...form, category: v})}
+                    options={[
+                      { value: 'plastic', label: 'Plastic' },
+                      { value: 'glass', label: 'Glass' },
+                      { value: 'metal', label: 'Metal' },
+                      { value: 'organic', label: 'Organic' },
+                      { value: 'mixed', label: 'Mixed Waste' },
+                      { value: 'other', label: 'Other' },
+                    ]}
+                  />
                 </div>
                 <div className="form-group">
-                  <label>Debris source</label>
-                  <select value={form.debrisSource} onChange={e => setForm({...form, debrisSource: e.target.value})}>
-                    <option>Land-based litter</option>
-                    <option>Ocean-based (washed up)</option>
-                    <option>Fishing-related</option>
-                    <option>Unknown</option>
-                  </select>
+                  <label>Microplastics present</label>
+                  <Select
+                    value={form.microplastics}
+                    onChange={(v) => setForm({...form, microplastics: v})}
+                    options={['None observed', 'Some', 'Significant amount']}
+                  />
                 </div>
+              </div>
+              <div className="form-group">
+                <label>Debris source</label>
+                <Select
+                  value={form.debrisSource}
+                  onChange={(v) => setForm({...form, debrisSource: v})}
+                  options={['Land-based litter', 'Ocean-based (washed up)', 'Fishing-related', 'Unknown']}
+                />
               </div>
               <div className="form-group">
                 <label style={{ marginBottom: '12px', display: 'block' }}>Debris log, by item count</label>
@@ -641,12 +642,6 @@ export default function SubmitActivity() {
                   })}
                 </div>
               </div>
-              <div className="form-group">
-                <label>Microplastics present</label>
-                <select value={form.microplastics} onChange={e => setForm({...form, microplastics: e.target.value})}>
-                  <option>None observed</option><option>Some</option><option>Significant amount</option>
-                </select>
-              </div>
             </div>
           )}
 
@@ -662,9 +657,11 @@ export default function SubmitActivity() {
               </div>
               <div className="form-group">
                 <label>Condition</label>
-                <select value={form.condition} onChange={e => setForm({...form, condition: e.target.value})}>
-                  <option>Healthy</option><option>Injured</option><option>Entangled</option><option>Deceased</option><option value="Not applicable">Not applicable</option>
-                </select>
+                <Select
+                  value={form.condition}
+                  onChange={(v) => setForm({...form, condition: v})}
+                  options={['Healthy', 'Injured', 'Entangled', 'Deceased', 'Not applicable']}
+                />
               </div>
               <div className="form-group">
                 <label>Habitat stress signs</label>
@@ -760,16 +757,22 @@ export default function SubmitActivity() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Organization</label>
-                  <select value={form.organizationId} onChange={(e) => setForm({ ...form, organizationId: e.target.value })} disabled={orgsLoading}>
-                    <option value="">{orgsLoading ? 'Loading organizations…' : 'Select an organization'}</option>
-                    {organizations.map((org) => <option key={org.orgId} value={org.orgId}>{org.name}</option>)}
-                  </select>
+                  <OrganizationSelect
+                    value={form.organizationId}
+                    onChange={(orgId) => setForm({ ...form, organizationId: orgId })}
+                    organizations={organizations}
+                    loading={orgsLoading}
+                    onAddOrganization={addOrganization}
+                    placeholder="Select an organization"
+                  />
                 </div>
                 <div className="form-group">
                   <label>Measurement instrument</label>
-                  <select value={form.instrument} onChange={e => setForm({...form, instrument: e.target.value})}>
-                    <option>Field scale</option><option>Estimated by volume</option><option>Lab-calibrated scale</option>
-                  </select>
+                  <Select
+                    value={form.instrument}
+                    onChange={(v) => setForm({...form, instrument: v})}
+                    options={['Field scale', 'Estimated by volume', 'Lab-calibrated scale']}
+                  />
                 </div>
               </div>
               <div className="form-row">
@@ -805,10 +808,11 @@ export default function SubmitActivity() {
               </div>
               <div className="form-group">
                 <label>Survey method</label>
-                <select value={form.surveyMethod} onChange={e => setForm({...form, surveyMethod: e.target.value})}>
-                  <option>Linear transect</option><option>Grid area</option>
-                  <option>Full site cleanup</option><option>Not measured</option>
-                </select>
+                <Select
+                  value={form.surveyMethod}
+                  onChange={(v) => setForm({...form, surveyMethod: v})}
+                  options={['Linear transect', 'Grid area', 'Full site cleanup', 'Not measured']}
+                />
               </div>
               <div className="form-group">
                 <label>Second verifier (optional)</label>
@@ -825,9 +829,11 @@ export default function SubmitActivity() {
               </div>
               <div className="form-group">
                 <label>Disposal method</label>
-                <select value={form.disposalMethod} onChange={e => setForm({...form, disposalMethod: e.target.value})}>
-                  <option>Recycled</option><option>Landfill</option><option>Hazardous waste service</option>
-                </select>
+                <Select
+                  value={form.disposalMethod}
+                  onChange={(v) => setForm({...form, disposalMethod: v})}
+                  options={['Recycled', 'Landfill', 'Hazardous waste service']}
+                />
               </div>
               <div className="form-group">
                 <label>Notes <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>

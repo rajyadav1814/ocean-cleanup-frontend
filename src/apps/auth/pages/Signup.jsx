@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, ArrowRight, ArrowLeft, User, Mail, Lock, Briefcase, Building2, CheckCircle2 } from 'lucide-react';
-import { authSignup, authCheckEmail, apiGet } from '../../../services/api';
+import { Eye, EyeOff, ArrowRight, ArrowLeft, User, Mail, Lock, Anchor, Building2, CheckCircle2 } from 'lucide-react';
+import { authSignup, authCheckEmail } from '../../../services/api';
+import OrganizationSelect from '../../../components/common/OrganizationSelect';
+import Select from '../../../components/common/Select';
+import useOrganizations from '../../../hooks/useOrganizations';
 
 const STEPS = [
   { label: 'Personal details',  title: <>Tell us <span className="serif">about yourself.</span></>,           description: 'Start with the basics.' },
@@ -239,6 +242,24 @@ function Logo() {
   );
 }
 
+// Matches the .bm-signup__field input/select styling so the custom dropdown
+// trigger and its popup look the same as the rest of this page's dark theme.
+const bmSelectTriggerStyle = (hasIcon = false) => ({
+  padding: hasIcon ? '.8rem .95rem .8rem 2.5rem' : '.8rem .95rem',
+  borderRadius: '10px',
+  background: 'rgba(4,18,31,.55)',
+  border: '1px solid var(--line-dark)',
+  color: 'var(--on-dark)',
+  fontSize: '.9rem',
+});
+
+const bmSelectMenuStyle = {
+  background: '#0d1e2f',
+  border: '1px solid var(--line-dark)',
+};
+
+const bmSelectOptionHoverBg = 'rgba(127,195,232,.12)';
+
 const eyeToggleStyle = (isAbsolute = true) => ({
   position: isAbsolute ? 'absolute' : 'static',
   right: '.7rem', bottom: '.75rem',
@@ -260,17 +281,10 @@ export default function Signup() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [organizations, setOrganizations] = useState([]);
-  const [orgsLoading, setOrgsLoading] = useState(true);
+  const { organizations, orgsLoading, addOrganization } = useOrganizations();
   const navigate = useNavigate();
   const currentStep = STEPS[step - 1];
-
-  useEffect(() => {
-    apiGet('/api/dashboard/organizations')
-      .then((data) => { if (data.ok) setOrganizations(data.organizations || []); })
-      .catch(() => {})
-      .finally(() => setOrgsLoading(false));
-  }, []);
+  const isContributor = form.role === 'contributor';
 
   const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
@@ -305,6 +319,9 @@ export default function Signup() {
     }
     if (step === 3 && form.password !== form.confirmPassword) {
       setError('Your passwords do not match.'); return;
+    }
+    if (step === 4 && form.role === 'contributor' && (!form.jobTitle.trim() || !form.experience || !form.organizationId)) {
+      setError('Contributors must complete ocean interest, cleanup experience, and organization.'); return;
     }
     setError('');
     setStep((s) => Math.min(s + 1, STEPS.length));
@@ -450,32 +467,41 @@ export default function Signup() {
           {step === 4 && (
             <div>
               <div className="bm-signup__field">
-                <label htmlFor="su-job">Current job title <em>(optional)</em></label>
+                <label htmlFor="su-job">Ocean interest <em>{isContributor ? '(required)' : '(optional)'}</em></label>
                 <div style={{ position: 'relative' }}>
-                  <Briefcase size={15} className="bm-signup__field-icon" />
-                  <input id="su-job" type="text" placeholder="e.g. Community coordinator" value={form.jobTitle} onChange={set('jobTitle')} />
+                  <Anchor size={15} className="bm-signup__field-icon" />
+                  <input id="su-job" type="text" placeholder="e.g. Marine biologist, Conservation officer" value={form.jobTitle} onChange={set('jobTitle')} required={isContributor} />
                 </div>
               </div>
               <div className="bm-signup__field bm-signup__field--no-icon">
-                <label htmlFor="su-experience">Years of experience <em>(optional)</em></label>
-                <select id="su-experience" value={form.experience} onChange={set('experience')}>
-                  <option value="">Select experience</option>
-                  <option value="Less than 1 year">Less than 1 year</option>
-                  <option value="1–2 years">1–2 years</option>
-                  <option value="2–5 years">2–5 years</option>
-                  <option value="5+ years">5+ years</option>
-                </select>
+                <label htmlFor="su-experience">Ocean experience <em>{isContributor ? '(required)' : '(optional)'}</em></label>
+                <Select
+                  id="su-experience"
+                  value={form.experience}
+                  onChange={(v) => setForm((prev) => ({ ...prev, experience: v }))}
+                  placeholder="Select experience"
+                  options={['Less than 1 year', '1–2 years', '2–5 years', '5+ years']}
+                  triggerStyle={bmSelectTriggerStyle(false)}
+                  menuStyle={bmSelectMenuStyle}
+                  optionHoverBg={bmSelectOptionHoverBg}
+                />
               </div>
               <div className="bm-signup__field bm-signup__field--no-icon">
-                <label htmlFor="su-org">Organization <em>(optional)</em></label>
+                <label htmlFor="su-org">Organization <em>{isContributor ? '(required)' : '(optional)'}</em></label>
                 <div style={{ position: 'relative' }}>
                   <Building2 size={15} className="bm-signup__field-icon" style={{ bottom: '.85rem' }} />
-                  <select id="su-org" value={form.organizationId} onChange={set('organizationId')} disabled={orgsLoading} style={{ paddingLeft: '2.5rem' }}>
-                    <option value="">{orgsLoading ? 'Loading…' : 'Select organization'}</option>
-                    {organizations.map((o) => (
-                      <option key={o.orgId} value={o.orgId}>{o.name}</option>
-                    ))}
-                  </select>
+                  <OrganizationSelect
+                    id="su-org"
+                    value={form.organizationId}
+                    onChange={(orgId) => setForm((prev) => ({ ...prev, organizationId: orgId }))}
+                    organizations={organizations}
+                    loading={orgsLoading}
+                    onAddOrganization={addOrganization}
+                    placeholder="Select organization"
+                    triggerStyle={bmSelectTriggerStyle(true)}
+                    menuStyle={bmSelectMenuStyle}
+                    optionHoverBg={bmSelectOptionHoverBg}
+                  />
                 </div>
               </div>
             </div>
@@ -497,8 +523,8 @@ export default function Signup() {
                 {[
                   ['Email', form.email],
                   ['Role', form.role.charAt(0).toUpperCase() + form.role.slice(1)],
-                  ['Job title', form.jobTitle || 'Not specified'],
-                  ['Experience', form.experience || 'Not specified'],
+                  ['Ocean interest', form.jobTitle || 'Not specified'],
+                  ['Ocean experience', form.experience || 'Not specified'],
                   ['Organization', selectedOrganization],
                 ].map(([label, value]) => (
                   <div className="bm-signup__review-row" key={label}>
