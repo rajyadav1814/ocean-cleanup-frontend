@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { authUpdateProfile } from '../../../services/api';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import Select from '../../../components/common/Select';
 
 export default function ProfileSettings() {
   const { user, updateUser } = useAuth();
@@ -167,27 +168,25 @@ export default function ProfileSettings() {
 
           <div className="profile-form-grid">
             <div className="form-group">
-              <label htmlFor="jobTitle">Job Title</label>
+              <label htmlFor="jobTitle">Ocean Interest</label>
               <input
                 id="jobTitle"
                 name="jobTitle"
                 type="text"
                 value={formData.jobTitle}
                 onChange={handleChange}
-                placeholder="e.g. Marine Biologist"
+                placeholder="e.g. Marine biologist, Conservation officer"
                 className="input-field"
               />
             </div>
             <div className="form-group">
-              <label htmlFor="yearsExperience">Years of Experience</label>
-              <input
+              <label htmlFor="yearsExperience">Ocean Experience</label>
+              <Select
                 id="yearsExperience"
-                name="yearsExperience"
-                type="text"
                 value={formData.yearsExperience}
-                onChange={handleChange}
-                placeholder="e.g. 5"
-                className="input-field"
+                onChange={(v) => setFormData(prev => ({ ...prev, yearsExperience: v }))}
+                placeholder="Select experience"
+                options={['Less than 1 year', '1–2 years', '2–5 years', '5+ years']}
               />
             </div>
           </div>
