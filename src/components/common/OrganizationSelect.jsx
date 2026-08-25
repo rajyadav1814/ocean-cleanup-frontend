@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Plus } from 'lucide-react';
 
 // Custom-styled dropdown (not a native <select>) so the option list matches
 // the app's design instead of the browser's default popup chrome. Includes
 // an "Add new organization" option that reveals a text input, creates the
 // org via the API, and selects it. Shared between Signup and Submit Activity.
+// The menu is rendered into a portal (document.body) and positioned via
+// getBoundingClientRect so it isn't clipped by an ancestor's overflow:hidden.
 export default function OrganizationSelect({
   id,
   value,
@@ -18,16 +21,21 @@ export default function OrganizationSelect({
   placeholder = 'Select organization',
 }) {
   const [open, setOpen] = useState(false);
+  const [coords, setCoords] = useState(null);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const rootRef = useRef(null);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
     const onClickOutside = (e) => {
-      if (rootRef.current && !rootRef.current.contains(e.target)) {
+      if (
+        rootRef.current && !rootRef.current.contains(e.target) &&
+        menuRef.current && !menuRef.current.contains(e.target)
+      ) {
         setOpen(false);
         setAdding(false);
         setError('');
@@ -35,6 +43,21 @@ export default function OrganizationSelect({
     };
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const updateCoords = () => {
+      const rect = rootRef.current?.getBoundingClientRect();
+      if (rect) setCoords({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+    };
+    updateCoords();
+    window.addEventListener('scroll', updateCoords, true);
+    window.addEventListener('resize', updateCoords);
+    return () => {
+      window.removeEventListener('scroll', updateCoords, true);
+      window.removeEventListener('resize', updateCoords);
+    };
   }, [open]);
 
   const selectedName = organizations.find((o) => o.orgId === value)?.name;
@@ -72,7 +95,7 @@ export default function OrganizationSelect({
   };
 
   const menuStyle = {
-    position: 'absolute', top: 'calc(100% + 0.4rem)', left: 0, right: 0, zIndex: 20,
+    position: 'fixed', top: coords?.top ?? 0, left: coords?.left ?? 0, width: coords?.width ?? 0, zIndex: 1000,
     background: 'var(--surface-card, var(--surface))', border: '1px solid var(--border-light)',
     borderRadius: 'var(--radius-md)', boxShadow: '0 12px 28px rgba(0,0,0,0.18)',
     padding: '0.35rem', maxHeight: '260px', overflowY: 'auto',
@@ -100,8 +123,8 @@ export default function OrganizationSelect({
         <ChevronDown size={16} style={{ opacity: 0.6, flexShrink: 0 }} />
       </button>
 
-      {open && (
-        <div style={menuStyle}>
+      {open && coords && createPortal(
+        <div ref={menuRef} style={menuStyle}>
           {adding ? (
             <div style={{ padding: '0.35rem' }}>
               <input
@@ -147,7 +170,8 @@ export default function OrganizationSelect({
               </div>
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
