@@ -42,9 +42,10 @@ function MainLayout({ children }) {
   const location = useLocation();
   const isCitizenSpace = location.pathname.startsWith('/citizen');
   const isContributorSpace = location.pathname.startsWith('/contributor');
+  const isVerifierSpace = location.pathname.startsWith('/verifier');
 
   return (
-    <div className={`app-shell${isCitizenSpace ? ' citizen-space-shell' : ''}${isContributorSpace ? ' contributor-space-shell' : ''}`}>
+    <div className={`app-shell${isCitizenSpace ? ' citizen-space-shell' : ''}${isContributorSpace ? ' contributor-space-shell' : ''}${isVerifierSpace ? ' verifier-space-shell' : ''}`}>
       <Header toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       <main className="main-layout">
         <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />

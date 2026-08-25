@@ -413,10 +413,11 @@ a {
   flex-direction: column;
 }
 
-/* Contributor, Citizen, and Admin Spaces share the BlueMind ocean system used
+/* Contributor, Citizen, Verifier, and Admin Spaces share the BlueMind ocean system used
    by the authentication screens, including the surrounding navigation chrome. */
 .contributor-space-shell,
 .citizen-space-shell,
+.verifier-space-shell,
 .admin-space-shell {
   --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -443,6 +444,8 @@ a {
 .contributor-space-shell *,
 .citizen-space-shell,
 .citizen-space-shell *,
+.verifier-space-shell,
+.verifier-space-shell *,
 .admin-space-shell,
 .admin-space-shell * {
   font-family: var(--font-sans);
@@ -716,6 +719,7 @@ a {
 
 [data-theme="dark"] .contributor-space-shell,
 [data-theme="dark"] .citizen-space-shell,
+[data-theme="dark"] .verifier-space-shell,
 [data-theme="dark"] .admin-space-shell {
   --primary: #6fc9c4;
   --primary-hover: #a9d8f0;
@@ -736,28 +740,28 @@ a {
   background-attachment: fixed;
 }
 
-[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .admin-space-shell) .topbar,
-[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .admin-space-shell) .sidebar-container {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .verifier-space-shell, .admin-space-shell) .topbar,
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .verifier-space-shell, .admin-space-shell) .sidebar-container {
   background: linear-gradient(180deg, rgba(4, 18, 31, 0.76), rgba(4, 18, 31, 0.48));
   border-color: rgba(160, 210, 240, 0.18);
   box-shadow: 0 24px 48px -30px rgba(3, 12, 22, 0.65);
 }
 
-[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .admin-space-shell) .brand-wordmark {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .verifier-space-shell, .admin-space-shell) .brand-wordmark {
   color: #f2f7fa;
 }
 
-[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .admin-space-shell) .brand-wordmark:hover {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .verifier-space-shell, .admin-space-shell) .brand-wordmark:hover {
   color: #a9d8f0;
 }
 
-[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .admin-space-shell) button.secondary {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .verifier-space-shell, .admin-space-shell) button.secondary {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(160, 210, 240, 0.18);
   color: #f2f7fa;
 }
 
-[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .admin-space-shell) button.secondary:hover {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .verifier-space-shell, .admin-space-shell) button.secondary:hover {
   background: rgba(127, 195, 232, 0.12);
   border-color: #7fc3e8;
   box-shadow: none;
