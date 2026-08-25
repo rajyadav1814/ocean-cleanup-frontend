@@ -155,17 +155,6 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
 
-      {/* Name Input */}
-      <div className="form-group" style={{ marginBottom: 0 }}>
-        <input
-          type="text"
-          placeholder="Enter a custom name for this location (e.g. Rozi Beach)..."
-          value={locationName}
-          onChange={(e) => setLocationName(e.target.value)}
-          required
-        />
-      </div>
-
       {/* Map Container */}
       {isMapRequested ? (
         <div style={{ position: 'relative', height: '260px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-light)' }}>
@@ -206,9 +195,19 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
         </div>
       )}
 
-      {/* Lat/Lng display (read-only to show they are captured) — only once a point exists */}
+      {/* Location name + Lat/Lng display (read-only, auto-filled) — only once a point exists */}
       {position && (
         <>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label style={{ fontSize: '0.8rem' }}>Location name</label>
+            <input
+              type="text"
+              placeholder="Enter a custom name for this location (e.g. Rozi Beach)..."
+              value={locationName}
+              disabled
+              style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)' }}
+            />
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', width: '100%' }}>
             <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>
               <label style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>Latitude</label>
