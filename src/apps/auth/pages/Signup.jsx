@@ -244,18 +244,22 @@ function Logo() {
 
 // Matches the .bm-signup__field input/select styling so the custom dropdown
 // trigger and its popup look the same as the rest of this page's dark theme.
+// Uses literal values (not var(--on-dark)/var(--line-dark)) because the menu
+// is rendered into a document.body portal, outside the .bm-signup scope that
+// defines those custom properties — a var() reference there resolves to
+// nothing and washes out the text/border.
 const bmSelectTriggerStyle = (hasIcon = false) => ({
   padding: hasIcon ? '.8rem .95rem .8rem 2.5rem' : '.8rem .95rem',
   borderRadius: '10px',
   background: 'rgba(4,18,31,.55)',
-  border: '1px solid var(--line-dark)',
-  color: 'var(--on-dark)',
+  border: '1px solid rgba(160,210,240,.18)',
+  color: '#F2F7FA',
   fontSize: '.9rem',
 });
 
 const bmSelectMenuStyle = {
   background: '#0d1e2f',
-  border: '1px solid var(--line-dark)',
+  border: '1px solid rgba(160,210,240,.18)',
 };
 
 const bmSelectOptionHoverBg = 'rgba(127,195,232,.12)';
