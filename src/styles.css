@@ -1034,6 +1034,15 @@ button:disabled {
   box-shadow: none;
 }
 
+button:focus {
+  outline: none;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 button.secondary {
   background: rgba(128, 128, 128, 0.1);
   color: var(--text-main);
@@ -1117,7 +1126,7 @@ textarea:focus {
   outline: none;
   border-color: var(--primary);
   background: var(--surface-hover);
-  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 15%, transparent);
 }
 
 select option {

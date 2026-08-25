@@ -219,8 +219,9 @@ const BarRow = ({ label, pct, valueLabel, color }) => (
 
 const CollectionTrendChart = ({ months }) => {
   const max = Math.max(...months.map(({ kg }) => kg), 1);
+  const step = 336 / Math.max(months.length - 1, 1);
   const points = months.map(({ kg }, index) => {
-    const x = 12 + (index * 67.2);
+    const x = 12 + (index * step);
     const y = 92 - ((kg / max) * 72);
     return `${x},${y}`;
   }).join(' ');
@@ -233,13 +234,13 @@ const CollectionTrendChart = ({ months }) => {
         <polygon points={area} fill="rgba(46,158,155,.12)" />
         <polyline points={points} fill="none" stroke="var(--primary)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         {months.map(({ kg }, index) => {
-          const x = 12 + (index * 67.2);
+          const x = 12 + (index * step);
           const y = 92 - ((kg / max) * 72);
           return <circle key={index} cx={x} cy={y} r="4" fill="var(--surface)" stroke="var(--primary)" strokeWidth="2"><title>{`${kg} kg`}</title></circle>;
         })}
       </svg>
-      <div className="contrib-chart-labels">
-        {months.map(({ label }) => <span key={label}>{label}</span>)}
+      <div className="contrib-chart-labels" style={{ gridTemplateColumns: `repeat(${months.length}, 1fr)` }}>
+        {months.map(({ label }, index) => <span key={`${label}-${index}`}>{label}</span>)}
       </div>
     </>
   );
@@ -351,8 +352,8 @@ export default function ContributorOverview() {
 
   const monthlyTrend = useMemo(() => {
     const current = new Date();
-    return Array.from({ length: 6 }, (_, index) => {
-      const date = new Date(current.getFullYear(), current.getMonth() - 5 + index, 1);
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(current.getFullYear(), current.getMonth() - 3 + index, 1);
       const kg = approved.reduce((sum, activity) => {
         const timestamp = new Date(activity.timestamp);
         return timestamp.getFullYear() === date.getFullYear() && timestamp.getMonth() === date.getMonth()
@@ -455,7 +456,7 @@ export default function ContributorOverview() {
                 fontFamily:'var(--font-sans)', whiteSpace:'nowrap', transition:'border-color .2s, background .2s',
                 marginTop: isMobile ? '0.75rem' : '0.5rem'
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--border-glow)'; e.currentTarget.style.background = 'rgba(14,165,233,.06)'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--primary) 8%, transparent)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-light)'; e.currentTarget.style.background = 'transparent'; }}
             >
               Export field report
@@ -573,7 +574,7 @@ export default function ContributorOverview() {
                 </>
               )}
               {composition.length > 0 && (
-                <div className="contrib-composition-insight" style={{ marginTop:'0.9rem', background:'rgba(14,165,233,.07)', border:'1px solid rgba(14,165,233,.18)',
+                <div className="contrib-composition-insight" style={{ marginTop:'0.9rem', background:'color-mix(in srgb, var(--primary) 7%, transparent)', border:'1px solid color-mix(in srgb, var(--primary) 18%, transparent)',
                   borderRadius:'var(--radius-md)', padding:'0.65rem 0.85rem', fontSize:'0.78rem', color:'var(--primary-hover)',
                   display:'flex', gap:'0.6rem', alignItems: 'flex-start' }}>
                   <span style={{ flexShrink: 0 }}>💡</span>
@@ -586,7 +587,7 @@ export default function ContributorOverview() {
 
             {/* Collection trend */}
             <Card>
-              <CardHead title="Collection Trend" sub="Approved waste collected over the last six months" />
+              <CardHead title="Collection Trend" sub="Approved waste collected — 3 months before and after the current month" />
               <CollectionTrendChart months={monthlyTrend} />
             </Card>
 
@@ -769,7 +770,7 @@ export default function ContributorOverview() {
                   color:'var(--primary)', fontSize:'0.82rem', fontWeight:600, padding:'0.5rem',
                   cursor:'pointer', boxShadow:'none', transition:'border-color .2s,background .2s',
                   fontFamily:'var(--font-sans)' }}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--border-glow)';e.currentTarget.style.background='rgba(14,165,233,.06)';}}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.background='color-mix(in srgb, var(--primary) 8%, transparent)';}}
                 onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-light)';e.currentTarget.style.background='transparent';}}
               >
                 View all {myActivities.length} activities →
@@ -931,7 +932,7 @@ export default function ContributorOverview() {
             </Card>
           </div>
 
-          {/* ── SITES YOU MONITOR ── */}
+          {/* ── SITES YOU MONITOR ──
           <Card>
             <CardHead title="Sites You Monitor" sub="Locations you've returned to more than once, and how they're trending" />
             {monitoredSites.length === 0 ? (
@@ -955,18 +956,19 @@ export default function ContributorOverview() {
                 ))}
               </div>
             )}
-          </Card>
+          </Card> */}
 
           {/* ── COMMUNITY STRIP ── */}
           <Card style={{
-            background:'linear-gradient(135deg,rgba(61,214,224,.07),rgba(125,231,240,.04))'
+            background:'linear-gradient(135deg,rgba(61,214,224,.1),rgba(125,231,240,.05)), var(--surface)',
+            border:'1px solid rgba(61,214,224,.22)',
           }} className="contrib-community">
             <div style={{ display:'flex', alignItems:'center', gap:'0.9rem' }}>
               <div style={{ width:'40px', height:'40px', borderRadius:'12px', flexShrink:0,
                 background:'linear-gradient(135deg,var(--primary),var(--secondary))',
                 display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1.25rem' }}>⭐</div>
               <div>
-                <div style={{ fontWeight:700, fontSize:'0.92rem' }}>You're part of the Bluemind community 🌏</div>
+                <div style={{ fontWeight:700, fontSize:'0.92rem', color:'var(--text-main)' }}>You're part of the Bluemind community 🌏</div>
                 <div style={{ fontSize:'0.77rem', color:'var(--text-muted)', marginTop:'0.15rem' }}>
                   {rank
                     ? `Ranked #${rank} of ${stats?.totalContributors} contributors · Keep going to climb higher!`
