@@ -19,26 +19,117 @@ const RELATIONSHIP_LABEL = {
   disputes: 'disputes', predicted_to_affect: 'predicted to affect', supersedes: 'supersedes'
 };
 
+// One representative icon per subject family (spec §7 taxonomy) rather
+// than one per individual code — this is a detail-page header glyph, not
+// a full icon library, so a family-level approximation is enough to give
+// the event a face without a many-dozen-entry icon map.
+const FAMILY_ICONS = {
+  pollution_waste: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 2h6M10 2v5l-5 11a2 2 0 001.8 3h10.4a2 2 0 001.8-3l-5-11V2" />
+      <line x1="8" y1="14" x2="16" y2="14" />
+    </svg>
+  ),
+  water: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2C8 8 5 11.5 5 15a7 7 0 0014 0c0-3.5-3-7-7-13z" />
+    </svg>
+  ),
+  life: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 20c8-1 14-7 15-15-8 1-14 7-15 15z" /><path d="M6.5 17.5C10 14 12.5 11 15 8" />
+    </svg>
+  ),
+  habitat: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12l9-8 9 8" /><path d="M6 10.5V20h12v-9.5" />
+    </svg>
+  ),
+  conditions: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="4" y1="21" x2="4" y2="13" /><line x1="10" y1="21" x2="10" y2="7" /><line x1="16" y1="21" x2="16" y2="11" /><line x1="22" y1="21" x2="22" y2="3" />
+    </svg>
+  ),
+  human_action: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="3.2" /><path d="M5 21c0-4 3-6.5 7-6.5S19 17 19 21" />
+    </svg>
+  ),
+};
+
+const EVIDENCE_TAG = {
+  photo: { icon: '📷', label: 'Photo' },
+  video: { icon: '🎥', label: 'Video' },
+  audio: { icon: '🎙', label: 'Audio' },
+  contributor_statement: { icon: '📝', label: 'Statement' },
+  document: { icon: '📄', label: 'Document' },
+};
+
 const Card = ({ children, style }) => (
   <div style={{
-    background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)',
-    padding: '1.25rem 1.5rem', fontFamily: 'var(--font-sans)', ...style
+    position: 'relative', background: 'var(--surface)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)',
+    padding: '1.35rem 1.5rem', fontFamily: 'var(--font-sans)', boxShadow: '0 1px 3px rgba(10, 30, 48, 0.05)',
+    backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', ...style
   }}>
     {children}
   </div>
 );
 
-const SectionLabel = ({ children }) => (
-  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.6rem' }}>
+const SectionLabel = ({ icon, children }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-main)',
+    textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.9rem' }}>
+    {icon && <span style={{ display: 'flex', color: 'var(--primary)', flexShrink: 0 }}>{icon}</span>}
     {children}
   </div>
 );
 
-const StatePill = ({ label, color }) => (
-  <span style={{ padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 700,
-    background: `${color}1F`, color, whiteSpace: 'nowrap', textTransform: 'uppercase' }}>
+// An outlined checkmark chip rather than a filled background pill — reads
+// as "this claim has been confirmed" (corroborated / supported / verified)
+// rather than as a generic status label the way the flat StatePill used
+// elsewhere in the app does.
+const CheckPill = ({ label, color }) => (
+  <span style={{
+    display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.28rem 0.7rem',
+    borderRadius: '999px', border: `1px solid color-mix(in srgb, ${color} 45%, transparent)`,
+    background: `color-mix(in srgb, ${color} 8%, transparent)`, color,
+    fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', whiteSpace: 'nowrap'
+  }}>
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
     {label}
   </span>
+);
+
+const HistoryIcon = ({ field }) => (
+  <span style={{
+    width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: field === 'event_state' ? 'color-mix(in srgb, #10b981 16%, transparent)' : 'color-mix(in srgb, #378add 16%, transparent)',
+    color: field === 'event_state' ? '#10b981' : '#378add'
+  }}>
+    {field === 'event_state' ? (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    ) : (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2l8 3v6c0 5-3.4 8.7-8 11-4.6-2.3-8-6-8-11V5z" />
+      </svg>
+    )}
+  </span>
+);
+
+// Decorative header art — a soft rounded blob with a minimal skyline
+// silhouette, echoing the "environmental event, out in the world" subject
+// matter the way the QuickReport hero panel does for its own flows.
+const HeaderArt = () => (
+  <svg width="150" height="110" viewBox="0 0 150 110" fill="none" aria-hidden="true" style={{ position: 'absolute', top: '-0.5rem', right: '-0.5rem', opacity: 0.9 }}>
+    <path d="M20 10C-4 30 2 78 34 96c34 20 84 12 104-14 16-21 8-52-14-64C102 4 74-6 52 2 40 6 32 2 20 10z"
+      fill="color-mix(in srgb, var(--primary) 12%, transparent)" />
+    <circle cx="112" cy="30" r="9" stroke="color-mix(in srgb, var(--primary) 55%, transparent)" strokeWidth="1.8" />
+    <path d="M30 78l14-16 10 10 12-14 10 11 14-16" stroke="color-mix(in srgb, var(--primary) 55%, transparent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M56 78c0-9 5-11 5-18a5 5 0 0110 0c0 7 5 9 5 18" stroke="color-mix(in srgb, var(--primary) 45%, transparent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
 );
 
 export default function EventDetail() {
@@ -156,37 +247,82 @@ export default function EventDetail() {
   const isAction = event.relationships.some((r) => r.relationshipType === 'responds_to' && r.direction === 'outgoing');
   const canComplete = isContributor && isAction && event.eventState !== 'addressed';
   const canPlanAction = isContributor && !isAction && event.eventState !== 'addressed';
+  const primaryFamily = event.subjects[0]?.family;
+  const headerIcon = FAMILY_ICONS[primaryFamily] || FAMILY_ICONS.pollution_waste;
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '2rem', maxWidth: '720px', fontFamily: 'var(--font-sans)' }}>
-      <Link to={`${basePath}/overview`} style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'none' }}>← Back to overview</Link>
+      <style>{`.ed-select {
+        appearance: none; -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237b8fa1' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 0.7rem center;
+      }`}</style>
 
-      <div>
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
-          <StatePill label={stateMeta.label} color={stateMeta.color} />
-          <StatePill label={verMeta.label} color={verMeta.color} />
-          {isAction && <StatePill label="Action" color="#7f77dd" />}
+      <Link to={`${basePath}/overview`} style={{
+        display: 'inline-flex', alignItems: 'center', gap: '0.35rem', alignSelf: 'flex-start',
+        fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)', textDecoration: 'none'
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+        </svg>
+        Back to overview
+      </Link>
+
+      <Card style={{ overflow: 'hidden' }}>
+        <HeaderArt />
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.9rem' }}>
+            <CheckPill label={stateMeta.label} color={stateMeta.color} />
+            <CheckPill label={verMeta.label} color={verMeta.color} />
+            {isAction && <CheckPill label="Action" color="#7f77dd" />}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
+            <span style={{
+              width: '42px', height: '42px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'color-mix(in srgb, var(--primary) 16%, transparent)', color: 'var(--primary)'
+            }}>
+              {headerIcon}
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <h1 style={{ margin: '0 0 0.35rem', fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                {event.title || subjectLabel}
+              </h1>
+              <p style={{ margin: 0, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.3rem 0.5rem', fontSize: '0.83rem', color: 'var(--text-muted)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                  </svg>
+                  {event.locationLabel || 'Location unspecified'}
+                </span>
+                ·
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                  {fmt(event.occurredAt || event.createdAt)}
+                </span>
+              </p>
+            </div>
+          </div>
         </div>
-        <h1 style={{ margin: '0 0 0.3rem', fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-main)' }}>
-          {event.title || subjectLabel}
-        </h1>
-        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          {event.locationLabel || 'Location unspecified'} · {fmt(event.occurredAt || event.createdAt)}
-        </p>
-      </div>
+      </Card>
 
       {event.subjects.length > 0 && (
         <Card>
-          <SectionLabel>Subjects</SectionLabel>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="3.2" /><path d="M5 21c0-4 3-6.5 7-6.5S19 17 19 21" />
+            </svg>
+          }>Subjects</SectionLabel>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             {event.subjects.map((s) => (
               <span key={s.eventSubjectId} style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.7rem',
-                borderRadius: '999px', background: 'var(--surface-hover)', border: '1px solid var(--border-light)', fontSize: '0.8rem'
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.8rem',
+                borderRadius: '999px', background: 'var(--surface-hover)', border: '1px solid var(--border-light)', fontSize: '0.85rem'
               }}>
-                {s.label}
-                {s.confidence != null && <span style={{ fontSize: '0.68rem', opacity: 0.6 }}>{Math.round(s.confidence * 100)}%</span>}
-                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{s.source.replace('_', ' ')}</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{s.label}</span>
+                {s.confidence != null && <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{Math.round(s.confidence * 100)}%</span>}
+                <span style={{ fontSize: '0.64rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--primary)' }}>{s.source.replace('_', ' ')}</span>
               </span>
             ))}
           </div>
@@ -207,8 +343,12 @@ export default function EventDetail() {
           )}
           {canPlanAction && planOpen && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-              <SectionLabel>Plan an action responding to this</SectionLabel>
-              <select value={planSubjectCode} onChange={(e) => setPlanSubjectCode(e.target.value)}
+              <SectionLabel icon={
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 20c8-1 14-7 15-15-8 1-14 7-15 15z" /><path d="M6.5 17.5C10 14 12.5 11 15 8" />
+                </svg>
+              }>Plan an action responding to this</SectionLabel>
+              <select className="ed-select" value={planSubjectCode} onChange={(e) => setPlanSubjectCode(e.target.value)}
                 style={{ padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
                   background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem' }}>
                 <option value="">What kind of action?</option>
@@ -221,8 +361,11 @@ export default function EventDetail() {
               {planError && <div style={{ fontSize: '0.78rem', color: '#ef4444' }}>{planError}</div>}
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <button type="button" onClick={handlePlanAction} disabled={!planSubjectCode || planning}
-                  style={{ background: 'var(--primary)', border: 'none', borderRadius: '999px', color: '#fff', fontWeight: 700,
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'var(--primary)', border: 'none', borderRadius: '999px', color: '#fff', fontWeight: 700,
                     padding: '0.55rem 1.2rem', cursor: planSubjectCode ? 'pointer' : 'default', opacity: planSubjectCode ? 1 : 0.6, font: 'inherit', fontSize: '0.85rem' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
                   {planning ? 'Planning…' : 'Confirm'}
                 </button>
                 <button type="button" onClick={() => setPlanOpen(false)}
@@ -243,7 +386,11 @@ export default function EventDetail() {
           )}
           {canComplete && completeOpen && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-              <SectionLabel>Log what happened</SectionLabel>
+              <SectionLabel icon={
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              }>Log what happened</SectionLabel>
               <input type="number" min="0" step="0.5" value={kgRemoved} onChange={(e) => setKgRemoved(e.target.value)}
                 placeholder="kg removed (optional)"
                 style={{ width: '180px', padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
@@ -272,34 +419,50 @@ export default function EventDetail() {
 
       {event.evidence.length > 0 && (
         <Card>
-          <SectionLabel>Evidence</SectionLabel>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" /><circle cx="12" cy="13" r="4" />
+            </svg>
+          }>Evidence</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-            {event.evidence.map((ev) => (
-              <div key={ev.evidenceId}>
-                {ev.evidenceType === 'photo' && ev.gatewayUrl && (
-                  <img src={ev.gatewayUrl} alt="Evidence" style={{ maxWidth: '280px', borderRadius: 'var(--radius-md)' }} />
-                )}
-                {ev.evidenceType === 'video' && ev.gatewayUrl && (
-                  <video src={ev.gatewayUrl} controls style={{ maxWidth: '280px', borderRadius: 'var(--radius-md)' }} />
-                )}
-                {ev.evidenceType === 'audio' && ev.gatewayUrl && (
-                  <audio src={ev.gatewayUrl} controls />
-                )}
-                {ev.evidenceType === 'contributor_statement' && ev.metadata?.text && (
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', fontStyle: 'italic' }}>&ldquo;{ev.metadata.text}&rdquo;</p>
-                )}
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.3rem', textTransform: 'uppercase' }}>
-                  {ev.evidenceType} · {ev.captureSource || 'unknown source'} · {fmt(ev.createdAt)}
+            {event.evidence.map((ev) => {
+              const tag = EVIDENCE_TAG[ev.evidenceType] || { icon: '📎', label: ev.evidenceType.replace(/_/g, ' ') };
+              const caption = `${ev.evidenceType.replace(/_/g, ' ').toUpperCase()}-${(ev.captureSource || 'unknown').toUpperCase()}-${fmt(ev.createdAt).toUpperCase()}`;
+              return (
+                <div key={ev.evidenceId} style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
+                  {ev.evidenceType === 'photo' && ev.gatewayUrl ? (
+                    <img src={ev.gatewayUrl} alt="Evidence" style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0 }} />
+                  ) : ev.evidenceType === 'video' && ev.gatewayUrl ? (
+                    <video src={ev.gatewayUrl} controls style={{ width: '84px', height: '84px', objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0 }} />
+                  ) : (
+                    <span style={{ width: '84px', height: '84px', borderRadius: 'var(--radius-md)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'var(--surface-hover)', border: '1px solid var(--border-light)', fontSize: '1.6rem' }}>{tag.icon}</span>
+                  )}
+                  <div style={{ minWidth: 0 }}>
+                    {ev.evidenceType === 'contributor_statement' && ev.metadata?.text ? (
+                      <p style={{ margin: '0 0 0.4rem', fontSize: '0.85rem', color: 'var(--text-main)', fontStyle: 'italic' }}>&ldquo;{ev.metadata.text}&rdquo;</p>
+                    ) : (
+                      <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', marginBottom: '0.4rem', wordBreak: 'break-word' }}>{caption}</div>
+                    )}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.15rem 0.55rem',
+                      borderRadius: '999px', border: '1px solid var(--border-light)', fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                      {tag.icon} {tag.label}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </Card>
       )}
 
       {event.relationships.length > 0 && (
         <Card>
-          <SectionLabel>Related events</SectionLabel>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L11.5 4.5" /><path d="M14 11a5 5 0 00-7.07 0l-2.83 2.83a5 5 0 007.07 7.07L12.5 19.5" />
+            </svg>
+          }>Related events</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {event.relationships.map((r, i, arr) => (
               <Link key={r.relationshipId} to={`${basePath}/events/${r.otherEventId}`}
@@ -311,7 +474,7 @@ export default function EventDetail() {
                   <strong>{RELATIONSHIP_LABEL[r.relationshipType] || r.relationshipType}</strong>
                   {r.direction === 'incoming' ? ' this' : ''} — {r.otherEventTitle || eventStateMeta(r.otherEventState).label}
                 </span>
-                <StatePill label={eventStateMeta(r.otherEventState).label} color={eventStateMeta(r.otherEventState).color} />
+                <CheckPill label={eventStateMeta(r.otherEventState).label} color={eventStateMeta(r.otherEventState).color} />
               </Link>
             ))}
           </div>
@@ -320,7 +483,11 @@ export default function EventDetail() {
 
       {isContributor && (
         <Card>
-          <SectionLabel>Relate to another event</SectionLabel>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L11.5 4.5" /><path d="M14 11a5 5 0 00-7.07 0l-2.83 2.83a5 5 0 007.07 7.07L12.5 19.5" />
+            </svg>
+          }>Relate to another event</SectionLabel>
           {!relateOpen ? (
             <button type="button" onClick={() => setRelateOpen(true)}
               style={{ background: 'transparent', border: '1px solid var(--border-light)', borderRadius: '999px', color: 'var(--text-main)',
@@ -330,13 +497,13 @@ export default function EventDetail() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
               <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                Copy the other event's ID from its page URL, then pick how this event relates to it.
+                Copy the other event's ID from its page URL, then pick how this relates to it.
               </p>
               <input type="text" value={relateTargetId} onChange={(e) => setRelateTargetId(e.target.value)}
                 placeholder="Other event's ID"
                 style={{ padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
                   background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem' }} />
-              <select value={relateType} onChange={(e) => setRelateType(e.target.value)}
+              <select className="ed-select" value={relateType} onChange={(e) => setRelateType(e.target.value)}
                 style={{ padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
                   background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem' }}>
                 {Object.entries(RELATIONSHIP_LABEL).map(([value, label]) => (
@@ -346,8 +513,11 @@ export default function EventDetail() {
               {relateError && <div style={{ fontSize: '0.78rem', color: '#ef4444' }}>{relateError}</div>}
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <button type="button" onClick={handleRelate} disabled={!relateTargetId.trim() || relating}
-                  style={{ background: 'var(--primary)', border: 'none', borderRadius: '999px', color: '#fff', fontWeight: 700,
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'var(--primary)', border: 'none', borderRadius: '999px', color: '#fff', fontWeight: 700,
                     padding: '0.55rem 1.2rem', cursor: relateTargetId.trim() ? 'pointer' : 'default', opacity: relateTargetId.trim() ? 1 : 0.6, font: 'inherit', fontSize: '0.85rem' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L11.5 4.5" /><path d="M14 11a5 5 0 00-7.07 0l-2.83 2.83a5 5 0 007.07 7.07L12.5 19.5" />
+                  </svg>
                   {relating ? 'Linking…' : 'Confirm link'}
                 </button>
                 <button type="button" onClick={() => setRelateOpen(false)}
@@ -363,12 +533,18 @@ export default function EventDetail() {
 
       {event.impact.length > 0 && (
         <Card>
-          <SectionLabel>Impact</SectionLabel>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="21" x2="4" y2="13" /><line x1="10" y1="21" x2="10" y2="7" /><line x1="16" y1="21" x2="16" y2="11" /><line x1="22" y1="21" x2="22" y2="3" />
+            </svg>
+          }>Impact</SectionLabel>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.75rem' }}>
             {event.impact.map((i) => (
               <div key={i.impactId}>
-                <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--primary-hover)' }}>{i.value} {i.unit}</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{i.metric.replace(/_/g, ' ')}</div>
+                <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-main)' }}>{i.value} {i.unit}</div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.03em' }}>
+                  {i.metric.replace(/_/g, ' ')} ({i.unit})
+                </div>
               </div>
             ))}
           </div>
@@ -377,16 +553,20 @@ export default function EventDetail() {
 
       {event.stateHistory.length > 0 && (
         <Card>
-          <SectionLabel>History</SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {event.stateHistory.map((h, i, arr) => (
-              <div key={h.historyId} style={{ display: 'flex', gap: '0.6rem', padding: '0.55rem 0',
-                borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                <div style={{ flex: 1, fontSize: '0.82rem' }}>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" />
+            </svg>
+          }>History</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {event.stateHistory.map((h) => (
+              <div key={h.historyId} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
+                <HistoryIcon field={h.field} />
+                <div style={{ flex: 1, minWidth: 0, fontSize: '0.85rem', color: 'var(--text-main)' }}>
                   <strong>{h.field === 'event_state' ? 'State' : 'Verification'}</strong>: {h.oldValue || 'new'} → {h.newValue}
-                  {h.note && <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.15rem' }}>{h.note}</div>}
+                  {h.note && <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.2rem' }}>{h.note}</div>}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0 }}>{fmt(h.changedAt)}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>{fmt(h.changedAt)}</div>
               </div>
             ))}
           </div>
@@ -395,7 +575,11 @@ export default function EventDetail() {
 
       {event.verifications.length > 0 && (
         <Card>
-          <SectionLabel>Verifications</SectionLabel>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2l8 3v6c0 5-3.4 8.7-8 11-4.6-2.3-8-6-8-11V5z" />
+            </svg>
+          }>Verifications</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {event.verifications.map((v, i, arr) => (
               <div key={v.verificationId} style={{ padding: '0.55rem 0',

@@ -232,37 +232,24 @@ const SubjectChip = ({ subject, onRemove }) => (
 );
 
 // Org context defaults silently from the contributor's own profile (spec
-// §19) — this is just a quiet confirmation line with an escape hatch,
-// not a required field to fill in on every submission.
-const OrgContextLine = ({ organizationId, organizations, orgsLoading, addOrganization, onChange, open, onToggle }) => {
-  const orgName = organizations.find((o) => o.orgId === organizationId)?.name;
-  if (!open) {
-    return (
-      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-        {orgName ? <>Submitting on behalf of <strong style={{ color: 'var(--text-main)' }}>{orgName}</strong></> : 'Submitting as an individual, no organization attached'}
-        {' '}<button type="button" onClick={onToggle}
-          style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'underline' }}>
-          Change
-        </button>
-      </div>
-    );
-  }
-  return (
-    <div>
-      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
-        Organization
-      </label>
-      <OrganizationSelect
-        value={organizationId}
-        onChange={(orgId) => { onChange(orgId); onToggle(); }}
-        organizations={organizations}
-        loading={orgsLoading}
-        onAddOrganization={addOrganization}
-        placeholder="No organization (individual)"
-      />
-    </div>
-  );
-};
+// §19) — the dropdown itself already carries "Individual" as its first,
+// always-available option (OrganizationSelect's placeholder row), so there's
+// no need for a separate collapsed confirmation line with a "Change" link.
+const OrgContextLine = ({ organizationId, organizations, orgsLoading, addOrganization, onChange }) => (
+  <div>
+    <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
+      Organization
+    </label>
+    <OrganizationSelect
+      value={organizationId}
+      onChange={onChange}
+      organizations={organizations}
+      loading={orgsLoading}
+      onAddOrganization={addOrganization}
+      placeholder="Individual (no organization)"
+    />
+  </div>
+);
 
 export default function QuickReport() {
   const navigate = useNavigate();
@@ -277,7 +264,6 @@ export default function QuickReport() {
   // which citizens never saw either.
   const { organizations, orgsLoading, addOrganization } = useOrganizations();
   const [organizationId, setOrganizationId] = useState(user?.organizationId || '');
-  const [orgPickerOpen, setOrgPickerOpen] = useState(false);
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const videoInputRef = useRef(null);
@@ -1105,7 +1091,6 @@ export default function QuickReport() {
           <OrgContextLine
             organizationId={organizationId} organizations={organizations} orgsLoading={orgsLoading}
             addOrganization={addOrganization} onChange={setOrganizationId}
-            open={orgPickerOpen} onToggle={() => setOrgPickerOpen((o) => !o)}
           />
 
           <div className="qr-notes-wrap">
@@ -1272,7 +1257,6 @@ export default function QuickReport() {
             <OrgContextLine
               organizationId={organizationId} organizations={organizations} orgsLoading={orgsLoading}
               addOrganization={addOrganization} onChange={setOrganizationId}
-              open={orgPickerOpen} onToggle={() => setOrgPickerOpen((o) => !o)}
             />
           )}
 
