@@ -24,6 +24,25 @@ export const fetchContributorStats = createAsyncThunk(
   }
 );
 
+export const fetchContributorImpact = createAsyncThunk(
+  'contributor/fetchImpact',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await apiGet('/api/contributor/impact');
+      if (!data.ok || !data.impact) return rejectWithValue(data.error || 'Failed to load impact summary');
+      return data.impact;
+    } catch (err) {
+      return rejectWithValue(err.message || 'Network error');
+    }
+  },
+  {
+    condition: (_, { getState }) => {
+      const { contributor } = getState();
+      return contributor.impactStatus !== 'succeeded' && contributor.impactStatus !== 'loading';
+    }
+  }
+);
+
 export const fetchContributorInsights = createAsyncThunk(
   'contributor/fetchInsights',
   async (_, { rejectWithValue }) => {
@@ -54,12 +73,16 @@ const contributorSlice = createSlice({
     insights: null,
     insightsStatus: 'idle',
     insightsError: null,
+    impact: null,
+    impactStatus: 'idle',
+    impactError: null,
   },
   reducers: {
     // Force a re-fetch on next mount (call after submitting/editing/deleting an activity)
     invalidateContributorStats(state) {
       state.statsStatus = 'idle';
       state.insightsStatus = 'idle';
+      state.impactStatus = 'idle';
     },
   },
   extraReducers: (builder) => {
@@ -87,6 +110,18 @@ const contributorSlice = createSlice({
       .addCase(fetchContributorInsights.rejected, (state, action) => {
         state.insightsStatus = 'failed';
         state.insightsError = action.payload;
+      })
+      .addCase(fetchContributorImpact.pending, (state) => {
+        state.impactStatus = 'loading';
+        state.impactError = null;
+      })
+      .addCase(fetchContributorImpact.fulfilled, (state, action) => {
+        state.impactStatus = 'succeeded';
+        state.impact = action.payload;
+      })
+      .addCase(fetchContributorImpact.rejected, (state, action) => {
+        state.impactStatus = 'failed';
+        state.impactError = action.payload;
       });
   },
 });

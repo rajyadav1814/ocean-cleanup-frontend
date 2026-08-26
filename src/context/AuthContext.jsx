@@ -6,6 +6,7 @@ import { invalidateActivities } from '../store/activitiesSlice';
 import { invalidateDashboard } from '../store/dashboardSlice';
 import { invalidateContributorStats } from '../store/contributorSlice';
 import { invalidateCitizenStats } from '../store/citizenSlice';
+import { invalidateEvents } from '../store/eventsSlice';
 
 const AuthContext = createContext(null);
 
@@ -45,6 +46,7 @@ export function AuthProvider({ children }) {
     dispatch(invalidateDashboard());
     dispatch(invalidateContributorStats());
     dispatch(invalidateCitizenStats());
+    dispatch(invalidateEvents());
   };
 
   useEffect(() => {

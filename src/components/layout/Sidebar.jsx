@@ -118,12 +118,12 @@ export default function Sidebar({ isMobileMenuOpen, setIsMobileMenuOpen }) {
   const links = {
     contributor: [
       { to: '/contributor/overview', label: 'Overview', icon: 'dashboard' },
-      { to: '/contributor/submit', label: 'Submit Activity', icon: 'plus' },
+      { to: '/contributor/quick-report', label: 'Submit Activity', icon: 'plus' },
       { to: '/contributor/my-activities', label: 'My Activities', icon: 'list' },
     ],
     citizen: [
       { to: '/citizen/overview', label: 'My Space', icon: 'dashboard' },
-      { to: '/citizen/submit', label: 'Submit Activity', icon: 'plus' },
+      { to: '/citizen/quick-report', label: 'Submit Activity', icon: 'plus' },
       { to: '/citizen/my-activities', label: 'My Activities', icon: 'list' },
     ],
     verifier: [

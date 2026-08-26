@@ -163,6 +163,29 @@ export const contributorApi = {
     apiDownloadFile(`/api/contributor/export?from=${from}&to=${to}&format=pdf`, `field-report-${from}-to-${to}.pdf`),
 };
 
+// ─── Environmental event API helpers ────────────────────────────────────────────
+export const eventApi = {
+  getById:      (id)                        => apiGet(`/api/events/${id}`),
+  listSubjects: (family)                    => apiGet(`/api/events/subjects${family ? `?family=${family}` : ''}`),
+  planAction:   (id, { subjectCode, title, description }) =>
+    apiPost(`/api/events/${id}/actions`, { subjectCode, title, description }),
+  complete:     (id, { kgRemoved, note })   => apiPost(`/api/events/${id}/complete`, { kgRemoved, note }),
+  relate:       (id, { toEventId, relationshipType }) =>
+    apiPost(`/api/events/${id}/relate`, { toEventId, relationshipType }),
+};
+
+// ─── AI intake helper ──────────────────────────────────────────────────────────
+// Draft a classification from a photo, a voice note, a document/dataset,
+// or a short text description. Returns { ok:false, error } with a clear
+// message if the server has no AI key configured yet — callers should
+// fall back to manual entry, never block. For a voice note the response's
+// `inference.transcript` carries what Blue Mind heard; for a document,
+// `inference.extractedText` carries what it read.
+export const aiApi = {
+  infer: ({ imageBase64, audioBase64, documentBase64, text }) =>
+    apiPost('/api/ai/infer', { imageBase64, audioBase64, documentBase64, text }),
+};
+
 // ─── Citizen API helpers ──────────────────────────────────────────────────────
 export const citizenApi = {
   getStats:       ()              => apiGet('/api/citizen/stats'),
