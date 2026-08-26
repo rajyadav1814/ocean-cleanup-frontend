@@ -1,17 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useActivities } from '../../../hooks/useActivities';
+import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
+import { eventStateMeta, verificationStateMeta } from '../../contributor/eventMeta';
 import 'leaflet/dist/leaflet.css';
 
 /* ─── Google-style marker SVG pin ───────────────────────────────────────────── */
-const getStatusPinColor = (status) => {
-  return {
-    approved: '#10b981',
-    rejected: '#ef4444',
-    pending: '#f59e0b',
-  }[String(status).toLowerCase()] || '#1a73e8';
-};
-
 const createGooglePin = (fillColor = '#1a73e8') => {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="36" height="46" viewBox="0 0 36 46">
@@ -29,9 +22,13 @@ const createGooglePin = (fillColor = '#1a73e8') => {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
-
 export default function ImpactMap() {
-  const { activities, loading, error } = useActivities();
+  // Global/public scope — no contributorId filter, matching this page's
+  // existing "everyone's activity, worldwide" role. Pins are colored by
+  // event_state now (spec §24: "where are unresolved problems / where's
+  // pollution recurring" — a map should answer questions, not just be a
+  // pin dump), not the old legacy approval status.
+  const { events, loading, error } = useEvents();
   const mapRef = useRef(null);
   const leafletMap = useRef(null);
   const tileLayerRef = useRef(null);
@@ -79,48 +76,50 @@ export default function ImpactMap() {
       leafletMap.current = map;
 
       // ── Plot markers ──
-      const valid = activities.filter(
-        (a) =>
-          a.lat != null &&
-          a.lon != null &&
-          !isNaN(Number(a.lat)) &&
-          !isNaN(Number(a.lon))
+      const valid = events.filter(
+        (e) =>
+          e.lat != null &&
+          e.lon != null &&
+          !isNaN(Number(e.lat)) &&
+          !isNaN(Number(e.lon))
       );
 
       if (valid.length > 0) {
-        const latLngs = valid.map((a) => [Number(a.lat), Number(a.lon)]);
+        const latLngs = valid.map((e) => [Number(e.lat), Number(e.lon)]);
 
-        valid.forEach((activity, i) => {
+        valid.forEach((event, i) => {
           const [lat, lng] = latLngs[i];
-          const locationLabel = activity.location || 'BlueMind Activity Site';
+          const locationLabel = event.locationLabel || 'BlueMind Activity Site';
+          const stateMeta = eventStateMeta(event.eventState);
+          const verMeta = verificationStateMeta(event.verificationState);
+          const subjectLabel = event.subjects?.map((s) => s.label).join(', ') || 'Unclassified';
 
           // Plain pin marker, details move into the click popup
           const icon = L.divIcon({
             className: '',
             html: `
               <div class="gmap-pin-wrapper" aria-label="${locationLabel}">
-                <img src="${createGooglePin(getStatusPinColor(activity.status))}" width="36" height="46" alt="pin"/>
+                <img src="${createGooglePin(stateMeta.color)}" width="36" height="46" alt="pin"/>
               </div>`,
             iconSize: [36, 46],
             iconAnchor: [18, 46],
             popupAnchor: [0, -50],
           });
 
-          const statusColor = getStatusPinColor(activity.status);
           const popupContent = `
             <div class="gmap-popup">
               <div class="gmap-popup-title">${locationLabel}</div>
               <div class="gmap-popup-row">
-                <span class="gmap-popup-key">Category</span>
-                <span class="gmap-popup-val">${activity.category || '—'}</span>
+                <span class="gmap-popup-key">Subjects</span>
+                <span class="gmap-popup-val">${subjectLabel}</span>
               </div>
               <div class="gmap-popup-row">
-                <span class="gmap-popup-key">Quantity</span>
-                <span class="gmap-popup-val">${activity.quantity ?? '—'} kg</span>
+                <span class="gmap-popup-key">State</span>
+                <span class="gmap-popup-val gmap-status" style="color: ${stateMeta.color}">${stateMeta.label}</span>
               </div>
               <div class="gmap-popup-row">
-                <span class="gmap-popup-key">Status</span>
-                <span class="gmap-popup-val gmap-status" style="color: ${statusColor}">${activity.status || '—'}</span>
+                <span class="gmap-popup-key">Verification</span>
+                <span class="gmap-popup-val gmap-status" style="color: ${verMeta.color}">${verMeta.label}</span>
               </div>
               <a class="gmap-directions-link"
                  href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}"
@@ -165,7 +164,7 @@ export default function ImpactMap() {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, activities]);
+  }, [loading, events]);
 
   if (error) return <div className="alert alert-danger">Error: {error.message}</div>;
 
@@ -175,12 +174,12 @@ export default function ImpactMap() {
     <section style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div className="card mb-6" style={{ flexShrink: 0, padding: '1.25rem 1.75rem' }}>
         <h3 style={{ marginBottom: '0.25rem' }}>Global Impact Map</h3>
-        <p className="text-muted" style={{ margin: 0 }}>Visualizing worldwide cleanup locations.</p>
+        <p className="text-muted" style={{ margin: 0 }}>Visualizing worldwide environmental events, colored by their current state.</p>
       </div>
 
-      {!loading && !error && activities.length === 0 && (
+      {!loading && !error && events.length === 0 && (
         <div className="alert alert-info" role="alert">
-          The map is ready, but there are no cleanup activities to display at the moment.
+          The map is ready, but there are no environmental events to display at the moment.
         </div>
       )}
 

@@ -1,5 +1,6 @@
 export const ROUTES = {
   contributor: {
+    quickReport: '/contributor/quick-report',
     submit: '/contributor/submit',
     activities: '/contributor/my-activities',
     impact: '/contributor/my-impact'

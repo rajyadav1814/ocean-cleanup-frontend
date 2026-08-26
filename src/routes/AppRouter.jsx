@@ -4,6 +4,8 @@ import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import { useAuth } from '../context/AuthContext';
 import SubmitActivity from '../apps/contributor/pages/SubmitActivity';
+import QuickReport from '../apps/contributor/pages/QuickReport';
+import EventDetail from '../apps/contributor/pages/EventDetail';
 import MyActivities from '../apps/contributor/pages/MyActivities';
 import MyImpact from '../apps/contributor/pages/MyImpact';
 import ApprovedActivities from '../apps/contributor/pages/ApprovedActivities';
@@ -215,6 +217,20 @@ export default function AppRouter() {
             </MainLayout>
           </ProtectedRoute>
         } />
+        <Route path="/citizen/quick-report" element={
+          <ProtectedRoute allowedRoles={['citizen']}>
+            <MainLayout>
+              <QuickReport />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/citizen/events/:id" element={
+          <ProtectedRoute allowedRoles={['citizen']}>
+            <MainLayout>
+              <EventDetail />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
         <Route path="/citizen/my-activities" element={
           <ProtectedRoute allowedRoles={['citizen']}>
             <MainLayout>
@@ -233,6 +249,20 @@ export default function AppRouter() {
           <ProtectedRoute allowedRoles={['contributor']}>
             <MainLayout>
               <SubmitActivity />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/contributor/quick-report" element={
+          <ProtectedRoute allowedRoles={['contributor']}>
+            <MainLayout>
+              <QuickReport />
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        <Route path="/contributor/events/:id" element={
+          <ProtectedRoute allowedRoles={['contributor']}>
+            <MainLayout>
+              <EventDetail />
             </MainLayout>
           </ProtectedRoute>
         } />

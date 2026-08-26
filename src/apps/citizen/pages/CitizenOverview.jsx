@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useCitizenStats, useCitizenLeaderboard, useCitizenFeed } from '../../../hooks/useCitizen';
+import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import SubmitActivity from '../../contributor/pages/SubmitActivity';
+import MyAreasMap from '../../contributor/components/MyAreasMap';
+import { eventStateMeta, verificationStateMeta } from '../../contributor/eventMeta';
 import { Link } from 'react-router-dom';
 
 /* ── helpers ── */
@@ -16,6 +19,11 @@ function timeAgo(ts) {
 function memberSince(ts) {
   if (!ts) return 'recently';
   return new Date(ts).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+}
+function fmt(ts) {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 function getFeedStatus(item) {
   const value = String(item.status || item.verificationStatus || item.activityStatus || 'pending')
@@ -248,6 +256,27 @@ const STYLES = `
   .co-pill.pending  { background: rgba(198,130,30,0.14) !important; color: var(--warning) !important; }
   .co-pill.verified { background: rgba(46,158,155,0.14) !important; color: var(--success) !important; }
   .co-pill.rejected { background: rgba(239,68,68,0.14) !important; color: #EF4444 !important; }
+  /* Event-state pills (Needs Attention / Impact Stories) need an
+     arbitrary color per state, not just the fixed pending/verified/
+     rejected set above — set inline via style, this just keeps the
+     shared pill shape/type in sync with the rest of the page. */
+  .co-state-pill {
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 0.15rem 0.55rem;
+    border-radius: 20px; white-space: nowrap; font-family: var(--font-mono);
+  }
+  .co-related-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+    padding: 0.85rem 0; border-bottom: 1px solid var(--border-light);
+    text-decoration: none; color: inherit;
+  }
+  .co-related-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .co-related-row:hover .co-feed-text { color: var(--primary-hover); }
+  .co-story-icon {
+    width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+    background: rgba(46,158,155,0.14); color: var(--primary);
+  }
 
   /* badges */
   .co-badges { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
@@ -335,7 +364,7 @@ const NoDataYet = () => (
         Once your first report is logged, this space fills in with the community feed, your badges,
         and where you rank among nearby citizens.
       </p>
-      <Link to="/citizen/submit" id="citizen-submit-empty" className="co-cta" style={{ alignSelf: 'center', marginBottom: 0, marginTop: '0.4rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+      <Link to="/citizen/quick-report" id="citizen-submit-empty" className="co-cta" style={{ alignSelf: 'center', marginBottom: 0, marginTop: '0.4rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
         <span>Submit a report</span><span aria-hidden="true">→</span>
       </Link>
     </div>
@@ -347,10 +376,11 @@ export default function CitizenOverview() {
   const { stats, loading: sL } = useCitizenStats();
   const { leaderboard, myRow, loading: lL } = useCitizenLeaderboard();
   const { feed, loading: fL } = useCitizenFeed(6);
+  const { events: myEvents, loading: eL } = useEvents(user?.id);
   const [tab, setTab] = useState('overview');
   const [toast, setToast] = useState('');
 
-  if (sL || lL || fL) return <LoadingSpinner />;
+  if (sL || lL || fL || eL) return <LoadingSpinner />;
 
   const s = stats || {};
   const badges = s.badges || [];
@@ -361,6 +391,18 @@ export default function CitizenOverview() {
   const firstName = user?.firstName || user?.displayName?.split(' ')[0] || 'there';
   const sinceLabel = memberSince(s.memberSince);
   const isNewUser = (s.totalReports || 0) === 0;
+
+  // Environmental events tied to this citizen's own reports (spec §22) —
+  // what's still open vs. what changed as a result of reporting it,
+  // separate from the community feed above, which shows everyone's
+  // activity rather than "what happened because of me."
+  const needsAttention = [...myEvents]
+    .filter((e) => e.eventState !== 'addressed' && e.eventState !== 'reassessed')
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const impactStories = [...myEvents]
+    .filter((e) => e.eventState === 'addressed')
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+    .slice(0, 6);
 
   return (
     <div className="co-root">
@@ -406,7 +448,7 @@ export default function CitizenOverview() {
             Every entry feeds the community map BlueMind uses to track where pollution is concentrating.
           </p>
         </div>
-        <Link to="/citizen/submit" id="citizen-submit-hero" className="co-cta">
+        <Link to="/citizen/quick-report" id="citizen-submit-hero" className="co-cta">
           <span>Submit a report</span><span aria-hidden="true">→</span>
         </Link>
       </div>
@@ -431,6 +473,80 @@ export default function CitizenOverview() {
           </div>
         ))}
       </div>
+
+      {/* ── Needs Attention + Impact Stories ──
+          Environmental-event view of this citizen's own reports (spec
+          §22): what's still open, and what changed as a result of
+          reporting it — the "something you reported changed" loop the
+          community feed and badges don't otherwise close. */}
+      <div className="co-grid" style={{ marginBottom: '1.2rem' }}>
+        <div className="co-panel">
+          <div className="co-panel-kicker">Needs Attention</div>
+          <div className="co-panel-title">Still being tracked</div>
+          <div className="co-panel-desc">Open issues from your own reports.</div>
+          {needsAttention.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
+              Nothing open right now — everything you've reported has been addressed.
+            </div>
+          ) : (
+            needsAttention.slice(0, 5).map((e) => {
+              const stateMeta = eventStateMeta(e.eventState);
+              const verMeta = verificationStateMeta(e.verificationState);
+              const subjectLabel = e.subjects?.map((s2) => s2.label).join(', ') || 'Unclassified';
+              return (
+                <Link key={e.eventId} to={`/citizen/events/${e.eventId}`} className="co-related-row">
+                  <div>
+                    <div className="co-feed-text">{subjectLabel}</div>
+                    <div className="co-feed-meta">
+                      <span>{e.locationLabel || 'Location unspecified'}</span>
+                      <span>· {fmt(e.occurredAt || e.createdAt)}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'flex-end', flexShrink: 0 }}>
+                    <span className="co-state-pill" style={{ background: `${stateMeta.color}22`, color: stateMeta.color }}>{stateMeta.label}</span>
+                    <span className="co-state-pill" style={{ background: `${verMeta.color}22`, color: verMeta.color }}>{verMeta.label}</span>
+                  </div>
+                </Link>
+              );
+            })
+          )}
+        </div>
+
+        <div className="co-panel">
+          <div className="co-panel-kicker">Closed The Loop</div>
+          <div className="co-panel-title">Impact Stories</div>
+          <div className="co-panel-desc">What happened after you reported it.</div>
+          {impactStories.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
+              No resolved reports yet — check back once one of yours is addressed.
+            </div>
+          ) : (
+            impactStories.map((e) => {
+              const subjectLabel = e.subjects?.map((s2) => s2.label).join(', ') || 'issue';
+              return (
+                <Link key={e.eventId} to={`/citizen/events/${e.eventId}`} className="co-related-row">
+                  <div className="co-story-icon">✓</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="co-feed-text">
+                      The <b>{subjectLabel}</b> you reported at {e.locationLabel || 'this location'} has been addressed.
+                    </div>
+                    <div className="co-feed-meta">{fmt(e.updatedAt)}</div>
+                  </div>
+                </Link>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* ── Your Areas ── */}
+      <div className="co-panel" style={{ marginBottom: '1.2rem' }}>
+        <div className="co-panel-kicker">Your Areas</div>
+        <div className="co-panel-title">Where you've reported</div>
+        <div className="co-panel-desc">Colored by what's happening with each report.</div>
+        <MyAreasMap events={myEvents} />
+      </div>
+
       {/* ══ Overview tab ══ */}
       {tab === 'overview' && (
         <div className="co-grid">
