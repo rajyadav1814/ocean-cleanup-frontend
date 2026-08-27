@@ -119,16 +119,14 @@ const HistoryIcon = ({ field }) => (
   </span>
 );
 
-// Decorative header art — a soft rounded blob with a minimal skyline
-// silhouette, echoing the "environmental event, out in the world" subject
-// matter the way the QuickReport hero panel does for its own flows.
+// Decorative header art — a soft circular badge with a rising sparkline,
+// echoing the "this report moved things forward" arc of the page (state →
+// corroborated → addressed) without needing real chart data.
 const HeaderArt = () => (
-  <svg width="150" height="110" viewBox="0 0 150 110" fill="none" aria-hidden="true" style={{ position: 'absolute', top: '-0.5rem', right: '-0.5rem', opacity: 0.9 }}>
-    <path d="M20 10C-4 30 2 78 34 96c34 20 84 12 104-14 16-21 8-52-14-64C102 4 74-6 52 2 40 6 32 2 20 10z"
-      fill="color-mix(in srgb, var(--primary) 12%, transparent)" />
-    <circle cx="112" cy="30" r="9" stroke="color-mix(in srgb, var(--primary) 55%, transparent)" strokeWidth="1.8" />
-    <path d="M30 78l14-16 10 10 12-14 10 11 14-16" stroke="color-mix(in srgb, var(--primary) 55%, transparent)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M56 78c0-9 5-11 5-18a5 5 0 0110 0c0 7 5 9 5 18" stroke="color-mix(in srgb, var(--primary) 45%, transparent)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+  <svg width="88" height="88" viewBox="0 0 88 88" fill="none" aria-hidden="true" style={{ position: 'absolute', top: '1rem', right: '1.25rem', opacity: 0.85 }}>
+    <circle cx="44" cy="44" r="40" fill="color-mix(in srgb, var(--primary) 10%, transparent)" />
+    <path d="M22 52l12-14 9 8 15-18" stroke="color-mix(in srgb, var(--primary) 55%, transparent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="58" cy="28" r="2.6" fill="color-mix(in srgb, var(--primary) 65%, transparent)" />
   </svg>
 );
 
@@ -161,6 +159,9 @@ export default function EventDetail() {
   const [relateType, setRelateType] = useState('duplicate_of');
   const [relating, setRelating] = useState(false);
   const [relateError, setRelateError] = useState('');
+
+  const [relatedExpanded, setRelatedExpanded] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
 
   const loadEvent = useCallback(async () => {
     setLoading(true);
@@ -251,12 +252,16 @@ export default function EventDetail() {
   const headerIcon = FAMILY_ICONS[primaryFamily] || FAMILY_ICONS.pollution_waste;
 
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '2rem', maxWidth: '720px', fontFamily: 'var(--font-sans)' }}>
+    <section style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '2rem', maxWidth: '1320px', fontFamily: 'var(--font-sans)' }}>
       <style>{`.ed-select {
         appearance: none; -webkit-appearance: none;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237b8fa1' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
         background-repeat: no-repeat; background-position: right 0.7rem center;
-      }`}</style>
+      }
+      .ed-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 1.25rem; align-items: flex-start; }
+      .ed-col { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+      @media (max-width: 900px) { .ed-grid { grid-template-columns: 1fr; } }
+      `}</style>
 
       <Link to={`${basePath}/overview`} style={{
         display: 'inline-flex', alignItems: 'center', gap: '0.35rem', alignSelf: 'flex-start',
@@ -267,6 +272,9 @@ export default function EventDetail() {
         </svg>
         Back to overview
       </Link>
+
+      <div className="ed-grid">
+      <div className="ed-col">
 
       <Card style={{ overflow: 'hidden' }}>
         <HeaderArt />
@@ -438,7 +446,7 @@ export default function EventDetail() {
                     <span style={{ width: '84px', height: '84px', borderRadius: 'var(--radius-md)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: 'var(--surface-hover)', border: '1px solid var(--border-light)', fontSize: '1.6rem' }}>{tag.icon}</span>
                   )}
-                  <div style={{ minWidth: 0 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     {ev.evidenceType === 'contributor_statement' && ev.metadata?.text ? (
                       <p style={{ margin: '0 0 0.4rem', fontSize: '0.85rem', color: 'var(--text-main)', fontStyle: 'italic' }}>&ldquo;{ev.metadata.text}&rdquo;</p>
                     ) : (
@@ -449,6 +457,17 @@ export default function EventDetail() {
                       {tag.icon} {tag.label}
                     </span>
                   </div>
+                  {ev.gatewayUrl && (
+                    <a href={ev.gatewayUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.45rem 0.9rem',
+                        borderRadius: '999px', border: '1px solid var(--border-light)', color: 'var(--text-main)', fontWeight: 700,
+                        fontSize: '0.78rem', textDecoration: 'none' }}>
+                      View full size
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M7 17L17 7M7 7h10v10" />
+                      </svg>
+                    </a>
+                  )}
                 </div>
               );
             })}
@@ -464,7 +483,7 @@ export default function EventDetail() {
             </svg>
           }>Related events</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {event.relationships.map((r, i, arr) => (
+            {(relatedExpanded ? event.relationships : event.relationships.slice(0, 4)).map((r, i, arr) => (
               <Link key={r.relationshipId} to={`${basePath}/events/${r.otherEventId}`}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.6rem',
                   padding: '0.65rem 0', textDecoration: 'none', color: 'inherit',
@@ -478,6 +497,18 @@ export default function EventDetail() {
               </Link>
             ))}
           </div>
+          {event.relationships.length > 4 && (
+            <button type="button" onClick={() => setRelatedExpanded((v) => !v)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', width: '100%',
+                marginTop: '0.4rem', padding: '0.55rem 0 0', borderTop: '1px solid var(--border-light)', border: 'none', borderTopWidth: '1px',
+                background: 'transparent', color: 'var(--primary)', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', font: 'inherit' }}>
+              {relatedExpanded ? 'Show less' : `View all events (${event.relationships.length})`}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: relatedExpanded ? 'rotate(180deg)' : 'none' }}>
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          )}
         </Card>
       )}
 
@@ -551,6 +582,10 @@ export default function EventDetail() {
         </Card>
       )}
 
+      </div>
+
+      <div className="ed-col">
+
       {event.stateHistory.length > 0 && (
         <Card>
           <SectionLabel icon={
@@ -559,7 +594,7 @@ export default function EventDetail() {
             </svg>
           }>History</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {event.stateHistory.map((h) => (
+            {(historyExpanded ? event.stateHistory : event.stateHistory.slice(0, 4)).map((h) => (
               <div key={h.historyId} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
                 <HistoryIcon field={h.field} />
                 <div style={{ flex: 1, minWidth: 0, fontSize: '0.85rem', color: 'var(--text-main)' }}>
@@ -570,6 +605,17 @@ export default function EventDetail() {
               </div>
             ))}
           </div>
+          {event.stateHistory.length > 4 && (
+            <button type="button" onClick={() => setHistoryExpanded((v) => !v)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', width: '100%',
+                marginTop: '1rem', padding: '0.55rem 0 0', borderTop: '1px solid var(--border-light)', border: 'none', borderTopWidth: '1px',
+                background: 'transparent', color: 'var(--primary)', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', font: 'inherit' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" />
+              </svg>
+              {historyExpanded ? 'Show less' : 'View full history'}
+            </button>
+          )}
         </Card>
       )}
 
@@ -592,6 +638,9 @@ export default function EventDetail() {
           </div>
         </Card>
       )}
+
+      </div>
+      </div>
     </section>
   );
 }
