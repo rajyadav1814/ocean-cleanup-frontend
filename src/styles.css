@@ -633,6 +633,9 @@ a {
   right: 1.25rem;
   bottom: 1.25rem;
   z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   font-family: var(--font-sans);
 }
 
