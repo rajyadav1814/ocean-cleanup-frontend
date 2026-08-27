@@ -22,6 +22,7 @@ import ForgotPassword from '../apps/auth/pages/ForgotPassword';
 import CitizenOverview from '../apps/citizen/pages/CitizenOverview';
 import LandingPage from '../app/page';
 import ProfileSettings from '../apps/profile/pages/ProfileSettings';
+import Chatbot from '../components/common/Chatbot';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuth();
@@ -55,6 +56,7 @@ function MainLayout({ children }) {
           {children}
         </div>
       </main>
+      {(isCitizenSpace || isContributorSpace) && <Chatbot />}
     </div>
   );
 }
