@@ -7,6 +7,50 @@ import SubmitActivity from '../../contributor/pages/SubmitActivity';
 import MyAreasMap from '../../contributor/components/MyAreasMap';
 import { eventStateMeta, verificationStateMeta } from '../../contributor/eventMeta';
 import { Link } from 'react-router-dom';
+import {
+  Bell, AlertCircle, Recycle, MapPin, Calendar, ShieldCheck, CheckCircle2, ChevronRight,
+  BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets, FileText, Trophy, Award, Users,
+  Weight, Medal, Waves, Shell, Flame, Anchor,
+} from 'lucide-react';
+
+// Classic gold/silver/bronze for the top 3 leaderboard spots; ranks 4+
+// fall back to a plain numeral (handled where this is read).
+const RANK_MEDAL_COLORS = { 1: '#D4AF37', 2: '#A8A9AD', 3: '#CD7F32' };
+
+// Per-title icon + accent for citizen badges — matched against the known
+// milestone names the backend hands back (spec's badge catalog). Falls
+// back to a generic Award for any title outside this set.
+// Accents are concrete hex (not CSS var refs) because the badge tint is
+// built by appending an alpha suffix to this string — var(--x) can't
+// take one.
+const BADGE_ICON_RULES = [
+  { test: /first report/i,  Icon: Medal,  accent: '#6366f1' },
+  { test: /tide guardian/i, Icon: Waves,  accent: '#2E9E9B' },
+  { test: /spot mapper/i,   Icon: MapPin, accent: '#ef4444' },
+  { test: /reef defender/i, Icon: Shell,  accent: '#f97316' },
+  { test: /streak/i,        Icon: Flame,  accent: '#f97316' },
+  { test: /top \d+/i,       Icon: Trophy, accent: '#C6821E' },
+  { test: /harbor hero/i,   Icon: Anchor, accent: '#14669E' },
+  { test: /crew leader/i,   Icon: Users,  accent: '#14669E' },
+];
+function badgeMeta(badge) {
+  const rule = BADGE_ICON_RULES.find((r) => r.test.test(badge.title || ''));
+  return rule || { Icon: Award, accent: '#2E9E9B' };
+}
+
+// One icon per pollution_waste subject code (spec §7 taxonomy) so an
+// impact story reads at a glance as "what kind of waste" rather than
+// requiring the label text to carry that on its own. Mirrors the
+// contributor-space mapping in ContributorOverview.jsx.
+const wasteCodeMeta = {
+  plastic:       { Icon: BottleWine, bg: 'rgba(46,158,155,.14)', color: 'var(--success)' },
+  metal:         { Icon: Wrench,     bg: 'rgba(20,102,158,.14)', color: 'var(--secondary)' },
+  glass:         { Icon: GlassWater, bg: 'rgba(127,195,232,.18)', color: 'var(--border-glow)' },
+  organic:       { Icon: Leaf,       bg: 'rgba(101,163,13,.14)', color: '#65a30d' },
+  microplastics: { Icon: Droplets,   bg: 'rgba(46,158,155,.14)', color: 'var(--primary)' },
+  mixed_waste:   { Icon: Trash2,     bg: 'var(--surface-hover)', color: 'var(--text-muted)' },
+};
+const defaultWasteMeta = { Icon: Trash2, bg: 'var(--surface-hover)', color: 'var(--text-muted)' };
 
 /* ── helpers ── */
 function timeAgo(ts) {
@@ -181,23 +225,34 @@ const STYLES = `
     gap: 1rem; margin-bottom: 1.4rem;
   }
   .co-stat {
+    position: relative; overflow: hidden;
     background: var(--surface); border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg); padding: 1.4rem 1.6rem;
+    border-radius: var(--radius-lg); padding: 1.4rem 1.6rem 1.3rem;
     box-shadow: 0 1px 2px rgba(10,30,50,.04);
     transition: border-color 0.2s, transform 0.2s;
   }
   .co-stat:hover { border-color: var(--border-glow); transform: translateY(-2px); }
+  .co-stat-top { display: flex; align-items: center; gap: 0.9rem; }
+  .co-stat-icon {
+    flex-shrink: 0; width: 46px; height: 46px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--stat-tint, rgba(46,158,155,.14)); color: var(--stat-accent, var(--primary));
+  }
   .co-stat-label {
-    font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase;
-    color: var(--text-muted); font-family: var(--font-mono); font-weight: 600;
+    font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); font-family: var(--font-mono); font-weight: 700;
   }
   .co-stat-value {
-    font-size: 1.8rem; font-weight: 500; color: var(--primary);
-    margin-top: 0.4rem; line-height: 1; letter-spacing: -0.02em;
+    font-size: 1.7rem; font-weight: 700; color: var(--stat-accent, var(--primary));
+    margin-top: 0.15rem; line-height: 1; letter-spacing: -0.02em;
     font-family: var(--font-display);
   }
-  .co-stat-value.amber { color: var(--warning); }
-  .co-stat-desc { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.3rem; font-family: var(--font-mono); }
+  .co-stat-value-unit { font-size: 1rem; font-weight: 600; color: var(--text-muted); margin-left: 0.25rem; }
+  .co-stat-desc {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.76rem; color: var(--text-muted); font-family: var(--font-sans);
+    margin-top: 0.9rem;
+  }
 
   /* tabs */
   .co-tabs {
@@ -239,13 +294,51 @@ const STYLES = `
   .co-panel-title { font-size: 1.1rem; font-weight: 500; color: var(--text-main); margin-top: 0.3rem; font-family: var(--font-display); letter-spacing: -.015em; }
   .co-panel-desc  { font-size: 0.76rem; color: var(--text-muted); margin-top: 0.2rem; margin-bottom: 1.2rem; }
 
+  /* panel header row: optional leading icon, kicker/title/desc block, optional trailing action */
+  .co-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0; }
+  .co-panel-head-left { display: flex; align-items: flex-start; gap: 0.85rem; flex: 1; min-width: 0; }
+  .co-panel-icon {
+    flex-shrink: 0; width: 40px; height: 40px; border-radius: 999px;
+    background: rgba(46,158,155,0.14); color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .co-title-row { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
+  .co-live-pill {
+    display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.14rem 0.5rem 0.14rem 0.4rem;
+    border-radius: 999px; background: rgba(46,158,155,0.14); color: var(--primary);
+    font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    font-family: var(--font-mono);
+  }
+  .co-live-pill::before {
+    content: ''; width: 6px; height: 6px; border-radius: 999px; background: var(--primary);
+    animation: coLivePulse 1.8s ease-in-out infinite;
+  }
+  @keyframes coLivePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
   /* feed */
-  .co-feed-row { display: flex; gap: 1rem; padding: 0.9rem 0; border-bottom: 1px solid var(--border-light); }
+  .co-feed-row { display: flex; gap: 0.9rem; padding: 0.9rem 0; border-bottom: 1px solid var(--border-light); align-items: center; }
   .co-feed-row:last-child { border-bottom: none; padding-bottom: 0; }
-  .co-feed-time { font-size: 0.62rem; color: var(--text-muted); width: 52px; flex-shrink: 0; padding-top: 2px; line-height: 1.4; font-family: var(--font-mono); }
+  .co-feed-time { font-size: 0.62rem; color: var(--text-muted); width: 44px; flex-shrink: 0; line-height: 1.4; font-family: var(--font-mono); text-align: right; }
+  .co-feed-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--primary); flex-shrink: 0; }
+  .co-feed-av {
+    width: 36px; height: 36px; border-radius: 999px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; color: var(--primary-hover);
+    background: rgba(46,158,155,0.14); font-family: var(--font-mono);
+  }
+  .co-feed-body { flex: 1; min-width: 0; }
   .co-feed-text { font-size: 0.84rem; color: var(--text-main); line-height: 1.5; font-family: var(--font-sans); }
-  .co-feed-text b { font-weight: 600; color: var(--primary-hover); }
+  .co-feed-text b { font-weight: 600; color: var(--text-main); }
   .co-feed-meta { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.35rem; font-size: 0.65rem; color: var(--text-muted); flex-wrap: wrap; font-family: var(--font-mono); }
+  .co-feed-meta span { display: inline-flex; align-items: center; gap: 0.25rem; }
+  .co-feed-chevron { flex-shrink: 0; color: var(--text-muted); }
+  .co-feed-footer {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    margin-top: 0.4rem; padding-top: 0.9rem; border-top: 1px solid var(--border-light);
+    font-size: 0.78rem;
+  }
+  .co-feed-footer-count { color: var(--text-muted); }
+  .co-feed-footer-link { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--primary); font-weight: 700; text-decoration: none; }
   .co-pill {
     font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em;
     text-transform: uppercase; padding: 0.15rem 0.55rem;
@@ -273,46 +366,94 @@ const STYLES = `
   .co-related-row:last-child { border-bottom: none; padding-bottom: 0; }
   .co-related-row:hover .co-feed-text { color: var(--primary-hover); }
   .co-story-icon {
-    width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+    width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
     background: rgba(46,158,155,0.14); color: var(--primary);
+  }
+  .co-see-all {
+    display: block; margin-top: 0.4rem; padding-top: 0.9rem; border-top: 1px solid var(--border-light);
+    text-align: center; font-size: 0.82rem; font-weight: 700; color: var(--primary); text-decoration: none;
+  }
+
+  /* Needs Attention — mirrors the contributor-space .needs-attn-* design */
+  .co-needs-attn-head { display:flex; align-items:flex-start; gap:0.9rem; margin-bottom:0.9rem; }
+  .co-needs-attn-bell {
+    position:relative; flex-shrink:0; width:48px; height:48px; border-radius:999px;
+    background:rgba(46,158,155,0.12); color:var(--primary); display:flex; align-items:center; justify-content:center;
+  }
+  .co-needs-attn-bell::after {
+    content:''; position:absolute; top:2px; right:2px; width:10px; height:10px; border-radius:999px;
+    background:#ef4444; border:2px solid var(--surface);
+  }
+  .co-needs-attn-title-row { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+  .co-needs-attn-count {
+    display:inline-flex; align-items:center; gap:0.25rem; padding:0.15rem 0.5rem; border-radius:999px;
+    background:rgba(239,68,68,0.12); color:#ef4444; font-size:0.72rem; font-weight:700;
+  }
+  .co-needs-attn-row {
+    display:flex; align-items:center; gap:0.75rem; padding:0.85rem 0; text-decoration:none; color:inherit;
+  }
+  .co-needs-attn-icon {
+    flex-shrink:0; width:40px; height:40px; border-radius:10px; background:rgba(46,158,155,0.12);
+    color:var(--primary); display:flex; align-items:center; justify-content:center;
+  }
+  .co-needs-attn-meta { display:flex; align-items:center; gap:0.3rem; flex-wrap:wrap; }
+  .co-needs-attn-pills { display:flex; flex-direction:column; gap:0.35rem; align-items:flex-end; flex-shrink:0; }
+  .co-needs-attn-pill {
+    display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.6rem; border-radius:999px;
+    font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.02em; white-space:nowrap;
+  }
+  .co-needs-attn-divider { width:1px; align-self:stretch; background:var(--border-light); flex-shrink:0; }
+  .co-needs-attn-view {
+    flex-shrink:0; display:flex; align-items:center; gap:0.2rem; font-size:0.8rem; font-weight:700;
+    color:var(--primary); white-space:nowrap;
+  }
+  @media(max-width:640px){
+    .co-needs-attn-pills { display:none; }
+    .co-needs-attn-view span { display:none; }
   }
 
   /* badges */
-  .co-badges { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+  .co-badges { display: grid; grid-template-columns: repeat(4,1fr); gap: 0.7rem; margin-top: 1.2rem; }
   .co-badge {
     background: var(--surface-hover); border: 1px solid var(--border-light);
-    border-radius: var(--radius-md); padding: 0.9rem 0.5rem; text-align: center;
+    border-radius: var(--radius-md); padding: 1rem 0.6rem; text-align: center;
     transition: border-color 0.2s, transform 0.2s;
   }
-  .co-badge.earned { border-color: rgba(46,158,155,0.32); background: rgba(46,158,155,0.06); }
+  .co-badge.earned { border-color: rgba(46,158,155,0.28); background: rgba(46,158,155,0.06); }
   .co-badge.earned:hover { transform: translateY(-2px); border-color: var(--border-glow); }
   .co-badge-icon {
-    width: 36px; height: 36px; border-radius: 50%; margin: 0 auto 0.5rem;
-    display: flex; align-items: center; justify-content: center; font-size: 0.75rem;
-    border: 1px solid var(--border-light); color: var(--text-muted); background: var(--surface);
+    width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 0.6rem;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--badge-tint, var(--surface)); color: var(--badge-accent, var(--text-muted));
+    opacity: 0.45;
   }
-  .co-badge.earned .co-badge-icon { border-color: var(--border-glow); color: var(--primary); box-shadow: 0 0 10px rgba(46,158,155,0.16); }
-  .co-badge-name  { font-size: 0.68rem; font-weight: 600; color: var(--text-main); line-height: 1.3; font-family: var(--font-sans); }
-  .co-badge-status { font-size: 0.58rem; color: var(--text-muted); margin-top: 0.2rem; text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--font-mono); }
-  .co-badge.earned .co-badge-status { color: var(--primary); opacity: 0.8; }
+  .co-badge.earned .co-badge-icon { opacity: 1; box-shadow: 0 0 0 1px var(--badge-accent, var(--border-glow)) inset; }
+  .co-badge-name  { font-size: 0.7rem; font-weight: 600; color: var(--text-main); line-height: 1.3; font-family: var(--font-sans); }
+  .co-badge-status { font-size: 0.62rem; color: var(--text-muted); margin-top: 0.25rem; font-family: var(--font-mono); }
+  .co-badge.earned .co-badge-status { color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
 
   /* leaderboard */
-  .co-lb-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 0; border-bottom: 1px solid var(--border-light); }
-  .co-lb-row:last-child { border-bottom: none; }
-  .co-lb-rank { font-size: 0.72rem; font-weight: 700; width: 20px; flex-shrink: 0; color: var(--text-muted); font-family: var(--font-mono); }
-  .co-lb-row.me .co-lb-rank { color: var(--primary); }
+  .co-lb-row { display: flex; align-items: center; gap: 0.7rem; padding: 0.7rem 0; border-bottom: 1px solid var(--border-light); }
+  .co-lb-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .co-lb-row.me { background: rgba(46,158,155,0.06); margin: 0 -0.5rem; padding: 0.7rem 0.5rem; border-radius: var(--radius-md); border-bottom-color: transparent; }
+  .co-lb-rank {
+    width: 22px; height: 22px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    color: var(--lb-medal-color, var(--text-muted));
+  }
+  .co-lb-rank-num { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); font-family: var(--font-mono); }
+  .co-lb-row.me .co-lb-rank-num { color: var(--primary); }
   .co-lb-av {
-    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     font-size: 10px; font-weight: 700;
     background: var(--surface-hover); border: 1px solid var(--border-light); color: var(--text-muted);
     font-family: var(--font-mono);
   }
-  .co-lb-row.me .co-lb-av { background: rgba(46,158,155,0.14); border-color: var(--border-glow); color: var(--primary); }
+  .co-lb-row.me .co-lb-av { background: rgba(46,158,155,0.18); border-color: var(--border-glow); color: var(--primary); }
   .co-lb-name { flex: 1; font-size: 0.82rem; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .co-lb-row.me .co-lb-name { color: var(--primary-hover); font-weight: 600; }
-  .co-lb-count { font-size: 0.7rem; color: var(--text-muted); flex-shrink: 0; font-family: var(--font-mono); }
+  .co-lb-count { font-size: 0.72rem; color: var(--text-muted); flex-shrink: 0; font-family: var(--font-sans); }
 
   /* toast */
   .co-toast {
@@ -375,7 +516,7 @@ export default function CitizenOverview() {
   const { user } = useAuth();
   const { stats, loading: sL } = useCitizenStats();
   const { leaderboard, myRow, loading: lL } = useCitizenLeaderboard();
-  const { feed, loading: fL } = useCitizenFeed(6);
+  const { feed, loading: fL } = useCitizenFeed(24);
   const { events: myEvents, loading: eL } = useEvents(user?.id);
   const [tab, setTab] = useState('overview');
   const [toast, setToast] = useState('');
@@ -461,15 +602,36 @@ export default function CitizenOverview() {
       {/* ── Stat strip ── */}
       <div className="co-stats">
         {[
-          { label: 'Reports', value: s.totalReports || 0, sub: `since ${sinceLabel}`, cls: '' },
-          { label: 'Waste logged', value: `${Number(s.totalKg || 0).toFixed(1)} kg`, sub: 'verified + pending', cls: '' },
-          { label: 'Badges earned', value: `${earned.length} / ${badges.length || 8}`, sub: badges.find(b => !b.earned)?.title || 'All earned!', cls: 'amber' },
-          { label: 'City rank', value: s.cityRank ? `#${s.cityRank}` : '—', sub: lbRows.length ? `of ${lbRows.length} citizens` : 'not ranked yet', cls: '' },
-        ].map(({ label, value, sub, cls }) => (
-          <div key={label} className="co-stat">
-            <div className="co-stat-label">{label}</div>
-            <div className={`co-stat-value${cls ? ` ${cls}` : ''}`}>{value}</div>
-            <div className="co-stat-desc">{sub}</div>
+          {
+            key: 'reports', label: 'Reports', Icon: FileText, accent: 'var(--primary)', tint: 'rgba(46,158,155,.14)',
+            value: s.totalReports || 0, unit: '',
+            DescIcon: Calendar, sub: `since ${sinceLabel}`,
+          },
+          {
+            key: 'waste', label: 'Waste logged', Icon: Trash2, accent: '#22c55e', tint: 'rgba(34,197,94,.14)',
+            value: Number(s.totalKg || 0).toFixed(1), unit: 'kg',
+            DescIcon: ShieldCheck, sub: 'verified + pending',
+          },
+          {
+            key: 'badges', label: 'Badges earned', Icon: Award, accent: 'var(--warning)', tint: 'rgba(198,130,30,.14)',
+            value: `${earned.length} / ${badges.length || 8}`, unit: '',
+            DescIcon: MapPin, sub: badges.find(b => !b.earned)?.title || 'All earned!',
+          },
+          {
+            key: 'rank', label: 'City rank', Icon: Trophy, accent: 'var(--secondary)', tint: 'rgba(20,102,158,.14)',
+            value: s.cityRank ? `#${s.cityRank}` : '—', unit: '',
+            DescIcon: Users, sub: lbRows.length ? `of ${lbRows.length} citizens` : 'not ranked yet',
+          },
+        ].map(({ key, label, Icon, accent, tint, value, unit, DescIcon, sub }) => (
+          <div key={key} className="co-stat" style={{ '--stat-accent': accent, '--stat-tint': tint }}>
+            <div className="co-stat-top">
+              <div className="co-stat-icon"><Icon size={20} strokeWidth={2} /></div>
+              <div>
+                <div className="co-stat-label">{label}</div>
+                <div className="co-stat-value">{value}{unit && <span className="co-stat-value-unit">{unit}</span>}</div>
+              </div>
+            </div>
+            <div className="co-stat-desc"><DescIcon size={13} strokeWidth={2.25} />{sub}</div>
           </div>
         ))}
       </div>
@@ -481,30 +643,54 @@ export default function CitizenOverview() {
           community feed and badges don't otherwise close. */}
       <div className="co-grid" style={{ marginBottom: '1.2rem' }}>
         <div className="co-panel">
-          <div className="co-panel-kicker">Needs Attention</div>
-          <div className="co-panel-title">Still being tracked</div>
-          <div className="co-panel-desc">Open issues from your own reports.</div>
+          <div className="co-needs-attn-head">
+            <div className="co-needs-attn-bell"><Bell size={20} strokeWidth={2.25} /></div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="co-needs-attn-title-row">
+                <div className="co-panel-title" style={{ marginTop: 0 }}>Needs Attention</div>
+                {needsAttention.length > 0 && (
+                  <span className="co-needs-attn-count">
+                    <AlertCircle size={12} strokeWidth={2.5} />{needsAttention.length}
+                  </span>
+                )}
+              </div>
+              <div className="co-panel-desc" style={{ marginBottom: 0 }}>Open issues from your own reports.</div>
+            </div>
+          </div>
           {needsAttention.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
               Nothing open right now — everything you've reported has been addressed.
             </div>
           ) : (
-            needsAttention.slice(0, 5).map((e) => {
+            needsAttention.slice(0, 5).map((e, i, arr) => {
               const stateMeta = eventStateMeta(e.eventState);
               const verMeta = verificationStateMeta(e.verificationState);
               const subjectLabel = e.subjects?.map((s2) => s2.label).join(', ') || 'Unclassified';
               return (
-                <Link key={e.eventId} to={`/citizen/events/${e.eventId}`} className="co-related-row">
-                  <div>
-                    <div className="co-feed-text">{subjectLabel}</div>
-                    <div className="co-feed-meta">
+                <Link key={e.eventId} to={`/citizen/events/${e.eventId}`} className="co-needs-attn-row"
+                  style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                  <div className="co-needs-attn-icon"><Recycle size={18} strokeWidth={2.25} /></div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.86rem', color: 'var(--text-main)' }}>{subjectLabel}</div>
+                    <div className="co-needs-attn-meta" style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                      <MapPin size={12} strokeWidth={2.25} />
                       <span>{e.locationLabel || 'Location unspecified'}</span>
-                      <span>· {fmt(e.occurredAt || e.createdAt)}</span>
+                      <span>·</span>
+                      <Calendar size={12} strokeWidth={2.25} />
+                      <span>{fmt(e.occurredAt || e.createdAt)}</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', alignItems: 'flex-end', flexShrink: 0 }}>
-                    <span className="co-state-pill" style={{ background: `${stateMeta.color}22`, color: stateMeta.color }}>{stateMeta.label}</span>
-                    <span className="co-state-pill" style={{ background: `${verMeta.color}22`, color: verMeta.color }}>{verMeta.label}</span>
+                  <div className="co-needs-attn-pills">
+                    <span className="co-needs-attn-pill" style={{ background: `${stateMeta.color}22`, color: stateMeta.color }}>
+                      <ShieldCheck size={12} strokeWidth={2.5} />{stateMeta.label}
+                    </span>
+                    <span className="co-needs-attn-pill" style={{ background: verMeta.color, color: '#fff' }}>
+                      <CheckCircle2 size={12} strokeWidth={2.5} />{verMeta.label}
+                    </span>
+                  </div>
+                  <div className="co-needs-attn-divider" />
+                  <div className="co-needs-attn-view">
+                    <span>View details</span><ChevronRight size={16} strokeWidth={2.25} />
                   </div>
                 </Link>
               );
@@ -513,7 +699,6 @@ export default function CitizenOverview() {
         </div>
 
         <div className="co-panel">
-          <div className="co-panel-kicker">Closed The Loop</div>
           <div className="co-panel-title">Impact Stories</div>
           <div className="co-panel-desc">What happened after you reported it.</div>
           {impactStories.length === 0 ? (
@@ -521,20 +706,28 @@ export default function CitizenOverview() {
               No resolved reports yet — check back once one of yours is addressed.
             </div>
           ) : (
-            impactStories.map((e) => {
-              const subjectLabel = e.subjects?.map((s2) => s2.label).join(', ') || 'issue';
-              return (
-                <Link key={e.eventId} to={`/citizen/events/${e.eventId}`} className="co-related-row">
-                  <div className="co-story-icon">✓</div>
-                  <div style={{ flex: 1 }}>
-                    <div className="co-feed-text">
-                      The <b>{subjectLabel}</b> you reported at {e.locationLabel || 'this location'} has been addressed.
+            <>
+              {impactStories.flatMap((e) => {
+                const subjects = e.subjects?.length ? e.subjects : [{ label: 'Issue', code: null }];
+                return subjects.map((s2) => ({ event: e, subject: s2 }));
+              }).map(({ event: e, subject: s2 }, i, arr) => {
+                const meta = wasteCodeMeta[s2.code] || defaultWasteMeta;
+                const { Icon } = meta;
+                return (
+                  <Link key={`${e.eventId}-${s2.eventSubjectId || s2.code}`} to={`/citizen/events/${e.eventId}`}
+                    className="co-related-row" style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                    <div className="co-story-icon" style={{ background: meta.bg, color: meta.color }}>
+                      <Icon size={18} strokeWidth={2} />
                     </div>
-                    <div className="co-feed-meta">{fmt(e.updatedAt)}</div>
-                  </div>
-                </Link>
-              );
-            })
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="co-feed-text" style={{ fontWeight: 600 }}>{s2.label} cleared</div>
+                      <div className="co-feed-meta">{e.locationLabel || 'Unknown location'}</div>
+                    </div>
+                    <CheckCircle2 size={19} strokeWidth={2} color="var(--success)" style={{ flexShrink: 0 }} />
+                  </Link>
+                );
+              })}
+            </>
           )}
         </div>
       </div>
@@ -553,9 +746,19 @@ export default function CitizenOverview() {
 
           {/* ── Feed (left) ── */}
           <div className="co-panel">
-            <div className="co-panel-kicker">Community Feed</div>
-            <div className="co-panel-title">Latest reports</div>
-            <div className="co-panel-desc">Real-time submissions from citizens near you.</div>
+            <div className="co-panel-head">
+              <div className="co-panel-head-left">
+                <div className="co-panel-icon"><Users size={18} strokeWidth={2.25} /></div>
+                <div style={{ minWidth: 0 }}>
+                  <div className="co-panel-kicker">Community Feed</div>
+                  <div className="co-title-row" style={{ marginTop: '0.3rem' }}>
+                    <div className="co-panel-title" style={{ margin: 0 }}>Latest reports</div>
+                    <span className="co-live-pill">Live</span>
+                  </div>
+                  <div className="co-panel-desc" style={{ marginBottom: 0 }}>Real-time submissions from citizens near you.</div>
+                </div>
+              </div>
+            </div>
 
             {feed.length === 0 && (
               <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
@@ -569,19 +772,23 @@ export default function CitizenOverview() {
               return (
                 <div key={item.id || i} className="co-feed-row">
                   <div className="co-feed-time">{timeAgo(item.submittedAt)}</div>
-                  <div>
+                  <div className="co-feed-dot" />
+                  <div className="co-feed-av">{(item.firstName?.[0] || '') + (item.lastName?.[0] || '')}</div>
+                  <div className="co-feed-body">
                     <div className="co-feed-text">
                       <b>{name}</b> logged a cleanup at {item.location}
                     </div>
                     <div className="co-feed-meta">
-                      {item.quantity > 0 && <span>{item.quantity} kg</span>}
-                      {item.volunteers > 0 && <span>· {item.volunteers} vol.</span>}
+                      {item.quantity > 0 && <span><Weight size={11} />{item.quantity} kg</span>}
+                      {item.volunteers > 0 && <span><Users size={11} />{item.volunteers} vol.</span>}
                       <span className={`co-pill ${status.variant}`}>{status.label}</span>
                     </div>
                   </div>
+                  <ChevronRight size={16} className="co-feed-chevron" />
                 </div>
               );
             })}
+
           </div>
 
           {/* ── Right column ── */}
@@ -595,13 +802,16 @@ export default function CitizenOverview() {
               <div className="co-badges">
                 {badges.length === 0
                   ? <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '1.5rem 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>No badges yet.</div>
-                  : badges.map(b => (
-                    <div key={b.id} className={`co-badge${b.earned ? ' earned' : ''}`}>
-                      <div className="co-badge-icon">{b.icon || b.title?.[0] || '?'}</div>
-                      <div className="co-badge-name">{b.title}</div>
-                      <div className="co-badge-status">{b.earned ? 'Earned' : (b.progressLabel || 'Locked')}</div>
-                    </div>
-                  ))
+                  : badges.map(b => {
+                    const { Icon, accent } = badgeMeta(b);
+                    return (
+                      <div key={b.id} className={`co-badge${b.earned ? ' earned' : ''}`} style={{ '--badge-accent': accent, '--badge-tint': `${accent}1f` }}>
+                        <div className="co-badge-icon"><Icon size={18} strokeWidth={2} /></div>
+                        <div className="co-badge-name">{b.title}</div>
+                        <div className="co-badge-status">{b.earned ? 'Earned' : (b.progressLabel || 'Locked')}</div>
+                      </div>
+                    );
+                  })
                 }
               </div>
             </div>
@@ -618,17 +828,24 @@ export default function CitizenOverview() {
                 </div>
               )}
 
-              {allRows.map((r, i) => {
-                const name = r.isMe ? 'You' : `${r.firstName || ''} ${r.lastName?.[0] ? r.lastName[0] + '.' : ''}`.trim();
-                return (
-                  <div key={r.userId || i} className={`co-lb-row${r.isMe ? ' me' : ''}`}>
-                    <div className="co-lb-rank">{String(r.rank).padStart(2, '0')}</div>
-                    <div className="co-lb-av">{r.initials || name[0]}</div>
-                    <div className="co-lb-name">{name}</div>
-                    <div className="co-lb-count">{r.weekReports} report{r.weekReports !== 1 ? 's' : ''}</div>
-                  </div>
-                );
-              })}
+              <div style={{ marginTop: '1.2rem' }}>
+                {allRows.slice(0, 6).map((r, i) => {
+                  const name = r.isMe ? 'You' : `${r.firstName || ''} ${r.lastName?.[0] ? r.lastName[0] + '.' : ''}`.trim();
+                  const medalColor = RANK_MEDAL_COLORS[r.rank];
+                  return (
+                    <div key={r.userId || i} className={`co-lb-row${r.isMe ? ' me' : ''}`}>
+                      <div className="co-lb-rank" style={medalColor ? { '--lb-medal-color': medalColor } : undefined}>
+                        {medalColor
+                          ? <Medal size={18} strokeWidth={2} fill={medalColor} fillOpacity={0.18} />
+                          : <span className="co-lb-rank-num">{String(r.rank).padStart(2, '0')}</span>}
+                      </div>
+                      <div className="co-lb-av">{r.initials || name[0]}</div>
+                      <div className="co-lb-name">{name}</div>
+                      <div className="co-lb-count">{r.weekReports} report{r.weekReports !== 1 ? 's' : ''}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
           </div>
