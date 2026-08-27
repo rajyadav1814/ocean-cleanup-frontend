@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom';
 import {
   Bell, AlertCircle, Recycle, MapPin, Calendar, ShieldCheck, CheckCircle2, ChevronRight,
   BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets, FileText, Trophy, Award, Users,
-  Weight, Medal, Waves, Shell, Flame, Anchor,
+  Weight, Medal, Waves, Shell, Flame, Anchor, Maximize,
 } from 'lucide-react';
 
 // Classic gold/silver/bronze for the top 3 leaderboard spots; ranks 4+
@@ -455,6 +455,17 @@ const STYLES = `
   .co-lb-row.me .co-lb-name { color: var(--primary-hover); font-weight: 600; }
   .co-lb-count { font-size: 0.72rem; color: var(--text-muted); flex-shrink: 0; font-family: var(--font-sans); }
 
+  /* map fullscreen toggle */
+  .co-map-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+  .co-map-fs-btn {
+    flex-shrink: 0; display: inline-flex; align-items: center; gap: 0.35rem;
+    background: transparent; border: 1px solid var(--border-light); border-radius: 999px;
+    color: var(--primary); font-size: 0.72rem; font-weight: 700; padding: 0.4rem 0.75rem;
+    cursor: pointer; box-shadow: none !important; font-family: var(--font-sans); white-space: nowrap;
+    transition: border-color .2s, background .2s;
+  }
+  .co-map-fs-btn:hover { border-color: var(--primary); background: rgba(46,158,155,0.08); }
+
   /* toast */
   .co-toast {
     position: fixed; top: 1rem; right: 1rem; z-index: 2000;
@@ -520,6 +531,7 @@ export default function CitizenOverview() {
   const { events: myEvents, loading: eL } = useEvents(user?.id);
   const [tab, setTab] = useState('overview');
   const [toast, setToast] = useState('');
+  const [mapFullscreen, setMapFullscreen] = useState(false);
 
   if (sL || lL || fL || eL) return <LoadingSpinner />;
 
@@ -734,10 +746,18 @@ export default function CitizenOverview() {
 
       {/* ── Your Areas ── */}
       <div className="co-panel" style={{ marginBottom: '1.2rem' }}>
-        <div className="co-panel-kicker">Your Areas</div>
-        <div className="co-panel-title">Where you've reported</div>
-        <div className="co-panel-desc">Colored by what's happening with each report.</div>
-        <MyAreasMap events={myEvents} />
+        <div className="co-map-head">
+          <div>
+            <div className="co-panel-kicker">Your Areas</div>
+            <div className="co-panel-title">Where you've reported</div>
+            <div className="co-panel-desc">Colored by what's happening with each report.</div>
+          </div>
+          <button type="button" className="co-map-fs-btn" onClick={() => setMapFullscreen(true)}>
+            <Maximize size={14} strokeWidth={2.5} />
+            <span>Fullscreen</span>
+          </button>
+        </div>
+        <MyAreasMap events={myEvents} isFullscreen={mapFullscreen} onExitFullscreen={() => setMapFullscreen(false)} />
       </div>
 
       {/* ══ Overview tab ══ */}
