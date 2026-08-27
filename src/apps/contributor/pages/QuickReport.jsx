@@ -11,6 +11,7 @@ import { invalidateDashboard } from '../../../store/dashboardSlice';
 import { invalidateContributorStats } from '../../../store/contributorSlice';
 import { invalidateCitizenStats } from '../../../store/citizenSlice';
 import { invalidateEvents } from '../../../store/eventsSlice';
+import { fileToDataUrl } from '../../../utils/file';
 
 // pollution_waste subject codes that map cleanly onto the legacy activities
 // table's fixed `category` column (plastic/glass/metal/organic/mixed/other,
@@ -52,15 +53,6 @@ const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100MB
 // report or CSV is rarely more than a few hundred KB.
 const MAX_DOCUMENT_BYTES = 8 * 1024 * 1024; // 8MB
 const SUPPORTED_DOCUMENT_MIME_TYPES = new Set(['application/pdf', 'text/plain', 'text/csv']);
-
-function fileToDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
 
 // Reuses the app's existing color vocabulary rather than inventing a new
 // palette: secondary/success/warning are the same tokens the rest of the

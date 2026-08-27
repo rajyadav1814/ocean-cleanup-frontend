@@ -157,6 +157,24 @@ export async function authUpdateProfile(payload) {
   return apiPut('/api/auth/profile', payload);
 }
 
+// ─── Notification API helpers ───────────────────────────────────────────────
+// Same endpoints as the admin app's Header bell — the backend now scopes
+// these to the caller's own role/id (see dashboardController.js) instead of
+// hardcoding 'admin', so this works for every logged-in role.
+export const notificationApi = {
+  list:     ()    => apiGet('/api/dashboard/notifications'),
+  markRead: (id)  => apiPatch(`/api/dashboard/notifications/${id}/read`, {}),
+};
+
+// ─── Activity API helpers ────────────────────────────────────────────────────
+// spec §21: blockchain is infrastructure, not UX — the only thing a user
+// ever needs from it is this tamper-evident proof, never a wallet/gas/tx
+// flow. Backed by a real Cardano transaction (onchainProofService.js),
+// not a placeholder.
+export const activityApi = {
+  getProof: (id) => apiGet(`/api/activities/${id}/proof`),
+};
+
 // ─── Contributor API helpers ──────────────────────────────────────────────────
 export const contributorApi = {
   exportReport: (from, to) =>
@@ -169,7 +187,9 @@ export const eventApi = {
   listSubjects: (family)                    => apiGet(`/api/events/subjects${family ? `?family=${family}` : ''}`),
   planAction:   (id, { subjectCode, title, description }) =>
     apiPost(`/api/events/${id}/actions`, { subjectCode, title, description }),
-  complete:     (id, { kgRemoved, note })   => apiPost(`/api/events/${id}/complete`, { kgRemoved, note }),
+  complete:     (id, { kgRemoved, note, imageUrls }) =>
+    apiPost(`/api/events/${id}/complete`, { kgRemoved, note, imageUrls }),
+  verify:       (id, { outcome, notes }) => apiPost(`/api/events/${id}/verify`, { outcome, notes }),
   relate:       (id, { toEventId, relationshipType }) =>
     apiPost(`/api/events/${id}/relate`, { toEventId, relationshipType }),
 };

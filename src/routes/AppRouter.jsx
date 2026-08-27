@@ -262,7 +262,7 @@ export default function AppRouter() {
           </ProtectedRoute>
         } />
         <Route path="/contributor/events/:id" element={
-          <ProtectedRoute allowedRoles={['contributor']}>
+          <ProtectedRoute allowedRoles={['contributor', 'verifier', 'admin']}>
             <MainLayout>
               <EventDetail />
             </MainLayout>

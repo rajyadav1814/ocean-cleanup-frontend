@@ -391,7 +391,7 @@ export default function ContributorOverview() {
             Hi {firstName} — the coast is <em>a little cleaner</em><br />because you showed up.
           </h1>
           <p className="contributor-hero__sub">
-            Every cleanup you log is verified on-chain and helps BlueMind track where pollution is concentrating.
+            Every cleanup you log helps BlueMind track where pollution is concentrating — approved reports get a tamper-evident proof recorded automatically, no wallet or setup needed.
           </p>
           {!isNewUser && (
             <button

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import WalletConnectButton from '../wallet/WalletConnectButton';
+import NotificationBell from './NotificationBell';
 
 function getDisplayName(user) {
   return user?.displayName
@@ -149,7 +149,7 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
             </button>
           </>
         )}
-        {!hideActions && <WalletConnectButton />}
+        {!hideActions && <NotificationBell />}
 
         {user && (
           <div ref={profileRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>

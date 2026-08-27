@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useEvents } from '../../../hooks/useEvents';
+import useOrganizations from '../../../hooks/useOrganizations';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { eventStateMeta, verificationStateMeta } from '../../contributor/eventMeta';
+import { MAP_LAYERS } from '../../../utils/eventMapLayers';
 import 'leaflet/dist/leaflet.css';
 
 /* ─── Google-style marker SVG pin ───────────────────────────────────────────── */
@@ -29,11 +31,54 @@ export default function ImpactMap() {
   // pollution recurring" — a map should answer questions, not just be a
   // pin dump), not the old legacy approval status.
   const { events, loading, error } = useEvents();
+  const { organizations } = useOrganizations();
   const mapRef = useRef(null);
   const leafletMap = useRef(null);
   const tileLayerRef = useRef(null);
+  const markersLayerRef = useRef(null);
   const [mapCenter, setMapCenter] = useState([20, 0]);
   const [mapZoom, setMapZoom] = useState(3);
+  const [activeLayerId, setActiveLayerId] = useState('all');
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [selectedOrgId, setSelectedOrgId] = useState('');
+
+  const activeLayer = MAP_LAYERS.find((l) => l.id === activeLayerId) || MAP_LAYERS[0];
+  const layerContext = useMemo(
+    () => ({ userLocation, organizationId: selectedOrgId || null }),
+    [userLocation, selectedOrgId]
+  );
+
+  const handleSelectLayer = (layer) => {
+    setActiveLayerId(layer.id);
+    setLocationError(null);
+    if (layer.needsLocation && !userLocation) {
+      if (!navigator.geolocation) {
+        setLocationError('Location is not available in this browser.');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation([pos.coords.latitude, pos.coords.longitude]),
+        () => setLocationError('Could not get your location — check permissions.'),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+    if (layer.needsOrganization && !selectedOrgId && organizations.length > 0) {
+      setSelectedOrgId(organizations[0].orgId);
+    }
+  };
+
+  const valid = useMemo(
+    () => events.filter(
+      (e) => e.lat != null && e.lon != null && !isNaN(Number(e.lat)) && !isNaN(Number(e.lon))
+    ),
+    [events]
+  );
+
+  const layeredEvents = useMemo(
+    () => valid.filter((e) => activeLayer.test(e, layerContext)),
+    [valid, activeLayer, layerContext]
+  );
 
   /* ── Tile URL helpers ──────────────────────────────────────────────────── */
   const getGoogleTileUrl = (maptype = 'roadmap') => {
@@ -42,7 +87,7 @@ export default function ImpactMap() {
     return `https://mt{s}.google.com/vt/lyrs=${t}&x={x}&y={y}&z={z}`;
   };
 
-  /* ── Initialize map ────────────────────────────────────────────────────── */
+  /* ── Initialize map (once) ─────────────────────────────────────────────── */
   useEffect(() => {
     if (loading) return;
 
@@ -73,21 +118,50 @@ export default function ImpactMap() {
         }
       ).addTo(map);
 
+      markersLayerRef.current = L.layerGroup().addTo(map);
       leafletMap.current = map;
 
-      // ── Plot markers ──
-      const valid = events.filter(
-        (e) =>
-          e.lat != null &&
-          e.lon != null &&
-          !isNaN(Number(e.lat)) &&
-          !isNaN(Number(e.lon))
-      );
+      // Track center/zoom for "Open in Maps" button
+      map.on('moveend zoomend', () => {
+        const c = map.getCenter();
+        setMapCenter([c.lat, c.lng]);
+        setMapZoom(map.getZoom());
+      });
 
-      if (valid.length > 0) {
-        const latLngs = valid.map((e) => [Number(e.lat), Number(e.lon)]);
+      setTimeout(() => map.invalidateSize(), 300);
+    };
 
-        valid.forEach((event, i) => {
+    initMap();
+
+    return () => {
+      if (leafletMap.current) {
+        leafletMap.current.remove();
+        leafletMap.current = null;
+        tileLayerRef.current = null;
+        markersLayerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  /* ── Redraw markers whenever the active layer's filtered set changes ────── */
+  useEffect(() => {
+    if (loading) return;
+
+    let cancelled = false;
+
+    const drawMarkers = async () => {
+      const { default: L } = await import('leaflet');
+      const map = leafletMap.current;
+      const markersLayer = markersLayerRef.current;
+      if (cancelled || !map || !markersLayer) return;
+
+      markersLayer.clearLayers();
+
+      if (layeredEvents.length > 0) {
+        const latLngs = layeredEvents.map((e) => [Number(e.lat), Number(e.lon)]);
+
+        layeredEvents.forEach((event, i) => {
           const [lat, lng] = latLngs[i];
           const locationLabel = event.locationLabel || 'BlueMind Activity Site';
           const stateMeta = eventStateMeta(event.eventState);
@@ -129,42 +203,35 @@ export default function ImpactMap() {
             </div>`;
 
           L.marker([lat, lng], { icon })
-            .addTo(map)
+            .addTo(markersLayer)
             .bindPopup(popupContent, {
               maxWidth: 240,
               className: 'gmap-popup-container',
             });
         });
 
-        if (valid.length === 1) {
+        if (activeLayer.id === 'near-me' && userLocation) {
+          map.setView(userLocation, 7);
+          setMapCenter(userLocation);
+        } else if (latLngs.length === 1) {
           map.setView(latLngs[0], 10);
           setMapCenter(latLngs[0]);
         } else {
           map.fitBounds(L.latLngBounds(latLngs), { padding: [60, 60] });
         }
+      } else if (activeLayer.id === 'near-me' && userLocation) {
+        map.setView(userLocation, 7);
+        setMapCenter(userLocation);
       }
-
-      // Track center/zoom for "Open in Maps" button
-      map.on('moveend zoomend', () => {
-        const c = map.getCenter();
-        setMapCenter([c.lat, c.lng]);
-        setMapZoom(map.getZoom());
-      });
-
-      setTimeout(() => map.invalidateSize(), 300);
     };
 
-    initMap();
+    drawMarkers();
 
     return () => {
-      if (leafletMap.current) {
-        leafletMap.current.remove();
-        leafletMap.current = null;
-        tileLayerRef.current = null;
-      }
+      cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, events]);
+  }, [loading, layeredEvents, activeLayer.id, userLocation]);
 
   if (error) return <div className="alert alert-danger">Error: {error.message}</div>;
 
@@ -174,12 +241,75 @@ export default function ImpactMap() {
     <section style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div className="card mb-6" style={{ flexShrink: 0, padding: '1.25rem 1.75rem' }}>
         <h3 style={{ marginBottom: '0.25rem' }}>Global Impact Map</h3>
-        <p className="text-muted" style={{ margin: 0 }}>Visualizing worldwide environmental events, colored by their current state.</p>
+        <p className="text-muted" style={{ margin: '0 0 0.9rem' }}>{activeLayer.question}</p>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+          {MAP_LAYERS.map((layer) => {
+            const active = layer.id === activeLayerId;
+            const count = layer.id === 'all' ? valid.length : valid.filter((e) => layer.test(e, layerContext)).length;
+            return (
+              <button
+                key={layer.id}
+                type="button"
+                onClick={() => handleSelectLayer(layer)}
+                disabled={loading}
+                style={{
+                  padding: '0.4rem 0.85rem',
+                  borderRadius: '999px',
+                  border: active ? '1px solid var(--accent, #1a73e8)' : '1px solid var(--border, #dadce0)',
+                  background: active ? 'var(--accent, #1a73e8)' : 'transparent',
+                  color: active ? '#fff' : 'var(--text-primary, #202124)',
+                  fontSize: '0.8rem',
+                  fontWeight: active ? 600 : 500,
+                  cursor: loading ? 'default' : 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {layer.label}{layer.id !== 'near-me' && layer.id !== 'by-org' ? ` (${count})` : ''}
+              </button>
+            );
+          })}
+        </div>
+
+        {activeLayer.id === 'by-org' && (
+          <div style={{ marginTop: '0.75rem' }}>
+            {organizations.length === 0 ? (
+              <p style={{ margin: 0, fontSize: '0.78rem' }} className="text-muted">No organizations found.</p>
+            ) : (
+              <select
+                value={selectedOrgId}
+                onChange={(e) => setSelectedOrgId(e.target.value)}
+                style={{
+                  padding: '0.4rem 0.6rem', borderRadius: 'var(--radius-md, 6px)',
+                  border: '1px solid var(--border, #dadce0)', fontSize: '0.8rem',
+                }}
+              >
+                {organizations.map((org) => (
+                  <option key={org.orgId} value={org.orgId}>{org.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+
+        {locationError && (
+          <p style={{ margin: '0.6rem 0 0', fontSize: '0.78rem', color: '#c14f2c' }}>{locationError}</p>
+        )}
+        {activeLayer.id === 'near-me' && !locationError && !userLocation && (
+          <p style={{ margin: '0.6rem 0 0', fontSize: '0.78rem' }} className="text-muted">
+            Waiting for your location…
+          </p>
+        )}
       </div>
 
-      {!loading && !error && events.length === 0 && (
+      {!loading && !error && valid.length === 0 && (
         <div className="alert alert-info" role="alert">
           The map is ready, but there are no environmental events to display at the moment.
+        </div>
+      )}
+      {!loading && !error && valid.length > 0 && layeredEvents.length === 0 && activeLayer.id !== 'near-me' && (
+        <div className="alert alert-info" role="alert">
+          No events currently match "{activeLayer.label}".
         </div>
       )}
 

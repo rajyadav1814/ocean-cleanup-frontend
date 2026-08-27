@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { eventApi } from '../../../services/api';
+import { eventApi, activityApi } from '../../../services/api';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { eventStateMeta, verificationStateMeta } from '../eventMeta';
+import { fileToDataUrl } from '../../../utils/file';
 
 function fmt(ts) {
   const d = new Date(ts);
@@ -135,7 +136,17 @@ export default function EventDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isContributor = user?.role === 'contributor';
+  const isVerifier = user?.role === 'verifier' || user?.role === 'admin';
+  // Action routes (.../events/:id) stay under /contributor for every
+  // non-citizen role — that's the actual page component being rendered
+  // (see AppRouter.jsx's shared allowedRoles for this route). Only the
+  // "back to overview" link needs a role-correct destination, since
+  // verifiers have their own overview at /verifier/pending, not
+  // /contributor/overview.
   const basePath = user?.role === 'citizen' ? '/citizen' : '/contributor';
+  const overviewPath = user?.role === 'citizen' ? '/citizen/overview'
+    : user?.role === 'verifier' ? '/verifier/pending'
+    : '/contributor/overview';
 
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -151,8 +162,14 @@ export default function EventDetail() {
   const [completeOpen, setCompleteOpen] = useState(false);
   const [kgRemoved, setKgRemoved] = useState('');
   const [completeNote, setCompleteNote] = useState('');
+  const [completePhotos, setCompletePhotos] = useState([]); // [{file, dataUrl}]
   const [completing, setCompleting] = useState(false);
   const [completeError, setCompleteError] = useState('');
+
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifyNotes, setVerifyNotes] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
 
   const [relateOpen, setRelateOpen] = useState(false);
   const [relateTargetId, setRelateTargetId] = useState('');
@@ -162,6 +179,7 @@ export default function EventDetail() {
 
   const [relatedExpanded, setRelatedExpanded] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [proof, setProof] = useState(null);
 
   const loadEvent = useCallback(async () => {
     setLoading(true);
@@ -183,6 +201,20 @@ export default function EventDetail() {
     eventApi.listSubjects('human_action').then((res) => { if (res.ok) setActionSubjects(res.subjects); });
   }, [isContributor]);
 
+  // spec §21: the only blockchain-facing thing a user ever sees is this
+  // tamper-evident proof, fetched quietly and shown only once it exists —
+  // no wallet, no gas, no chain jargon. Not every event has a legacy
+  // activity (action events created via Plan Action don't), so this is
+  // simply absent for those rather than showing a "not recorded" state.
+  useEffect(() => {
+    if (!event?.legacyActivityId) { setProof(null); return; }
+    let cancelled = false;
+    activityApi.getProof(event.legacyActivityId).then((res) => {
+      if (!cancelled && res.ok) setProof(res.proof);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [event?.legacyActivityId]);
+
   async function handlePlanAction() {
     if (!planSubjectCode) return;
     setPlanning(true);
@@ -196,12 +228,27 @@ export default function EventDetail() {
     navigate(`${basePath}/events/${res.event.eventId}`);
   }
 
+  async function handleCompletePhotosSelected(e) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const withDataUrls = await Promise.all(
+      files.map(async (file) => ({ file, dataUrl: await fileToDataUrl(file) }))
+    );
+    setCompletePhotos((prev) => [...prev, ...withDataUrls]);
+    e.target.value = '';
+  }
+
+  function removeCompletePhoto(index) {
+    setCompletePhotos((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function handleComplete() {
     setCompleting(true);
     setCompleteError('');
     const res = await eventApi.complete(id, {
       kgRemoved: kgRemoved ? Number(kgRemoved) : undefined,
-      note: completeNote.trim() || undefined
+      note: completeNote.trim() || undefined,
+      imageUrls: completePhotos.length > 0 ? JSON.stringify(completePhotos.map((p) => p.dataUrl)) : undefined
     });
     setCompleting(false);
     if (!res.ok) {
@@ -211,6 +258,21 @@ export default function EventDetail() {
     setCompleteOpen(false);
     setKgRemoved('');
     setCompleteNote('');
+    setCompletePhotos([]);
+    loadEvent();
+  }
+
+  async function handleVerify(outcome) {
+    setVerifying(true);
+    setVerifyError('');
+    const res = await eventApi.verify(id, { outcome, notes: verifyNotes.trim() || undefined });
+    setVerifying(false);
+    if (!res.ok) {
+      setVerifyError(res.error || 'Failed to record verification.');
+      return;
+    }
+    setVerifyOpen(false);
+    setVerifyNotes('');
     loadEvent();
   }
 
@@ -234,7 +296,7 @@ export default function EventDetail() {
   if (loadError || !event) {
     return (
       <section style={{ maxWidth: '640px', fontFamily: 'var(--font-sans)' }}>
-        <Link to={`${basePath}/overview`} style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>← Back to overview</Link>
+        <Link to={`${overviewPath}`} style={{ fontSize: '0.85rem', color: 'var(--primary)' }}>← Back to overview</Link>
         <Card style={{ marginTop: '1rem' }}>
           <p style={{ margin: 0, color: 'var(--text-muted)' }}>{loadError || 'This event could not be found.'}</p>
         </Card>
@@ -263,7 +325,7 @@ export default function EventDetail() {
       @media (max-width: 900px) { .ed-grid { grid-template-columns: 1fr; } }
       `}</style>
 
-      <Link to={`${basePath}/overview`} style={{
+      <Link to={`${overviewPath}`} style={{
         display: 'inline-flex', alignItems: 'center', gap: '0.35rem', alignSelf: 'flex-start',
         fontSize: '0.85rem', fontWeight: 600, color: 'var(--primary)', textDecoration: 'none'
       }}>
@@ -283,6 +345,19 @@ export default function EventDetail() {
             <CheckPill label={stateMeta.label} color={stateMeta.color} />
             <CheckPill label={verMeta.label} color={verMeta.color} />
             {isAction && <CheckPill label="Action" color="#7f77dd" />}
+            {proof?.recorded && (
+              <a href={proof.explorerUrl} target="_blank" rel="noopener noreferrer" title="Tamper-evident proof of this record, independently checkable on-chain"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.28rem 0.7rem', borderRadius: '999px',
+                  border: `1px solid color-mix(in srgb, ${proof.hashMatches ? '#10b981' : '#8299a0'} 45%, transparent)`,
+                  background: `color-mix(in srgb, ${proof.hashMatches ? '#10b981' : '#8299a0'} 8%, transparent)`,
+                  color: proof.hashMatches ? '#10b981' : '#8299a0',
+                  fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', whiteSpace: 'nowrap', textDecoration: 'none' }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                {proof.hashMatches ? 'Tamper-proof' : 'Proof recorded'}
+              </a>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
             <span style={{
@@ -407,6 +482,40 @@ export default function EventDetail() {
                 placeholder="Any notes? (optional)" rows={2}
                 style={{ padding: '0.65rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
                   background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem', resize: 'vertical' }} />
+
+              <div>
+                <label style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer',
+                  padding: '0.5rem 0.9rem', borderRadius: '999px', border: '1px dashed var(--border-light)',
+                  color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600,
+                }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                  Add photos of the completed work
+                  <input type="file" accept="image/*" multiple onChange={handleCompletePhotosSelected} style={{ display: 'none' }} />
+                </label>
+                {completePhotos.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.6rem' }}>
+                    {completePhotos.map((p, i) => (
+                      <div key={i} style={{ position: 'relative', width: '64px', height: '64px' }}>
+                        <img src={p.dataUrl} alt={`Completion evidence ${i + 1}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'var(--radius-md)' }} />
+                        <button type="button" onClick={() => removeCompletePhoto(i)} aria-label="Remove photo"
+                          style={{
+                            position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '999px',
+                            background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', lineHeight: 1,
+                          }}>
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {completeError && <div style={{ fontSize: '0.78rem', color: '#ef4444' }}>{completeError}</div>}
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <button type="button" onClick={handleComplete} disabled={completing}
@@ -415,6 +524,57 @@ export default function EventDetail() {
                   {completing ? 'Saving…' : 'Confirm complete'}
                 </button>
                 <button type="button" onClick={() => setCompleteOpen(false)}
+                  style={{ background: 'transparent', border: '1px solid var(--border-light)', borderRadius: '999px', color: 'var(--text-muted)',
+                    padding: '0.55rem 1.2rem', cursor: 'pointer', font: 'inherit', fontSize: '0.85rem' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {isVerifier && event.verificationState !== 'verified' && (
+        <Card>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 12l2 2 4-4" /><circle cx="12" cy="12" r="10" />
+            </svg>
+          }>Verify this event</SectionLabel>
+          <p style={{ margin: '0 0 0.7rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            Review the evidence above and record an outcome. Verifying an action closes out the report(s) it responds to — this is a separate step from the team marking their own work complete.
+          </p>
+          {!verifyOpen && (
+            <button type="button" onClick={() => setVerifyOpen(true)}
+              style={{ background: 'var(--primary)', border: 'none', borderRadius: '999px', color: '#fff', fontWeight: 700,
+                padding: '0.6rem 1.3rem', cursor: 'pointer', font: 'inherit', fontSize: '0.85rem' }}>
+              Review evidence
+            </button>
+          )}
+          {verifyOpen && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+              <textarea value={verifyNotes} onChange={(e) => setVerifyNotes(e.target.value)}
+                placeholder="Notes (optional)" rows={2}
+                style={{ padding: '0.65rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                  background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem', resize: 'vertical' }} />
+              {verifyError && <div style={{ fontSize: '0.78rem', color: '#ef4444' }}>{verifyError}</div>}
+              <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => handleVerify('verified')} disabled={verifying}
+                  style={{ background: '#10b981', border: 'none', borderRadius: '999px', color: '#fff', fontWeight: 700,
+                    padding: '0.55rem 1.2rem', cursor: 'pointer', font: 'inherit', fontSize: '0.85rem' }}>
+                  {verifying ? 'Saving…' : '✓ Verified'}
+                </button>
+                <button type="button" onClick={() => handleVerify('disputed')} disabled={verifying}
+                  style={{ background: '#ef4444', border: 'none', borderRadius: '999px', color: '#fff', fontWeight: 700,
+                    padding: '0.55rem 1.2rem', cursor: 'pointer', font: 'inherit', fontSize: '0.85rem' }}>
+                  Disputed
+                </button>
+                <button type="button" onClick={() => handleVerify('unable_to_verify')} disabled={verifying}
+                  style={{ background: 'transparent', border: '1px solid var(--border-light)', borderRadius: '999px', color: 'var(--text-muted)', fontWeight: 700,
+                    padding: '0.55rem 1.2rem', cursor: 'pointer', font: 'inherit', fontSize: '0.85rem' }}>
+                  Unable to verify
+                </button>
+                <button type="button" onClick={() => setVerifyOpen(false)}
                   style={{ background: 'transparent', border: '1px solid var(--border-light)', borderRadius: '999px', color: 'var(--text-muted)',
                     padding: '0.55rem 1.2rem', cursor: 'pointer', font: 'inherit', fontSize: '0.85rem' }}>
                   Cancel
