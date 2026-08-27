@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { Minimize } from 'lucide-react';
 import { eventStateMeta } from '../eventMeta';
 import 'leaflet/dist/leaflet.css';
 
@@ -23,9 +25,16 @@ const createPin = (fillColor) => {
  * status the public ImpactMap still uses) so a glance at the map shows
  * what's still open vs. addressed, matching the ontology's own state
  * vocabulary instead of a proxy for it.
+ *
+ * The leaflet container is a plain DOM node (not JSX-owned) so that
+ * toggling fullscreen can move the same live map instance between the
+ * inline slot and a document.body portal slot instead of destroying and
+ * re-initializing it (which would lose zoom/markers and cause a flash).
  */
-export default function MyAreasMap({ events }) {
-  const mapRef = useRef(null);
+export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
+  const inlineSlotRef = useRef(null);
+  const fullscreenSlotRef = useRef(null);
+  const mapContainerRef = useRef(null);
   const leafletMap = useRef(null);
 
   const valid = events.filter(
@@ -37,9 +46,15 @@ export default function MyAreasMap({ events }) {
 
     const initMap = async () => {
       const { default: L } = await import('leaflet');
-      if (cancelled || leafletMap.current || !mapRef.current) return;
+      if (cancelled || leafletMap.current || !inlineSlotRef.current) return;
 
-      const map = L.map(mapRef.current, {
+      const container = document.createElement('div');
+      container.style.height = '100%';
+      container.style.width = '100%';
+      mapContainerRef.current = container;
+      inlineSlotRef.current.appendChild(container);
+
+      const map = L.map(container, {
         center: [20, 0],
         zoom: 3,
         zoomControl: false,
@@ -97,10 +112,36 @@ export default function MyAreasMap({ events }) {
       if (leafletMap.current) {
         leafletMap.current.remove();
         leafletMap.current = null;
+        mapContainerRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events]);
+
+  // Moves the live map container between the inline slot and the fullscreen
+  // portal slot, then resizes it — leaflet only needs invalidateSize() after
+  // its container's dimensions change, no re-init required.
+  useEffect(() => {
+    const container = mapContainerRef.current;
+    const targetSlot = isFullscreen ? fullscreenSlotRef.current : inlineSlotRef.current;
+    if (!container || !targetSlot) return;
+    targetSlot.appendChild(container);
+    const t = setTimeout(() => leafletMap.current?.invalidateSize(), 60);
+    return () => clearTimeout(t);
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKeyDown = (e) => { if (e.key === 'Escape') onExitFullscreen(); };
+    document.addEventListener('keydown', onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFullscreen]);
 
   if (valid.length === 0) {
     return (
@@ -110,5 +151,31 @@ export default function MyAreasMap({ events }) {
     );
   }
 
-  return <div ref={mapRef} style={{ height: '260px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden' }} />;
+  return (
+    <>
+      <div ref={inlineSlotRef} style={{ height: '260px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden' }} />
+
+      {isFullscreen && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+          <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--surface)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}>
+            <div ref={fullscreenSlotRef} style={{ height: '100%', width: '100%' }} />
+            <button
+              type="button"
+              onClick={onExitFullscreen}
+              aria-label="Close fullscreen map"
+              style={{
+                position: 'absolute', top: '16px', right: '16px', zIndex: 3001,
+                width: '40px', height: '40px', padding: 0, borderRadius: '999px',
+                background: 'rgba(0,0,0,0.55)', border: 'none', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              }}
+            >
+              <Minimize size={18} strokeWidth={2.25} />
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  );
 }

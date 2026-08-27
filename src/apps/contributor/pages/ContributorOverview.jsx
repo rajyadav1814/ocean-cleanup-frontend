@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { ClipboardList, ShieldCheck, CheckCircle2, Recycle, MapPin, TrendingUp, TrendingDown, Bell, AlertCircle, Calendar, ChevronRight, Maximize, Activity, Clock, XCircle, BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useActivities } from '../../../hooks/useActivities';
@@ -29,6 +30,14 @@ function fmt(ts) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
+function fmtDateTime(ts) {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '—';
+  const date = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${date}, ${time}`;
+}
+
 function toDateInputValue(date) {
   return date.toISOString().slice(0, 10);
 }
@@ -42,23 +51,33 @@ function defaultExportRange() {
 
 const emptyStyle = { color:'var(--text-muted)', fontSize:'0.84rem', textAlign:'center', padding:'1.25rem 0' };
 
-const StatePill = ({ label, color }) => (
-  <span style={{ padding:'0.18rem 0.55rem', borderRadius:'999px', fontSize:'0.64rem', fontWeight:700,
-    background:`${color}1F`, color, whiteSpace:'nowrap', textTransform:'uppercase', flexShrink:0 }}>
-    {label}
-  </span>
-);
+const activityStatusMeta = {
+  approved: { bg:'rgba(16,185,129,.12)', color:'var(--success)', label:'Approved', Icon: CheckCircle2 },
+  pending:  { bg:'rgba(245,158,11,.12)',  color:'var(--warning)', label:'Pending',  Icon: Clock },
+  rejected: { bg:'rgba(239,68,68,.12)',   color:'var(--danger)', label:'Rejected',  Icon: XCircle },
+};
+
+// One icon per pollution_waste subject code (spec §7 taxonomy) so an
+// impact story reads at a glance as "what kind of waste" rather than
+// requiring the label text to carry that on its own.
+const wasteCodeMeta = {
+  plastic:       { Icon: BottleWine,  bg:'rgba(16,185,129,.12)', color:'var(--success)' },
+  metal:         { Icon: Wrench,      bg:'rgba(37,99,235,.12)',  color:'#2563eb' },
+  glass:         { Icon: GlassWater,  bg:'rgba(6,182,212,.12)',  color:'#06b6d4' },
+  organic:       { Icon: Leaf,        bg:'rgba(101,163,13,.12)', color:'#65a30d' },
+  microplastics: { Icon: Droplets,    bg:'rgba(20,184,166,.12)', color:'#14b8a6' },
+  mixed_waste:   { Icon: Trash2,      bg:'var(--surface-hover)', color:'var(--text-muted)' },
+};
+const defaultWasteMeta = { Icon: Trash2, bg:'var(--surface-hover)', color:'var(--text-muted)' };
 
 const StatusPill = ({ status }) => {
-  const m = {
-    approved: { bg:'rgba(16,185,129,.12)', color:'var(--success)', label:'Approved' },
-    pending:  { bg:'rgba(245,158,11,.12)',  color:'var(--warning)', label:'Pending' },
-    rejected: { bg:'rgba(239,68,68,.12)',   color:'var(--danger)', label:'Rejected' },
-  };
-  const s = m[status] || m.pending;
+  const s = activityStatusMeta[status] || activityStatusMeta.pending;
+  const { Icon } = s;
   return (
-    <span style={{ padding:'0.18rem 0.55rem', borderRadius:'999px', fontSize:'0.68rem', fontWeight:700,
+    <span style={{ display:'inline-flex', alignItems:'center', gap:'0.3rem', padding:'0.3rem 0.7rem',
+      borderRadius:'999px', fontSize:'0.68rem', fontWeight:700,
       background:s.bg, color:s.color, whiteSpace:'nowrap', textTransform:'uppercase', flexShrink:0 }}>
+      <Icon size={12} strokeWidth={2.5} />
       {s.label}
     </span>
   );
@@ -67,7 +86,19 @@ const StatusPill = ({ status }) => {
 /* ── Injected responsive CSS ── */
 const STYLES = `
   .contrib-card { padding: 1.25rem 1.5rem; }
-  .contrib-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; }
+  .contrib-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:1rem; }
+  .kpi-card { display:flex; flex-direction:column; gap:.7rem; padding:1.35rem 1.4rem; position:relative; overflow:hidden; }
+  .kpi-icon { width:44px; height:44px; border-radius:999px; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; z-index:1; }
+  .kpi-label { position:relative; z-index:1; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); }
+  .kpi-value-row { position:relative; z-index:1; display:flex; align-items:baseline; gap:.3rem; }
+  .kpi-value { font-size:1.85rem; font-weight:800; line-height:1.1; }
+  .kpi-value-unit { font-size:.95rem; font-weight:600; color:var(--text-muted); }
+  .kpi-sub { position:relative; z-index:1; font-size:.76rem; color:var(--text-muted); margin-top:-.4rem; }
+  .kpi-trend { position:relative; z-index:1; align-self:flex-start; display:inline-flex; align-items:center; gap:.3rem; padding:.28rem .6rem; border-radius:999px; font-size:.72rem; font-weight:700; }
+  @media(max-width:768px){
+    .kpi-card { padding:1.1rem 1.2rem; }
+    .kpi-value { font-size:1.55rem; }
+  }
   .contrib-hero-actions { display:flex; flex-direction:column; align-items:flex-end; gap:.6rem; }
   .contrib-two-col { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; align-items:stretch; }
   .contrib-two-col > .contrib-card { height:100%; }
@@ -127,6 +158,42 @@ const STYLES = `
   .contrib-empty-sub {
     margin:0; font-size:0.85rem; color:var(--text-muted); line-height:1.5; max-width:420px;
   }
+  .needs-attn-head { display:flex; align-items:flex-start; gap:0.9rem; margin-bottom:0.9rem; }
+  .needs-attn-bell {
+    position:relative; flex-shrink:0; width:48px; height:48px; border-radius:999px;
+    background:rgba(37,99,235,0.1); color:var(--primary); display:flex; align-items:center; justify-content:center;
+  }
+  .needs-attn-bell::after {
+    content:''; position:absolute; top:2px; right:2px; width:10px; height:10px; border-radius:999px;
+    background:#ef4444; border:2px solid var(--surface);
+  }
+  .needs-attn-title-row { display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; }
+  .needs-attn-count {
+    display:inline-flex; align-items:center; gap:0.25rem; padding:0.15rem 0.5rem; border-radius:999px;
+    background:rgba(239,68,68,0.12); color:#ef4444; font-size:0.72rem; font-weight:700;
+  }
+  .needs-attn-row {
+    display:flex; align-items:center; gap:0.75rem; padding:0.85rem 0; text-decoration:none; color:inherit;
+  }
+  .needs-attn-icon {
+    flex-shrink:0; width:40px; height:40px; border-radius:10px; background:rgba(37,99,235,0.1);
+    color:var(--primary); display:flex; align-items:center; justify-content:center;
+  }
+  .needs-attn-meta { display:flex; align-items:center; gap:0.3rem; flex-wrap:wrap; }
+  .needs-attn-pills { display:flex; flex-direction:column; gap:0.35rem; align-items:flex-end; flex-shrink:0; }
+  .needs-attn-pill {
+    display:inline-flex; align-items:center; gap:0.3rem; padding:0.2rem 0.6rem; border-radius:999px;
+    font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.02em; white-space:nowrap;
+  }
+  .needs-attn-divider { width:1px; align-self:stretch; background:var(--border-light); flex-shrink:0; }
+  .needs-attn-view {
+    flex-shrink:0; display:flex; align-items:center; gap:0.2rem; font-size:0.8rem; font-weight:700;
+    color:var(--primary); white-space:nowrap;
+  }
+  @media(max-width:640px){
+    .needs-attn-pills { display:none; }
+    .needs-attn-view span { display:none; }
+  }
 `;
 
 const Card = ({ children, style, className = '' }) => (
@@ -138,10 +205,19 @@ const Card = ({ children, style, className = '' }) => (
   </div>
 );
 
-const CardHead = ({ title, sub }) => (
+const CardHead = ({ title, sub, icon: Icon }) => (
   <>
-    <h2 style={{ margin:'0 0 .2rem', fontSize:'0.95rem', fontWeight:700 }}>{title}</h2>
-    <p style={{ margin:'0 0 1rem', fontSize:'0.78rem', color:'var(--text-muted)' }}>{sub}</p>
+    <div style={{ display:'flex', alignItems:'center', gap:'0.7rem', marginBottom:'0.2rem' }}>
+      {Icon && (
+        <div style={{ width:'38px', height:'38px', borderRadius:'11px', flexShrink:0,
+          background:'rgba(59,130,246,.12)', color:'#3b82f6',
+          display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <Icon size={18} strokeWidth={2.25} />
+        </div>
+      )}
+      <h2 style={{ margin:0, fontSize:'0.95rem', fontWeight:700 }}>{title}</h2>
+    </div>
+    <p style={{ margin:'0 0 1rem', fontSize:'0.78rem', color:'var(--text-muted)', marginLeft: Icon ? 'calc(38px + 0.7rem)' : 0 }}>{sub}</p>
   </>
 );
 
@@ -159,6 +235,21 @@ const SectionLabel = ({ children, hint, style }) => (
 
 /* Formats numbers with thousands separators for readability at scale. */
 const nf = (n) => Number(n || 0).toLocaleString('en-IN');
+
+/* "↗ 12% vs last month" pill on an impact card — omitted entirely when
+   the backend has no prior-30-day baseline to compare against (null),
+   rather than showing a fabricated percentage. */
+const TrendPill = ({ value, accent, tint }) => {
+  if (value === null || value === undefined) return null;
+  const up = value >= 0;
+  const ArrowIcon = up ? TrendingUp : TrendingDown;
+  return (
+    <span className="kpi-trend" style={accent ? { background: tint, color: accent } : undefined}>
+      <ArrowIcon size={12} strokeWidth={2.75} />
+      {Math.abs(value)}% vs last month
+    </span>
+  );
+};
 
 /* ── Empty state shown to brand-new contributors instead of a wall of zeros ── */
 const NoDataYet = ({ onLog }) => (
@@ -200,6 +291,7 @@ export default function ContributorOverview() {
   const { impact, loading: impactLoading } = useContributorImpact();
   const { events: myEvents, loading: eventsLoading } = useEvents(user?.id);
 
+  const [mapFullscreen, setMapFullscreen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportRange, setExportRange] = useState(defaultExportRange);
   const [exporting, setExporting] = useState(false);
@@ -256,13 +348,25 @@ export default function ContributorOverview() {
 
   // The five numbers the spec's own "Your Impact" example calls out
   // (spec §22) — sourced from the event model via /api/contributor/impact,
-  // not the legacy activities aggregate.
+  // not the legacy activities aggregate. `trend` is the % change vs. the
+  // prior 30-day window (null when the backend has no baseline yet).
+  const trends = impact?.trends || {};
   const impactCards = [
-    { label:'Contributions',       value: nf(impact?.contributions ?? myActivities.length),  icon:'📋' },
-    { label:'Verified',            value: nf(impact?.verifiedEvents ?? 0),                    icon:'🛡️' },
-    { label:'Actions Completed',   value: nf(impact?.actionsCompleted ?? 0), icon:'✅', accent:'#10b981' },
-    { label:'Waste Removed',       value: `${nf(impact?.kgRemoved ?? 0)} kg`,                 icon:'♻️' },
-    { label:'Locations Affected',  value: nf(impact?.locationsAffected ?? 0),                 icon:'📍' },
+    { key:'contributions', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
+      sub:'Total reports submitted', Icon: ClipboardList, accent:'#2563eb', tint:'rgba(37,99,235,0.12)',
+      trend: trends.contributions ?? null },
+    { key:'verified', label:'Verified', value: nf(impact?.verifiedEvents ?? 0),
+      sub:'Reports verified', Icon: ShieldCheck, accent:'#0d9488', tint:'rgba(13,148,136,0.12)',
+      trend: trends.verifiedEvents ?? null },
+    { key:'actions', label:'Actions Completed', value: nf(impact?.actionsCompleted ?? 0),
+      sub:'Cleanup actions completed', Icon: CheckCircle2, accent:'#d97706', tint:'rgba(217,119,6,0.12)',
+      trend: trends.actionsCompleted ?? null },
+    { key:'waste', label:'Waste Removed', value: nf(impact?.kgRemoved ?? 0), unit:'kg',
+      sub:'Total waste removed', Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true,
+      trend: trends.kgRemoved ?? null },
+    { key:'locations', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
+      sub:'Locations reported', Icon: MapPin, accent:'#7c3aed', tint:'rgba(124,58,237,0.12)',
+      trend: trends.locationsAffected ?? null },
   ];
 
   return (
@@ -383,15 +487,27 @@ export default function ContributorOverview() {
             )}
           </div>
           <div className="contrib-stats">
-            {impactCards.map(({ label, value, icon, accent }) => (
-              <Card key={label} style={{ position:'relative', overflow:'hidden',
-                transition:'border-color .2s,transform .2s', cursor:'default' }}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--border-glow)';e.currentTarget.style.transform='translateY(-2px)';}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-light)';e.currentTarget.style.transform='translateY(0)';}}
+            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured }) => (
+              <Card key={key} className="kpi-card"
+                style={{ transition:'border-color .2s,transform .2s,box-shadow .2s', cursor:'default',
+                  ...(featured ? {
+                    background:`linear-gradient(135deg, ${accent}14, ${accent}26)`,
+                    border:`1.5px solid ${accent}59`,
+                    boxShadow:`0 10px 26px -16px ${accent}73`,
+                  } : {}) }}
+                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; if(!featured) e.currentTarget.style.borderColor='var(--border-glow)';}}
+                onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; if(!featured) e.currentTarget.style.borderColor='var(--border-light)';}}
               >
-                <div style={{ position:'absolute', top:'0.75rem', right:'0.75rem', fontSize:'1.6rem', opacity:.22 }}>{icon}</div>
-                <div style={{ fontSize:'0.68rem', fontWeight:600, textTransform:'uppercase', letterSpacing:'.08em', color:'var(--text-muted)', marginBottom:'0.35rem' }}>{label}</div>
-                <div style={{ fontSize: isMobile ? '1.5rem' : '1.9rem', fontWeight:700, color:accent||'var(--primary-hover)', lineHeight:1.1 }}>{value}</div>
+                <div className="kpi-icon" style={{ background: featured ? accent : tint, color: featured ? '#fff' : accent }}>
+                  <Icon size={20} strokeWidth={2.25} />
+                </div>
+                <div className="kpi-label">{label}</div>
+                <div className="kpi-value-row">
+                  <span className="kpi-value" style={{ color: accent }}>{value}</span>
+                  {unit && <span className="kpi-value-unit">{unit}</span>}
+                </div>
+                <div className="kpi-sub">{sub}</div>
+                <TrendPill value={trend} accent={accent} tint={tint} />
               </Card>
             ))}
           </div>
@@ -400,7 +516,22 @@ export default function ContributorOverview() {
               Environmental events tied to this contributor's reports that
               Blue Mind hasn't marked addressed yet (spec §22). */}
           <Card>
-            <CardHead title="Needs Attention" sub="Open issues from your reports that Blue Mind is still tracking" />
+            <div className="needs-attn-head">
+              <div className="needs-attn-bell"><Bell size={20} strokeWidth={2.25} /></div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div className="needs-attn-title-row">
+                  <h2 style={{ margin:0, fontSize:'0.95rem', fontWeight:700 }}>Needs Attention</h2>
+                  {needsAttention.length > 0 && (
+                    <span className="needs-attn-count">
+                      <AlertCircle size={12} strokeWidth={2.5} />{needsAttention.length}
+                    </span>
+                  )}
+                </div>
+                <p style={{ margin:'0.2rem 0 0', fontSize:'0.78rem', color:'var(--text-muted)' }}>
+                  Open issues from your reports that Blue Mind is still tracking.
+                </p>
+              </div>
+            </div>
             {needsAttention.length === 0 ? (
               <p style={emptyStyle}>Nothing open right now — everything you've reported has been addressed.</p>
             ) : (
@@ -410,18 +541,30 @@ export default function ContributorOverview() {
                   const verMeta = verificationStateMeta(e.verificationState);
                   const subjectLabel = e.subjects?.map(s => s.label).join(', ') || 'Unclassified';
                   return (
-                    <Link key={e.eventId} to={`/contributor/events/${e.eventId}`}
-                      style={{ display:'flex', gap:'0.6rem', padding:'0.7rem 0', textDecoration:'none', color:'inherit',
-                      borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                    <Link key={e.eventId} to={`/contributor/events/${e.eventId}`} className="needs-attn-row"
+                      style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                      <div className="needs-attn-icon"><Recycle size={18} strokeWidth={2.25} /></div>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontWeight:600, fontSize:'0.83rem' }}>{subjectLabel}</div>
-                        <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:'0.15rem' }}>
-                          {e.locationLabel || 'Location unspecified'} · {fmt(e.occurredAt || e.createdAt)}
+                        <div style={{ fontWeight:700, fontSize:'0.86rem' }}>{subjectLabel}</div>
+                        <div className="needs-attn-meta" style={{ fontSize:'0.74rem', color:'var(--text-muted)', marginTop:'0.2rem' }}>
+                          <MapPin size={12} strokeWidth={2.25} />
+                          <span>{e.locationLabel || 'Location unspecified'}</span>
+                          <span>·</span>
+                          <Calendar size={12} strokeWidth={2.25} />
+                          <span>{fmt(e.occurredAt || e.createdAt)}</span>
                         </div>
                       </div>
-                      <div style={{ display:'flex', flexDirection:'column', gap:'0.3rem', alignItems:'flex-end', flexShrink:0 }}>
-                        <StatePill label={stateMeta.label} color={stateMeta.color} />
-                        <StatePill label={verMeta.label} color={verMeta.color} />
+                      <div className="needs-attn-pills">
+                        <span className="needs-attn-pill" style={{ background:`${stateMeta.color}1F`, color:stateMeta.color }}>
+                          <ShieldCheck size={12} strokeWidth={2.5} />{stateMeta.label}
+                        </span>
+                        <span className="needs-attn-pill" style={{ background:verMeta.color, color:'#fff' }}>
+                          <CheckCircle2 size={12} strokeWidth={2.5} />{verMeta.label}
+                        </span>
+                      </div>
+                      <div className="needs-attn-divider" />
+                      <div className="needs-attn-view">
+                        <span>View details</span><ChevronRight size={16} strokeWidth={2.25} />
                       </div>
                     </Link>
                   );
@@ -432,55 +575,80 @@ export default function ContributorOverview() {
 
           {/* ── RECENT ACTIVITY ── */}
           <Card>
-            <CardHead title="Recent Activity" sub={`Your last ${Math.min(5, recent.length)} submissions`} />
+            <CardHead icon={Activity} title="Recent Activity" sub="Your latest report updates" />
             <div style={{ display:'flex', flexDirection:'column' }}>
-              {recent.map((act, i) => (
-                <div key={act.id} style={{ display:'flex', gap:'0.6rem', padding:'0.75rem 0',
-                  borderBottom: i < recent.length-1 ? '1px solid var(--border-light)' : 'none' }}>
-                  <div style={{ width:'34px', height:'34px', borderRadius:'9px', flexShrink:0,
-                    background: act.status==='approved'?'rgba(16,185,129,.12)':act.status==='rejected'?'rgba(239,68,68,.12)':'rgba(245,158,11,.12)',
-                    display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.88rem' }}>
-                    {act.status==='approved'?'✓':act.status==='rejected'?'✕':'⧗'}
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', gap:'0.4rem', alignItems:'flex-start', flexWrap:'nowrap' }}>
-                      <span style={{ fontWeight:600, fontSize:'0.83rem', flex:1, wordBreak:'break-word', lineHeight: 1.3 }}>
-                        {act.location}
-                      </span>
-                      <StatusPill status={act.status} />
+              {recent.map((act, i) => {
+                const s = activityStatusMeta[act.status] || activityStatusMeta.pending;
+                const { Icon } = s;
+                return (
+                  <div key={act.id} style={{ display:'flex', gap:'0.7rem', padding:'0.9rem 0',
+                    borderBottom: i < recent.length-1 ? '1px solid var(--border-light)' : 'none' }}>
+                    <div style={{ width:'38px', height:'38px', borderRadius:'11px', flexShrink:0,
+                      background:s.bg, color:s.color,
+                      display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <Icon size={18} strokeWidth={2.25} />
                     </div>
-                    <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:'0.15rem' }}>
-                      {fmt(act.timestamp)} · {act.quantity} kg · {act.volunteers} vol.
-                    </div>
-                    {act.status==='rejected' && act.reviewNote && (
-                      <div style={{ marginTop:'0.3rem', fontSize:'0.72rem', color:'#f87171',
-                        background:'rgba(239,68,68,.08)', borderRadius:'6px', padding:'0.28rem 0.5rem' }}>
-                        {act.reviewNote}
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', gap:'0.6rem', alignItems:'flex-start', flexWrap:'nowrap' }}>
+                        <span style={{ fontWeight:700, fontSize:'0.86rem', flex:1, wordBreak:'break-word', lineHeight: 1.3 }}>
+                          {act.location}
+                        </span>
+                        <StatusPill status={act.status} />
                       </div>
-                    )}
+                      <div style={{ display:'flex', alignItems:'center', flexWrap:'wrap', gap:'0.3rem', fontSize:'0.74rem', color:'var(--text-muted)', marginTop:'0.35rem' }}>
+                        <Calendar size={12} />
+                        {fmtDateTime(act.timestamp)}
+                        <span>· {act.quantity} kg · {act.volunteers} vol.</span>
+                      </div>
+                      {act.status==='rejected' && act.reviewNote && (
+                        <div style={{ marginTop:'0.4rem', fontSize:'0.72rem', color:'#f87171',
+                          background:'rgba(239,68,68,.08)', borderRadius:'6px', padding:'0.28rem 0.5rem' }}>
+                          {act.reviewNote}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {myActivities.length > 5 && (
               <button id="view-all-btn" onClick={() => navigate('/contributor/my-activities')}
-                style={{ marginTop:'0.75rem', width:'100%', background:'transparent',
-                  border:'1px solid var(--border-light)', borderRadius:'var(--radius-md)',
-                  color:'var(--primary)', fontSize:'0.82rem', fontWeight:600, padding:'0.5rem',
-                  cursor:'pointer', boxShadow:'none', transition:'border-color .2s,background .2s',
+                style={{ marginTop:'0.9rem', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:'0.35rem',
+                  background:'rgba(59,130,246,.1)', border:'none', borderRadius:'var(--radius-md)',
+                  color:'#3b82f6', fontSize:'0.84rem', fontWeight:700, padding:'0.75rem',
+                  cursor:'pointer', boxShadow:'none', transition:'background .2s',
                   fontFamily:'var(--font-sans)' }}
-                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.background='color-mix(in srgb, var(--primary) 8%, transparent)';}}
-                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-light)';e.currentTarget.style.background='transparent';}}
+                onMouseEnter={e=>{e.currentTarget.style.background='rgba(59,130,246,.18)';}}
+                onMouseLeave={e=>{e.currentTarget.style.background='rgba(59,130,246,.1)';}}
               >
-                View all {myActivities.length} activities →
+                View all activities
+                <ChevronRight size={15} strokeWidth={2.5} />
               </button>
             )}
           </Card>
 
           {/* ── YOUR AREAS ── */}
           <Card>
-            <CardHead title="Your Areas" sub="Where your reports and cleanups are located, colored by their current status" />
-            <MyAreasMap events={myEvents} />
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'0.75rem' }}>
+              <CardHead title="Your Areas" sub="Where your reports and cleanups are located, colored by their current status" />
+              <button
+                type="button"
+                onClick={() => setMapFullscreen(true)}
+                style={{
+                  flexShrink:0, display:'inline-flex', alignItems:'center', gap:'0.35rem',
+                  background:'transparent', border:'1px solid var(--border-light)', borderRadius:'999px',
+                  color:'var(--primary)', fontSize:'0.72rem', fontWeight:700, padding:'0.4rem 0.75rem',
+                  cursor:'pointer', boxShadow:'none', fontFamily:'var(--font-sans)', whiteSpace:'nowrap',
+                  transition:'border-color .2s, background .2s',
+                }}
+                onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--primary)'; e.currentTarget.style.background='color-mix(in srgb, var(--primary) 8%, transparent)';}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-light)'; e.currentTarget.style.background='transparent';}}
+              >
+                <Maximize size={14} strokeWidth={2.5} />
+                <span>Fullscreen</span>
+              </button>
+            </div>
+            <MyAreasMap events={myEvents} isFullscreen={mapFullscreen} onExitFullscreen={() => setMapFullscreen(false)} />
           </Card>
 
           {/* ── IMPACT STORIES ──
@@ -492,25 +660,36 @@ export default function ContributorOverview() {
             {impactStories.length === 0 ? (
               <p style={emptyStyle}>No resolved reports yet — check back once one of your reports is addressed.</p>
             ) : (
-              <div style={{ display:'flex', flexDirection:'column' }}>
-                {impactStories.map((e, i, arr) => {
-                  const subjectLabel = e.subjects?.map(s => s.label).join(', ') || 'issue';
-                  return (
-                    <Link key={e.eventId} to={`/contributor/events/${e.eventId}`}
-                      style={{ display:'flex', gap:'0.6rem', padding:'0.7rem 0', textDecoration:'none', color:'inherit',
-                      borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                      <div style={{ width:'34px', height:'34px', borderRadius:'9px', flexShrink:0,
-                        background:'rgba(16,185,129,.12)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.9rem' }}>✓</div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:'0.83rem', color:'var(--text-main)', lineHeight:1.4 }}>
-                          The <strong>{subjectLabel}</strong> you reported at {e.locationLabel || 'this location'} has been addressed.
+              <>
+                <div style={{ display:'flex', flexDirection:'column' }}>
+                  {impactStories.flatMap((e) => {
+                    const subjects = e.subjects?.length ? e.subjects : [{ label: 'Issue', code: null }];
+                    return subjects.map((s) => ({ event: e, subject: s }));
+                  }).map(({ event: e, subject: s }, i, arr) => {
+                    const meta = wasteCodeMeta[s.code] || defaultWasteMeta;
+                    const { Icon } = meta;
+                    return (
+                      <Link key={`${e.eventId}-${s.eventSubjectId || s.code}`} to={`/contributor/events/${e.eventId}`}
+                        style={{ display:'flex', gap:'0.7rem', alignItems:'center', padding:'0.7rem 0', textDecoration:'none', color:'inherit',
+                        borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                        <div style={{ width:'38px', height:'38px', borderRadius:'11px', flexShrink:0,
+                          background:meta.bg, color:meta.color, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                          <Icon size={18} strokeWidth={2} />
                         </div>
-                        <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:'0.2rem' }}>{fmt(e.updatedAt)}</div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:'0.86rem', fontWeight:700, color:'var(--text-main)', lineHeight:1.3 }}>
+                            {s.label} cleared
+                          </div>
+                          <div style={{ fontSize:'0.76rem', color:'var(--text-muted)', marginTop:'0.15rem' }}>
+                            {e.locationLabel || 'Unknown location'}
+                          </div>
+                        </div>
+                        <CheckCircle2 size={19} strokeWidth={2} color="var(--success)" style={{ flexShrink:0 }} />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </Card>
         </>
