@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Waves,
 } from "lucide-react";
+import Chatbot from "../components/common/Chatbot";
 
 /* ---------------------------------------------------------------------
    BLUEMIND — DASHBOARD LANDING
@@ -200,6 +201,7 @@ export default function DashboardLanding() {
   return (
     <div className="bm">
       <style>{TOKENS}</style>
+      <Chatbot />
 
       {/* ================= HERO ================= */}
       <section className="bm-hero">
