@@ -321,9 +321,14 @@ export default function ContributorOverview() {
   // not the legacy activity status — event_state and verification_state
   // are the vocabulary the spec actually asks for (§11-12), and myEvents
   // is already scoped to this contributor server-side via useEvents(user.id).
+  // 'reassessed' belongs in Needs Attention, not out of it — the backend
+  // only ever moves a report to 'reassessed' when it was closed and then
+  // got a fresh independent corroborator (spec §11's "Addressed →
+  // Reassessed"), which is exactly a report needing another look, not one
+  // that's still resolved.
   const needsAttention = useMemo(() =>
     [...myEvents]
-      .filter(e => e.eventState !== 'addressed' && e.eventState !== 'reassessed')
+      .filter(e => e.eventState !== 'addressed')
       .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)),
     [myEvents]);
 

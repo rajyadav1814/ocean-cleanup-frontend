@@ -238,6 +238,11 @@ export default function SubmitActivity() {
       lat: form.lat,
       lon: form.lon,
       gps: form.lat !== null && form.lat !== '' && form.lon !== null && form.lon !== '' && Number.isFinite(Number(form.lat)) && Number.isFinite(Number(form.lon)) ? `${form.lat}, ${form.lon}` : null,
+      // spec §18 — only present when MapLocationPicker actually reported
+      // them (a device GPS fix), so undefined here just means "not
+      // captured", the same as any other optional field.
+      locationAccuracy: form.locationAccuracy ?? undefined,
+      locationCaptureMethod: form.locationCaptureMethod ?? undefined,
       shorelineType: form.shorelineType,
       tideState: form.tideState,
       cleanedBefore: form.cleanedBefore,
@@ -326,8 +331,8 @@ export default function SubmitActivity() {
     setExistingUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
-  function handleLocationChange({ displayName, lat, lon }) {
-    setForm(prev => ({ ...prev, location: displayName, lat, lon }));
+  function handleLocationChange({ displayName, lat, lon, accuracy, captureMethod }) {
+    setForm(prev => ({ ...prev, location: displayName, lat, lon, locationAccuracy: accuracy, locationCaptureMethod: captureMethod }));
   }
 
   function handleDebrisCountChange(material, value) {

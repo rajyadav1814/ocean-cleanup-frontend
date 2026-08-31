@@ -30,3 +30,20 @@ export function eventStateMeta(state) {
 export function verificationStateMeta(state) {
   return VERIFICATION_STATE_META[state] || VERIFICATION_STATE_META.unverified;
 }
+
+// Field-level provenance (spec §17) — mirrors the backend's
+// provenance_source enum. Used both for a subject's overall `source` and
+// for individual entries in its `attributeProvenance` map, so e.g. a
+// contributor-corrected quantity on an otherwise AI-inferred subject reads
+// as its own "User provided" rather than inheriting "AI inferred".
+export const PROVENANCE_META = {
+  user_provided:        { label: 'User provided',      color: '#378add' },
+  system_captured:      { label: 'System captured',    color: '#2E9E9B' },
+  ai_inferred:          { label: 'AI inferred',         color: '#7f77dd' },
+  external_enrichment:  { label: 'External enrichment', color: '#8299a0' },
+  verifier_confirmed:   { label: 'Verifier confirmed',  color: '#10b981' },
+};
+
+export function provenanceMeta(source) {
+  return PROVENANCE_META[source] || PROVENANCE_META.user_provided;
+}

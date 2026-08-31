@@ -548,9 +548,12 @@ export default function CitizenOverview() {
   // Environmental events tied to this citizen's own reports (spec §22) —
   // what's still open vs. what changed as a result of reporting it,
   // separate from the community feed above, which shows everyone's
-  // activity rather than "what happened because of me."
+  // activity rather than "what happened because of me." 'reassessed'
+  // belongs here, not excluded from it — it's a closed report that got a
+  // fresh corroborator and is being looked at again (spec §11), the
+  // opposite of settled.
   const needsAttention = [...myEvents]
-    .filter((e) => e.eventState !== 'addressed' && e.eventState !== 'reassessed')
+    .filter((e) => e.eventState !== 'addressed')
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const impactStories = [...myEvents]
     .filter((e) => e.eventState === 'addressed')

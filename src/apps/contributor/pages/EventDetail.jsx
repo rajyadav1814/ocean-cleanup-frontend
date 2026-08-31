@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { eventApi, activityApi } from '../../../services/api';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
-import { eventStateMeta, verificationStateMeta } from '../eventMeta';
+import { eventStateMeta, verificationStateMeta, provenanceMeta } from '../eventMeta';
 import { fileToDataUrl } from '../../../utils/file';
 
 function fmt(ts) {
@@ -56,6 +56,15 @@ const FAMILY_ICONS = {
       <circle cx="12" cy="8" r="3.2" /><path d="M5 21c0-4 3-6.5 7-6.5S19 17 19 21" />
     </svg>
   ),
+};
+
+// Confidence signals (spec §14) carry a direction, never a weight — the
+// spec explicitly rules out a fake precise score, so these read as
+// "supports / look closer / context" rather than as points toward a total.
+const SIGNAL_STANCE_META = {
+  supports: { label: 'Supports',    color: '#10b981', glyph: '✓' },
+  weakens:  { label: 'Look closer', color: '#f59e0b', glyph: '!' },
+  neutral:  { label: 'Context',     color: '#8299a0', glyph: '·' },
 };
 
 const EVIDENCE_TAG = {
@@ -131,6 +140,26 @@ const HeaderArt = () => (
   </svg>
 );
 
+// Shared with the header's activity-proof badge (spec §21) — same visual
+// language for both proof kinds, since to the viewer they mean the same
+// thing: "this record is independently checkable on-chain."
+const ProofBadge = ({ proof }) => {
+  if (!proof?.recorded) return null;
+  const color = proof.hashMatches ? '#10b981' : '#8299a0';
+  return (
+    <a href={proof.explorerUrl} target="_blank" rel="noopener noreferrer" title="Tamper-evident proof of this record, independently checkable on-chain"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.28rem 0.7rem', borderRadius: '999px',
+        border: `1px solid color-mix(in srgb, ${color} 45%, transparent)`,
+        background: `color-mix(in srgb, ${color} 8%, transparent)`,
+        color, fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', whiteSpace: 'nowrap', textDecoration: 'none' }}>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+      {proof.hashMatches ? 'Tamper-proof' : 'Proof recorded'}
+    </a>
+  );
+};
+
 export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -203,9 +232,10 @@ export default function EventDetail() {
 
   // spec §21: the only blockchain-facing thing a user ever sees is this
   // tamper-evident proof, fetched quietly and shown only once it exists —
-  // no wallet, no gas, no chain jargon. Not every event has a legacy
-  // activity (action events created via Plan Action don't), so this is
-  // simply absent for those rather than showing a "not recorded" state.
+  // no wallet, no gas, no chain jargon. This is the original submission's
+  // proof specifically — not every event has a legacy activity (action
+  // events created via Plan Action don't), so it's simply absent for
+  // those; they get their own proof per verification below instead.
   useEffect(() => {
     if (!event?.legacyActivityId) { setProof(null); return; }
     let cancelled = false;
@@ -214,6 +244,22 @@ export default function EventDetail() {
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [event?.legacyActivityId]);
+
+  // Each verifier attestation gets its own on-chain proof (spec §21) —
+  // fetched per verification rather than assumed present, since older
+  // verifications recorded before this existed have none. This is what
+  // actually gives an action-event a proof at all: it has no legacy
+  // activity, so the effect above never fires for it.
+  const [verificationProofs, setVerificationProofs] = useState({});
+  useEffect(() => {
+    const ids = (event?.verifications || []).map((v) => v.verificationId);
+    if (ids.length === 0) { setVerificationProofs({}); return; }
+    let cancelled = false;
+    Promise.all(ids.map((id) => eventApi.getVerificationProof(id).then((res) => [id, res.ok ? res.proof : null])))
+      .then((entries) => { if (!cancelled) setVerificationProofs(Object.fromEntries(entries)); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [event?.verifications]);
 
   async function handlePlanAction() {
     if (!planSubjectCode) return;
@@ -345,19 +391,7 @@ export default function EventDetail() {
             <CheckPill label={stateMeta.label} color={stateMeta.color} />
             <CheckPill label={verMeta.label} color={verMeta.color} />
             {isAction && <CheckPill label="Action" color="#7f77dd" />}
-            {proof?.recorded && (
-              <a href={proof.explorerUrl} target="_blank" rel="noopener noreferrer" title="Tamper-evident proof of this record, independently checkable on-chain"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.28rem 0.7rem', borderRadius: '999px',
-                  border: `1px solid color-mix(in srgb, ${proof.hashMatches ? '#10b981' : '#8299a0'} 45%, transparent)`,
-                  background: `color-mix(in srgb, ${proof.hashMatches ? '#10b981' : '#8299a0'} 8%, transparent)`,
-                  color: proof.hashMatches ? '#10b981' : '#8299a0',
-                  fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', whiteSpace: 'nowrap', textDecoration: 'none' }}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                {proof.hashMatches ? 'Tamper-proof' : 'Proof recorded'}
-              </a>
-            )}
+            <ProofBadge proof={proof} />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
             <span style={{
@@ -385,6 +419,25 @@ export default function EventDetail() {
                   {fmt(event.occurredAt || event.createdAt)}
                 </span>
               </p>
+              {/* spec §18 — admin_area/country/water_body only ever show up once
+                  the background reverse-geocode enrichment resolves (can be a
+                  few seconds after the event is created), and accuracy/capture
+                  method only when the device itself supplied them. */}
+              {(event.adminArea || event.country || event.waterBody || event.locationAccuracyM != null || event.locationCaptureMethod) && (
+                <p style={{ margin: '0.3rem 0 0', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                  {[event.waterBody, event.adminArea, event.country].filter(Boolean).join(', ')}
+                  {/* These place names come from a reverse-geocode lookup, not
+                      from the contributor — spec §17 says that difference has to
+                      stay visible, not be quietly presented as what they typed. */}
+                  {['admin_area', 'country', 'water_body'].some((f) => event.locationProvenance?.[f] === 'external_enrichment') && (
+                    <span title="Place names resolved automatically from the coordinates, not entered by the contributor"> (auto-derived)</span>
+                  )}
+                  {event.locationAccuracyM != null && (
+                    <span> · ±{Math.round(event.locationAccuracyM)}m accuracy</span>
+                  )}
+                  {event.locationCaptureMethod === 'manual_pin' && <span> · manually placed</span>}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -397,21 +450,94 @@ export default function EventDetail() {
               <circle cx="12" cy="8" r="3.2" /><path d="M5 21c0-4 3-6.5 7-6.5S19 17 19 21" />
             </svg>
           }>Subjects</SectionLabel>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {event.subjects.map((s) => (
-              <span key={s.eventSubjectId} style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.8rem',
-                borderRadius: '999px', background: 'var(--surface-hover)', border: '1px solid var(--border-light)', fontSize: '0.85rem'
-              }}>
-                <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{s.label}</span>
-                {s.confidence != null && <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{Math.round(s.confidence * 100)}%</span>}
-                <span style={{ fontSize: '0.64rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--primary)' }}>{s.source.replace('_', ' ')}</span>
-              </span>
-            ))}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem', alignItems: 'flex-start' }}>
+            {event.subjects.map((s) => {
+              const attributes = s.attributes || {};
+              // The ontology's controlled vocabulary (spec §7.3-7.4 life/
+              // habitat condition, §7.1 pollution severity/hazard) is worth
+              // showing plainly whenever it's present — unlike quantity,
+              // which the Impact card already covers once an action closes
+              // it out, condition/severity/hazard have nowhere else to
+              // appear on this page.
+              const ontologyKeys = ['condition', 'severity', 'hazard'].filter((key) => attributes[key]);
+              // The subject-level `source` badge above is the fallback for
+              // every other attribute; only give a field its own provenance
+              // badge when it actually differs (spec §17's example: a
+              // contributor-corrected quantity on an otherwise AI-inferred
+              // subject) — condition/severity/hazard are shown above instead
+              // once already, so they're excluded here to avoid a duplicate.
+              const overridden = Object.entries(attributes)
+                .filter(([key]) => !ontologyKeys.includes(key)
+                  && s.attributeProvenance?.[key] && s.attributeProvenance[key] !== s.source);
+              return (
+                <div key={s.eventSubjectId} style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.8rem',
+                    borderRadius: '999px', background: 'var(--surface-hover)', border: '1px solid var(--border-light)', fontSize: '0.85rem'
+                  }}>
+                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{s.label}</span>
+                    {ontologyKeys.length > 0 && (
+                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        {ontologyKeys.map((key) => String(attributes[key]).replace(/_/g, ' ')).join(' · ')}
+                      </span>
+                    )}
+                    {s.confidence != null && <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{Math.round(s.confidence * 100)}%</span>}
+                    <span style={{ fontSize: '0.64rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--primary)' }}>{s.source.replace('_', ' ')}</span>
+                  </span>
+                  {overridden.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', paddingLeft: '0.5rem' }}>
+                      {overridden.map(([key, value]) => {
+                        const pm = provenanceMeta(s.attributeProvenance[key]);
+                        return (
+                          <span key={key}
+                            title={`${key.replace(/_/g, ' ')} was recorded separately from this subject's overall source`}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.15rem 0.55rem',
+                              borderRadius: '999px', border: `1px solid color-mix(in srgb, ${pm.color} 40%, transparent)`,
+                              background: `color-mix(in srgb, ${pm.color} 8%, transparent)`,
+                              fontSize: '0.68rem', fontWeight: 600, color: pm.color
+                            }}>
+                            {key.replace(/_/g, ' ')}: {String(value)} · {pm.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           {event.description && (
             <p style={{ margin: '0.9rem 0 0', fontSize: '0.85rem', color: 'var(--text-main)', fontStyle: 'italic' }}>&ldquo;{event.description}&rdquo;</p>
           )}
+        </Card>
+      )}
+
+      {event.measurements.length > 0 && (
+        <Card>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="21" x2="4" y2="13" /><line x1="10" y1="21" x2="10" y2="7" /><line x1="16" y1="21" x2="16" y2="11" /><line x1="22" y1="21" x2="22" y2="3" />
+            </svg>
+          }>Measurements</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {event.measurements.map((m, i, arr) => (
+              <div key={m.measurementId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem',
+                padding: '0.6rem 0', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)', textTransform: 'capitalize' }}>
+                    {m.parameter.replace(/_/g, ' ')}
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    {[m.method === 'instrument' ? (m.instrument || 'Instrument reading') : 'Informal observation', m.notes].filter(Boolean).join(' — ')}
+                  </div>
+                </div>
+                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', flexShrink: 0 }}>
+                  {m.value}{m.unit ? ` ${m.unit}` : ''}
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 
@@ -746,6 +872,39 @@ export default function EventDetail() {
 
       <div className="ed-col">
 
+      {event.confidenceSignals.length > 0 && (
+        <Card>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2l8 3v6c0 5-3.4 8.7-8 11-4.6-2.3-8-6-8-11V5z" /><path d="M9 12l2 2 4-4" />
+            </svg>
+          }>Why this confidence level</SectionLabel>
+          <p style={{ margin: '-0.4rem 0 0.9rem', fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+            The signals behind &ldquo;{verMeta.label}&rdquo;. These aren&rsquo;t scored or weighted — they&rsquo;re shown so you can weigh them yourself.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+            {event.confidenceSignals.map((s) => {
+              const meta = SIGNAL_STANCE_META[s.stance] || SIGNAL_STANCE_META.neutral;
+              return (
+                <div key={s.signal} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
+                  <span aria-hidden="true" style={{
+                    flexShrink: 0, width: '18px', height: '18px', borderRadius: '50%', marginTop: '0.05rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700,
+                    background: `color-mix(in srgb, ${meta.color} 15%, transparent)`, color: meta.color
+                  }}>{meta.glyph}</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-main)', lineHeight: 1.45 }}>{s.detail}</div>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: meta.color, marginTop: '0.1rem' }}>
+                      {meta.label}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       {event.stateHistory.length > 0 && (
         <Card>
           <SectionLabel icon={
@@ -790,7 +949,10 @@ export default function EventDetail() {
             {event.verifications.map((v, i, arr) => (
               <div key={v.verificationId} style={{ padding: '0.55rem 0',
                 borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 600, textTransform: 'capitalize' }}>{v.outcome.replace(/_/g, ' ')}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, textTransform: 'capitalize' }}>{v.outcome.replace(/_/g, ' ')}</div>
+                  <ProofBadge proof={verificationProofs[v.verificationId]} />
+                </div>
                 {v.notes && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{v.notes}</div>}
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{fmt(v.createdAt)}</div>
               </div>
