@@ -756,7 +756,7 @@ export default function CitizenOverview() {
                 onClick={() => navigate('/citizen/quick-report')}
               >
                 <Send size={16} strokeWidth={2.25} />
-                Submit a Report
+                Submit Activity
               </button>
             </div>
           </div>
