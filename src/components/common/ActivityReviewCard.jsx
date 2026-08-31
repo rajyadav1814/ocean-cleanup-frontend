@@ -1,6 +1,17 @@
+import { Link } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
 import NoImagePlaceholder from './NoImagePlaceholder';
 import { formatActivityDate } from '../../utils/formatters';
+
+// Same three checks environmentalEventService's runIntakePipeline/
+// listEvents compute server-side (spec §20) — a verifier-facing label per
+// flag so "this report is thin" is visible at a glance instead of only
+// showing up as a longer review once opened.
+const SANITY_FLAG_META = {
+  missing_location: 'No location',
+  no_evidence: 'No evidence',
+  no_subject: 'Unclassified',
+};
 
 /**
  * Shared verifier-style activity card (image + gallery/IPFS badge, location
@@ -17,6 +28,11 @@ import { formatActivityDate } from '../../utils/formatters';
  *   showExtendedFields  – render Debris source / Survey / Weather rows.
  *                         Defaults to true; RejectedActivity passes false to
  *                         preserve its pre-existing (narrower) field set.
+ *   signal              – this activity's linked event's verification
+ *                         signals (spec §20), keyed by activity.environmentalEventId:
+ *                         { corroborationCount, sanityFlags, eventState, verificationState }.
+ *                         Absent (not just empty) while signals are still
+ *                         loading or the activity has no linked event yet.
  */
 export default function ActivityReviewCard({
   activity,
@@ -27,6 +43,7 @@ export default function ActivityReviewCard({
   busy,
   reviewMeta = false,
   showExtendedFields = true,
+  signal,
 }) {
   const urls = Array.isArray(activity.imageGatewayUrl)
     ? activity.imageGatewayUrl
@@ -97,6 +114,36 @@ export default function ActivityReviewCard({
           </h4>
           <StatusBadge status={activity.status} />
         </div>
+
+        {signal && (signal.corroborationCount > 0 || signal.sanityFlags.length > 0 || activity.environmentalEventId) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.9rem' }}>
+            {signal.corroborationCount > 0 && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.55rem', borderRadius: '999px',
+                background: 'rgba(16,185,129,.12)', color: 'var(--success)', fontSize: '0.7rem', fontWeight: 700
+              }} title="Independently reported by this many other nearby events">
+                ✓ Corroborated ×{signal.corroborationCount}
+              </span>
+            )}
+            {signal.sanityFlags.map((flag) => (
+              <span key={flag} style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.55rem', borderRadius: '999px',
+                background: 'rgba(245,158,11,.12)', color: 'var(--warning)', fontSize: '0.7rem', fontWeight: 700
+              }}>
+                ⚠ {SANITY_FLAG_META[flag] || flag}
+              </span>
+            ))}
+            {activity.environmentalEventId && (
+              <Link to={`/contributor/events/${activity.environmentalEventId}`} target="_blank" rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.55rem', borderRadius: '999px',
+                  border: '1px solid var(--border-light)', color: 'var(--primary)', fontSize: '0.7rem', fontWeight: 700, textDecoration: 'none'
+                }}>
+                View full event ↗
+              </Link>
+            )}
+          </div>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
           <div className="flex-between">

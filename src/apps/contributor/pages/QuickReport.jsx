@@ -208,20 +208,35 @@ const Tile = ({ icon, title, sub, onClick, disabled, theme }) => {
   );
 };
 
-const SubjectChip = ({ subject, onRemove }) => (
-  <span style={{
-    display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.7rem',
-    borderRadius: '999px', background: 'color-mix(in srgb, var(--primary) 10%, transparent)',
-    border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', fontSize: '0.8rem', color: 'var(--primary-hover)'
-  }}>
-    {subject.label}
-    <span style={{ fontSize: '0.68rem', opacity: 0.7 }}>{Math.round((subject.confidence ?? 0) * 100)}%</span>
-    <button type="button" onClick={onRemove} aria-label={`Remove ${subject.label}`}
-      style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontSize: '0.85rem', lineHeight: 1 }}>
-      ✕
-    </button>
-  </span>
-);
+// Surfaces condition/severity/hazard (spec §7.3-7.4 vocabulary) right on
+// the chip so the contributor can see and, via Remove, reject what Blue
+// Mind read on this subject before it's ever submitted — the "Is this
+// correct? Yes | Change" step the spec asks for (§6) would otherwise have
+// nothing to show for these fields at all.
+const ATTRIBUTE_DISPLAY_ORDER = ['condition', 'severity', 'hazard'];
+function attributeSummary(attributes) {
+  if (!attributes) return '';
+  return ATTRIBUTE_DISPLAY_ORDER.map((key) => attributes[key]).filter(Boolean).join(' · ').replace(/_/g, ' ');
+}
+
+const SubjectChip = ({ subject, onRemove }) => {
+  const summary = attributeSummary(subject.attributes);
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.7rem',
+      borderRadius: '999px', background: 'color-mix(in srgb, var(--primary) 10%, transparent)',
+      border: '1px solid color-mix(in srgb, var(--primary) 25%, transparent)', fontSize: '0.8rem', color: 'var(--primary-hover)'
+    }}>
+      {subject.label}
+      {summary && <span style={{ fontSize: '0.74rem', opacity: 0.85, fontStyle: 'italic' }}>{summary}</span>}
+      <span style={{ fontSize: '0.68rem', opacity: 0.7 }}>{Math.round((subject.confidence ?? 0) * 100)}%</span>
+      <button type="button" onClick={onRemove} aria-label={`Remove ${subject.label}`}
+        style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontSize: '0.85rem', lineHeight: 1 }}>
+        ✕
+      </button>
+    </span>
+  );
+};
 
 // Org context defaults silently from the contributor's own profile (spec
 // §19) — the dropdown itself already carries "Individual" as its first,
@@ -280,9 +295,19 @@ export default function QuickReport() {
   const [inferError, setInferError] = useState('');
   const [draft, setDraft] = useState(null);
   const [quantity, setQuantity] = useState('');
+  // What Blue Mind actually estimated (spec §17) — kept separate from the
+  // editable `quantity` field so submit-time can tell "contributor typed
+  // exactly what the AI guessed" (ai_inferred) apart from "contributor
+  // corrected it" (user_provided), instead of always crediting the AI
+  // subject's source for a value the human may have overridden by hand.
+  const [aiEstimatedQuantity, setAiEstimatedQuantity] = useState(null);
   const [location, setLocation] = useState('');
   const [lat, setLat] = useState(null);
   const [lon, setLon] = useState(null);
+  // spec §18 — from MapLocationPicker, only ever present when the device
+  // itself just located the point (not a manually placed pin).
+  const [locationAccuracy, setLocationAccuracy] = useState(null);
+  const [locationCaptureMethod, setLocationCaptureMethod] = useState(null);
   const [extraFields, setExtraFields] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -327,10 +352,12 @@ export default function QuickReport() {
     return () => { if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl); };
   }, [videoPreviewUrl]);
 
-  function handleLocationChange({ displayName, lat: newLat, lon: newLon }) {
+  function handleLocationChange({ displayName, lat: newLat, lon: newLon, accuracy, captureMethod }) {
     setLocation(displayName);
     setLat(newLat);
     setLon(newLon);
+    setLocationAccuracy(accuracy ?? null);
+    setLocationCaptureMethod(captureMethod ?? null);
   }
 
   async function runInference({ imageBase64, audioBase64, documentBase64, text, sourceOverride }) {
@@ -342,8 +369,10 @@ export default function QuickReport() {
       if (!res.ok) {
         setInferError(res.error || "Blue Mind couldn't classify this automatically — you can still describe it manually below.");
         setDraft({ subjects: [], description: '', quantityEstimateKg: null, missingFields: [] });
+        setAiEstimatedQuantity(null);
       } else {
         setDraft(res.inference);
+        setAiEstimatedQuantity(res.inference.quantityEstimateKg ?? null);
         if (res.inference.quantityEstimateKg != null) setQuantity(String(res.inference.quantityEstimateKg));
         // Voice notes and documents come back with the text Blue Mind
         // actually classified (a transcript, or extracted document text)
@@ -356,6 +385,7 @@ export default function QuickReport() {
     } catch {
       setInferError("Couldn't reach Blue Mind's classifier — check your connection. You can still describe it manually below.");
       setDraft({ subjects: [], description: '', quantityEstimateKg: null, missingFields: [] });
+      setAiEstimatedQuantity(null);
     } finally {
       setInferring(false);
       setMode('confirm');
@@ -476,6 +506,8 @@ export default function QuickReport() {
       volunteers: 1,
       lat, lon,
       gps: lat != null && lon != null ? `${lat}, ${lon}` : null,
+      locationAccuracy: locationAccuracy ?? undefined,
+      locationCaptureMethod: locationCaptureMethod ?? undefined,
       notes: measurementNotes || undefined,
       instrument: measurementSource === 'instrument' ? instrumentName.trim() : undefined,
       aiSubjects: JSON.stringify(subjects),
@@ -561,9 +593,24 @@ export default function QuickReport() {
     const subjects = draft.subjects;
     const noteParts = [draft.description, extraFields.action_taken, extraFields.hazard].filter(Boolean);
 
-    const aiSubjectsJson = JSON.stringify(subjects.map((s) => ({ family: s.family, code: s.code, confidence: s.confidence })));
+    // `attributes` carries the AI's condition/severity/hazard read on this
+    // subject (spec §7.3-7.4 vocabulary) when it returned one — forwarded
+    // as-is; the backend re-validates against the same fixed value lists
+    // before writing anything to event_subjects, so nothing here needs to
+    // re-check it, only avoid dropping it like the old payload did.
+    const aiSubjectsJson = JSON.stringify(subjects.map((s) => ({
+      family: s.family, code: s.code, confidence: s.confidence,
+      ...(s.attributes ? { attributes: s.attributes } : {})
+    })));
     const intakeMethod = (inputSource === 'photo' || inputSource === 'video') ? 'photo_video'
       : inputSource === 'document' ? 'upload' : 'tell_blue_mind';
+
+    // Field-level provenance (spec §17): if Blue Mind estimated a quantity
+    // and the contributor left it exactly as estimated, that value is
+    // still AI's — only mark it user_provided when they actually changed
+    // it (or when there was no AI estimate for this quantity at all).
+    const quantityProvenance = (aiEstimatedQuantity != null && Number(quantity) === Number(aiEstimatedQuantity))
+      ? 'ai_inferred' : 'user_provided';
 
     const payload = {
       category: mapToLegacyCategory(subjects),
@@ -572,6 +619,8 @@ export default function QuickReport() {
       volunteers: 1,
       lat, lon,
       gps: lat != null && lon != null ? `${lat}, ${lon}` : null,
+      locationAccuracy: locationAccuracy ?? undefined,
+      locationCaptureMethod: locationCaptureMethod ?? undefined,
       notes: noteParts.join(' — '),
       speciesSighted: extraFields.species || undefined,
       hazardsMedical: false,
@@ -581,7 +630,8 @@ export default function QuickReport() {
       rawText: rawText || undefined,
       intakeMethod,
       captureSource: captureSource || undefined,
-      organizationId: organizationId || undefined
+      organizationId: organizationId || undefined,
+      quantityProvenance
     };
     if (photoDataUrl) payload.imageUrls = JSON.stringify([photoDataUrl]);
 
@@ -1263,6 +1313,17 @@ export default function QuickReport() {
               style={{ width: '140px', padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
                 background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.88rem' }}
             />
+            {/* Shows which provenance this value will be recorded with
+                (spec §17) — matches the ai_inferred/user_provided split
+                handleSubmit actually computes, so it's never a promise
+                the submit doesn't keep. */}
+            {aiEstimatedQuantity != null && (
+              <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                {Number(quantity) === Number(aiEstimatedQuantity)
+                  ? `Blue Mind's estimate — recorded as AI inferred.`
+                  : `Edited from Blue Mind's ${aiEstimatedQuantity}kg estimate — recorded as user provided.`}
+              </p>
+            )}
           </div>
 
           {draft.missingFields.filter((f) => MISSING_FIELD_META[f]).map((field) => (

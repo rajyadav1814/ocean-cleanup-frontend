@@ -55,6 +55,16 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
   const [isMapRequested, setIsMapRequested] = useState(Boolean(suppliedPosition));
   const markerRef = useRef(null);
 
+  // Location architecture (spec §18) — only the device's Geolocation API
+  // knows either of these, so they're tracked here rather than derived
+  // later server-side. `accuracy` is the browser-reported radius in
+  // meters; it only means something for a point the device itself just
+  // located, so dragging the pin or clicking elsewhere on the map clears
+  // it back to null and flips captureMethod to 'manual_pin' — a
+  // deliberately placed pin isn't a lesser source, it just isn't a GPS fix.
+  const [accuracy, setAccuracy] = useState(null);
+  const [captureMethod, setCaptureMethod] = useState('unknown');
+
   // API responses may serialize coordinates as strings. Normalize them before
   // passing them to Leaflet or formatting them with toFixed().
   useEffect(() => {
@@ -111,18 +121,27 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
           (pos) => {
             const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
             setPosition(newPos);
+            // Number.isFinite guard: some browsers report accuracy as 0 for
+            // a genuinely unknown fix rather than omitting it.
+            setAccuracy(Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : null);
+            setCaptureMethod('gps');
             fetchLocationName(newPos.lat, newPos.lng);
           },
           (err) => {
             console.warn('Geolocation error:', err);
-            // Fallback to a default location (e.g. London) if geolocation fails
+            // Fallback to a default location (e.g. London) if geolocation fails —
+            // this isn't a real fix, so it's 'unknown', not 'gps'.
             setPosition({ lat: 51.505, lng: -0.09 });
+            setAccuracy(null);
+            setCaptureMethod('unknown');
             fetchLocationName(51.505, -0.09);
           },
           { enableHighAccuracy: true, timeout: 5000 }
         );
       } else {
         setPosition({ lat: 51.505, lng: -0.09 });
+        setAccuracy(null);
+        setCaptureMethod('unknown');
         fetchLocationName(51.505, -0.09);
       }
     }
@@ -131,20 +150,30 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
   // Sync internal state to parent when internal state changes
   useEffect(() => {
     if (position) {
-      onChange({ displayName: locationName, lat: position.lat, lon: position.lng });
+      onChange({ displayName: locationName, lat: position.lat, lon: position.lng, accuracy, captureMethod });
     }
-  }, [position, locationName]);
+  }, [position, locationName, accuracy, captureMethod]);
 
   // When clicking on the map (handled in MapEvents), we want to fetch the name
   // To avoid modifying MapEvents, we can just hook into handleDragEnd and also map clicks.
   // We'll update MapEvents to call fetchLocationName.
+
+  // Dragging the marker (or clicking elsewhere, below) moves the point off
+  // wherever it was — a stale accuracy figure from the original GPS fix (or
+  // no fix at all) no longer describes this position, and 'manual_pin' is
+  // the honest capture method for it from here on.
+  const handleManualPositionChange = useCallback((newLat, newLng) => {
+    setAccuracy(null);
+    setCaptureMethod('manual_pin');
+    fetchLocationName(newLat, newLng);
+  }, []);
 
   const handleDragEnd = useCallback(() => {
     const marker = markerRef.current;
     if (marker != null) {
       const newPos = marker.getLatLng();
       setPosition(newPos);
-      fetchLocationName(newPos.lat, newPos.lng);
+      handleManualPositionChange(newPos.lat, newPos.lng);
     }
   }, []);
 
@@ -170,7 +199,7 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
                 eventHandlers={{ dragend: handleDragEnd }}
                 ref={markerRef}
               />
-              <MapEvents position={position} setPosition={setPosition} onPositionChange={fetchLocationName} />
+              <MapEvents position={position} setPosition={setPosition} onPositionChange={handleManualPositionChange} />
             </MapContainer>
           ) : (
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-hover)', color: 'var(--text-muted)' }}>

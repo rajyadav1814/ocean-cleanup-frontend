@@ -8,9 +8,12 @@
 // ({ userLocation, organizationId }) for the two layers that need input
 // beyond the event's own fields.
 
+// 'reassessed' included — it's a closed report reopened by a fresh
+// corroborator (spec §11), so it belongs on the "unresolved" layer just
+// like 'recurring' does, not on the resolved side with 'addressed'.
 const UNRESOLVED_STATES = new Set([
   'observed', 'corroborated', 'needs_attention', 'action_planned',
-  'action_underway', 'recurring', 'disputed', 'unable_to_verify',
+  'action_underway', 'recurring', 'disputed', 'unable_to_verify', 'reassessed',
 ]);
 export const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 export const NEAR_ME_RADIUS_KM = 250;

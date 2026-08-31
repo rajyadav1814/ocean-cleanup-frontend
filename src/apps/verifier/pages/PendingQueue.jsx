@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useActivities } from '../../../hooks/useActivities';
+import { useEventSignals } from '../../../hooks/useEventSignals';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import ImageGalleryModal from '../../../components/common/ImageGalleryModal';
 import ActivityReviewCard from '../../../components/common/ActivityReviewCard';
@@ -59,6 +60,22 @@ function RejectModal({ onConfirm, onCancel, loading }) {
 export default function PendingQueue() {
   const { activities, loading, reviewActivity } = useActivities();
   const pendingActivities = activities.filter((activity) => activity.status === 'pending');
+
+  // spec §20: not every pending report needs the same scrutiny — a report
+  // several independent contributors already corroborated is a faster,
+  // higher-confidence review than a lone submission, so it's worth
+  // surfacing first. sanityFlags (no evidence / no location / unclassified)
+  // stay visible on every card regardless of position — they're a "look
+  // closer at this one" signal, not a demotion.
+  const { signalsByEventId } = useEventSignals(pendingActivities.map((a) => a.environmentalEventId));
+  const sortedPendingActivities = useMemo(() => {
+    return [...pendingActivities].sort((a, b) => {
+      const corrA = signalsByEventId[a.environmentalEventId]?.corroborationCount || 0;
+      const corrB = signalsByEventId[b.environmentalEventId]?.corroborationCount || 0;
+      if (corrA !== corrB) return corrB - corrA;
+      return new Date(b.timestamp) - new Date(a.timestamp);
+    });
+  }, [pendingActivities, signalsByEventId]);
 
   // Per-card action state: { [activityId]: 'approving' | 'rejecting' | null }
   const [actionState, setActionState] = useState({});
@@ -129,7 +146,7 @@ export default function PendingQueue() {
           <EmptyState message="No pending activities to review." />
         ) : (
           <div className="content-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
-            {pendingActivities.map((activity) => {
+            {sortedPendingActivities.map((activity) => {
               const busy = actionState[activity.id];
 
               return (
@@ -141,6 +158,7 @@ export default function PendingQueue() {
                   busy={busy}
                   onApprove={() => handleApprove(activity.id)}
                   onReject={() => openRejectModal(activity.id)}
+                  signal={signalsByEventId[activity.environmentalEventId]}
                 />
               );
             })}

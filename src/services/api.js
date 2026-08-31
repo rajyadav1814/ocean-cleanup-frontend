@@ -185,6 +185,9 @@ export const contributorApi = {
 export const eventApi = {
   getById:      (id)                        => apiGet(`/api/events/${id}`),
   listSubjects: (family)                    => apiGet(`/api/events/subjects${family ? `?family=${family}` : ''}`),
+  // spec §20: verifier queue signals — summaries (incl. corroborationCount,
+  // sanityFlags) for an exact, already-known set of events in one request.
+  listByIds:    (eventIds)                  => apiGet(`/api/events?eventIds=${eventIds.join(',')}`),
   planAction:   (id, { subjectCode, title, description }) =>
     apiPost(`/api/events/${id}/actions`, { subjectCode, title, description }),
   complete:     (id, { kgRemoved, note, imageUrls }) =>
@@ -192,6 +195,10 @@ export const eventApi = {
   verify:       (id, { outcome, notes }) => apiPost(`/api/events/${id}/verify`, { outcome, notes }),
   relate:       (id, { toEventId, relationshipType }) =>
     apiPost(`/api/events/${id}/relate`, { toEventId, relationshipType }),
+  // spec §21: a verifier's own attestation gets its own tamper-evident
+  // proof — the only proof mechanism an action-event (no legacy activity)
+  // ever has. Mirrors activityApi.getProof's shape exactly.
+  getVerificationProof: (verificationId) => apiGet(`/api/events/verifications/${verificationId}/proof`),
 };
 
 // ─── AI intake helper ──────────────────────────────────────────────────────────
