@@ -1,16 +1,20 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import { useTheme } from '../../../context/ThemeContext';
 import { useCitizenStats, useCitizenLeaderboard, useCitizenFeed } from '../../../hooks/useCitizen';
 import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import SubmitActivity from '../../contributor/pages/SubmitActivity';
 import MyAreasMap from '../../contributor/components/MyAreasMap';
+import CoastScene from '../../contributor/components/CoastScene';
+import CoastSceneNight from '../../contributor/components/CoastSceneNight';
 import { eventStateMeta, verificationStateMeta } from '../../contributor/eventMeta';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Bell, AlertCircle, Recycle, MapPin, Calendar, ShieldCheck, CheckCircle2, ChevronRight,
   BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets, FileText, Trophy, Award, Users,
-  Weight, Medal, Waves, Shell, Flame, Anchor, Maximize,
+  Weight, Medal, Waves, Shell, Flame, Anchor, Maximize, Send,
+  Megaphone, BarChart3, Shield,
 } from 'lucide-react';
 
 // Classic gold/silver/bronze for the top 3 leaderboard spots; ranks 4+
@@ -148,10 +152,8 @@ const STYLES = `
     --text-muted: rgba(233,242,247,.68);
   }
 
-  [data-theme="dark"] .co-hero,
   [data-theme="dark"] .co-stat,
   [data-theme="dark"] .co-panel,
-  .force-dark .co-hero,
   .force-dark .co-stat,
   .force-dark .co-panel {
     box-shadow: 0 24px 48px -30px rgba(3,12,22,.65);
@@ -159,64 +161,13 @@ const STYLES = `
     -webkit-backdrop-filter: blur(18px) saturate(1.3);
   }
 
-  [data-theme="dark"] .co-hero-wave { opacity: .72; }
   [data-theme="dark"] .co-badge.earned,
   .force-dark .co-badge.earned { background: rgba(46,158,155,.12); }
 
-  /* wave signature strip */
-  .co-wavebar { position: absolute !important; left: 0; bottom: 0; width: 100%; height: 80px; overflow: hidden; background: var(--surface-hover); z-index: 0 !important; pointer-events: none; }
-  .co-wavebar svg { position: absolute; left: 0; bottom: -1px; width: 200%; max-width: none; height: 100px; }
-  .co-wavebar .l1 { fill: var(--primary); opacity: .18; animation: coWaveL 32s linear infinite; }
-  .co-wavebar .l2 { fill: var(--secondary); opacity: .14; animation: coWaveR 44s linear infinite; }
-  .co-wavebar .l3 { fill: var(--border-glow); opacity: .16; animation: coWaveL 20s linear infinite; }
-  @keyframes coWaveL { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-  @keyframes coWaveR { from { transform: translateX(-50%); } to { transform: translateX(0); } }
-  @media (prefers-reduced-motion: reduce) {
-    .co-wavebar .l1, .co-wavebar .l2, .co-wavebar .l3 { animation: none; }
-  }
-
-  /* hero */
-  .co-hero {
-    position: relative; overflow: hidden;
-    display: flex; align-items: flex-end;
-    justify-content: space-between; gap: 2rem; flex-wrap: wrap;
-    background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    padding: 2rem 2.2rem;
-    margin-bottom: 1.4rem;
-    box-shadow: 0 1px 2px rgba(10,30,50,.04);
-  }
-  .co-hero > * { position: relative; z-index: 1; }
-  .co-hero-wave { position: absolute; right: -3%; bottom: -22%; width: min(42%, 340px); opacity: .5; pointer-events: none; z-index: 0; }
-  .co-eyebrow {
-    font-size: 0.62rem; letter-spacing: 0.24em; text-transform: uppercase;
-    color: var(--primary); margin-bottom: 0.8rem; opacity: 0.85;
-    font-family: var(--font-mono); font-weight: 500;
-  }
-  .co-hero-kicker { display: flex; align-items: center; gap: 0.8rem; }
-  .co-hero-kicker .co-eyebrow { margin-bottom: 0.8rem; }
-  .co-heading-wave {
-    width: 124px; height: 34px; margin-bottom: 0.8rem; overflow: visible;
-    color: var(--border-glow); opacity: .72;
-  }
-  .co-heading-wave path { fill: none; stroke: currentColor; stroke-linecap: round; }
-  .co-heading-wave .wave-1 { stroke-width: 1.15; opacity: .8; }
-  .co-heading-wave .wave-2 { stroke: var(--primary); stroke-width: 1.35; opacity: .6; }
-  .co-heading-wave .wave-3 { stroke-width: 1; opacity: .48; }
-  .co-h1 {
-    font-size: 1.9rem; font-weight: 500; line-height: 1.25;
-    color: var(--text-main); margin: 0; max-width: 540px;
-    font-family: var(--font-display); letter-spacing: -.028em;
-  }
-  .co-h1 em { font-style: italic; font-family: var(--font-serif); font-weight: 400; color: var(--primary); }
-  .co-hero-sub {
-    font-size: 0.88rem; color: var(--text-muted);
-    margin-top: 0.7rem; max-width: 460px; line-height: 1.7;
-  }
   /* Chrome (colors/shape/font/hover) comes from the shared .co-cta rule in
      styles.css — same button as the contributor space and My Activities.
-     Only page-specific spacing is set here. */
+     Still used by the empty-state CTA below; the hero itself now uses the
+     .bm-hero__btn system shared with the Contributor Space. */
   .co-cta { cursor: pointer; flex-shrink: 0; margin-bottom: 2.75rem; }
 
   /* stat strip */
@@ -480,15 +431,12 @@ const STYLES = `
   @media (max-width: 900px) {
     .co-grid  { grid-template-columns: 1fr; }
     .co-stats { grid-template-columns: repeat(2,1fr); }
-    .co-h1    { font-size: 1.5rem; }
   }
   @media (max-width: 520px) {
-    .co-heading-wave { width: 92px; }
     .co-badges { grid-template-columns: repeat(2,1fr); }
     .co-stat   { padding: 1rem 1.1rem; }
     .co-stat-value { font-size: 1.4rem; }
     .co-panel  { padding: 1.2rem; }
-    .co-hero   { padding: 1.4rem; }
     .co-cta    { align-self: flex-start; margin-bottom: 2.4rem; }
   }
 
@@ -504,7 +452,214 @@ const STYLES = `
   }
   .co-empty-title { margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main); font-family: var(--font-display); }
   .co-empty-sub { margin: 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; max-width: 420px; }
+
+  /* ── Community hero ──
+     One card holding the welcome banner and the value strip beneath it, so
+     the wave divider and the tinted strip read as a single surface. */
+  .bm-hero {
+    position:relative; overflow:hidden; background:var(--surface);
+    border:1px solid var(--border-light); border-radius:20px;
+    box-shadow:0 1px 2px rgba(10,30,50,.04), 0 22px 44px -38px rgba(10,30,50,.45);
+    margin-bottom: 1.4rem;
+  }
+  .bm-hero__main { position:relative; padding:1.55rem 1.9rem 5.5rem; min-height:334px; }
+  .bm-hero__scene {
+    position:absolute; inset:0 0 0 auto; width:min(56%,690px); z-index:0; pointer-events:none;
+    -webkit-mask-image:linear-gradient(to right, transparent 0%, rgba(0,0,0,.35) 32%, #000 62%);
+    mask-image:linear-gradient(to right, transparent 0%, rgba(0,0,0,.35) 32%, #000 62%);
+  }
+  .bm-hero__scene svg { display:block; width:100%; height:100%; }
+
+  .bm-hero__top { position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+  .bm-hero__brand { display:flex; align-items:center; gap:.85rem; min-width:0; flex:1 1 auto; flex-wrap:wrap; }
+  .bm-hero__brand-id { display:flex; align-items:center; gap:.85rem; min-width:0; }
+  .bm-hero__logo {
+    width:48px; height:48px; flex-shrink:0; border-radius:999px; display:grid; place-items:center;
+    background:color-mix(in srgb, var(--secondary) 14%, transparent); color:var(--secondary);
+  }
+  .bm-hero__brand-name {
+    font-size:.8rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--primary-hover); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .bm-hero__member {
+    display:inline-flex; align-items:center; gap:.4rem; padding:.45rem .8rem; border-radius:999px;
+    background:color-mix(in srgb, var(--success) 16%, transparent); color:var(--success); font-size:.68rem; font-weight:700; letter-spacing:.1em;
+    text-transform:uppercase; white-space:nowrap;
+  }
+  .bm-hero__job {
+    display:inline-flex; align-items:center; padding:.45rem .8rem; border-radius:999px;
+    background:var(--surface-hover); color:var(--text-muted); font-size:.68rem; font-weight:700;
+    letter-spacing:.08em; text-transform:uppercase; white-space:nowrap;
+    max-width:200px; overflow:hidden; text-overflow:ellipsis;
+  }
+
+  .bm-hero__account { position:relative; flex-shrink:0; }
+  .bm-hero__logout {
+    display:inline-flex; align-items:center; gap:.6rem; height:50px; padding:0 1.35rem;
+    border-radius:999px; border:1px solid var(--border-light); background:var(--surface);
+    color:var(--text-main); font-family:var(--font-sans); font-size:.72rem; font-weight:700;
+    letter-spacing:.12em; text-transform:uppercase; white-space:nowrap; cursor:pointer;
+    box-shadow:0 1px 2px rgba(10,30,50,.05); transition:border-color .2s, box-shadow .2s;
+  }
+  .bm-hero__logout:hover { border-color:var(--border-glow); box-shadow:0 10px 22px -14px rgba(10,30,50,.5); }
+  .bm-hero__logout .bm-hero__lead-ico { color:var(--primary); }
+  .bm-hero__logout .bm-hero__caret { color:var(--text-muted); transition:transform .2s; }
+  .bm-hero__logout[aria-expanded="true"] .bm-hero__caret { transform:rotate(180deg); }
+  .bm-hero__menu {
+    position:absolute; top:calc(100% + .5rem); right:0; z-index:30; width:212px; overflow:hidden;
+    background:var(--surface); border:1px solid var(--border-light); border-radius:12px;
+    box-shadow:0 24px 44px -22px rgba(10,30,50,.5);
+  }
+  .bm-hero__menu-head { padding:.75rem .9rem; background:var(--surface-hover); border-bottom:1px solid var(--border-light); }
+  .bm-hero__menu-name { font-size:.82rem; font-weight:700; color:var(--text-main); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bm-hero__menu-role { margin-top:.15rem; font-size:.72rem; color:var(--text-muted); text-transform:capitalize; }
+  .bm-hero__menu button {
+    display:flex; align-items:center; gap:.65rem; width:100%; padding:.7rem .9rem;
+    background:none; border:none; border-radius:0; box-shadow:none; cursor:pointer; text-align:left;
+    font-family:var(--font-sans); font-size:.82rem; font-weight:600; color:var(--text-main);
+  }
+  .bm-hero__menu button:hover { background:var(--surface-hover); }
+  .bm-hero__menu button.is-danger { color:var(--danger); }
+  .bm-hero__menu button.is-danger:hover { background:color-mix(in srgb, var(--danger) 10%, transparent); }
+
+  .bm-hero__body { position:relative; z-index:2; max-width:712px; margin-top:1.9rem; }
+  .bm-hero__title {
+    margin:0; color:var(--text-main); font-family:var(--font-display);
+    font-size:clamp(1.8rem, 3.05vw, 2.52rem); font-weight:600; line-height:1.18; letter-spacing:-.032em;
+  }
+  .bm-hero__title span { color:var(--primary); }
+  .bm-hero__sub {
+    max-width:480px; margin:1.2rem 0 0; color:var(--text-muted);
+    font-size:.97rem; line-height:1.62;
+  }
+  .bm-hero__actions { display:flex; flex-wrap:wrap; gap:.8rem; margin-top:1.8rem; }
+  .bm-hero__btn {
+    display:inline-flex; align-items:center; gap:.65rem; height:52px; padding:0 1.65rem;
+    border:1px solid transparent; border-radius:999px; cursor:pointer; white-space:nowrap;
+    font-family:var(--font-sans); font-size:.74rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    transition:transform .18s, box-shadow .2s, border-color .2s, background .2s;
+  }
+  .bm-hero__btn--primary {
+    background:linear-gradient(135deg,#2C948B,#12665F); color:#FFFFFF;
+    box-shadow:0 20px 32px -20px rgba(18,102,95,.9);
+  }
+  .bm-hero__btn--primary:hover { background:linear-gradient(135deg,#35A79D,#17796F); transform:translateY(-1px); }
+  .bm-hero__btn--ghost {
+    background:var(--surface); border-color:var(--border-light); color:var(--text-main);
+    box-shadow:0 1px 2px rgba(10,30,50,.05);
+  }
+  .bm-hero__btn--ghost:hover { border-color:var(--border-glow); transform:translateY(-1px); }
+  .bm-hero__btn--ghost .bm-hero__lead-ico { color:var(--primary); }
+
+  /* Wave divider: crest breaking over a shallow-water band, both ends
+     tied to theme tokens so the divider matches the card's own surface. */
+  .bm-hero__wave {
+    --bm-wave-crest: var(--surface);
+    position:absolute; left:0; right:0; bottom:0; height:74px; z-index:1; pointer-events:none;
+    background:linear-gradient(180deg, var(--surface-hover) 0%, color-mix(in srgb, var(--surface-hover) 55%, var(--border-glow) 45%) 100%);
+  }
+  .bm-hero__wave svg { position:absolute; inset:0; display:block; width:100%; height:100%; }
+
+  .bm-hero__values {
+    position:relative; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.35rem 1.9rem;
+    padding:1.4rem 1.9rem 1.5rem; background:var(--surface-hover); border-top:1px solid var(--border-light);
+  }
+  .bm-hero__value { display:flex; align-items:flex-start; gap:.85rem; min-width:0; }
+  .bm-hero__value-icon { width:42px; height:42px; flex-shrink:0; border-radius:999px; display:grid; place-items:center; }
+  .bm-hero__value-title { margin:0; font-size:.87rem; font-weight:700; color:var(--text-main); }
+  .bm-hero__value-copy { min-width:0; max-width:166px; }
+  .bm-hero__value-text { margin:.22rem 0 0; font-size:.78rem; line-height:1.5; color:var(--text-muted); }
+
+  @media(max-width:1080px){
+    .bm-hero__scene { width:50%; }
+    .bm-hero__values { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media(max-width:860px){
+    .bm-hero__main { padding:1.3rem 1.4rem 4.75rem; min-height:0; }
+    .bm-hero__scene { width:100%; opacity:.24; }
+    .bm-hero__body { max-width:none; }
+    .bm-hero__wave { height:72px; }
+  }
+
+  @media(max-width:640px){
+    .bm-hero__logo { width:42px; height:42px; }
+    .bm-hero__brand-name { font-size:.66rem; letter-spacing:.1em; }
+    .bm-hero__logout { height:42px; padding:0 .85rem; font-size:.64rem; letter-spacing:.08em; gap:.45rem; }
+    .bm-hero__sub { font-size:.9rem; }
+    .bm-hero__actions { gap:.6rem; }
+    .bm-hero__btn { flex:1 1 100%; justify-content:center; height:48px; }
+    .bm-hero__values { grid-template-columns:1fr; gap:1rem; padding:1.15rem 1.25rem; }
+    .bm-hero__value-copy { max-width:none; }
+  }
+  /* Below this the wordmark would truncate mid-word, so the mark carries
+     the brand on its own. */
+  @media(max-width:560px){
+    .bm-hero__brand-name { display:none; }
+    .bm-hero__brand { gap:.6rem; }
+    .bm-hero__member { padding:.4rem .65rem; font-size:.64rem; letter-spacing:.08em; }
+  }
+
+  /* ── Dark theme ──
+     The artwork swaps to the night scene in JSX; these rules carry the
+     chrome across with it. Placed after the breakpoints above so they win
+     on every width. */
+  [data-theme="dark"] .bm-hero__logo {
+    background:color-mix(in srgb, var(--primary) 15%, transparent); color:var(--primary);
+    border:1px solid color-mix(in srgb, var(--primary) 26%, transparent);
+  }
+  [data-theme="dark"] .bm-hero__btn--primary {
+    background:linear-gradient(135deg,#0F7168,#18A294);
+    box-shadow:0 20px 34px -20px rgba(24,162,148,.75);
+  }
+  [data-theme="dark"] .bm-hero__btn--primary:hover { background:linear-gradient(135deg,#13847A,#1EB7A6); }
+  [data-theme="dark"] .bm-hero__btn--ghost {
+    background:transparent; border-color:color-mix(in srgb, var(--primary) 50%, transparent); color:var(--primary);
+  }
+  [data-theme="dark"] .bm-hero__btn--ghost:hover {
+    border-color:var(--primary); background:color-mix(in srgb, var(--primary) 10%, transparent);
+  }
+  [data-theme="dark"] .bm-hero__logout:hover,
+  [data-theme="dark"] .bm-hero__btn--ghost:hover { box-shadow:0 10px 26px -16px rgba(0,0,0,.6); }
+  /* An opaque crest, so the night artwork stops cleanly at the divider
+     rather than bleeding through the card's translucent surface. */
+  [data-theme="dark"] .bm-hero__wave {
+    --bm-wave-crest:#08202F;
+    background:linear-gradient(180deg,#0E3148 0%,#0A2133 100%);
+  }
+  [data-theme="dark"] .bm-hero__value-icon {
+    border:1px solid color-mix(in srgb, currentColor 30%, transparent);
+  }
+  [data-theme="dark"] .bm-hero__value:not(:first-child) {
+    border-left:1px solid var(--border-light); margin-left:-.95rem; padding-left:.95rem;
+  }
+  @media(max-width:640px){
+    [data-theme="dark"] .bm-hero__value:not(:first-child) { border-left:none; margin-left:0; padding-left:0; }
+  }
 `;
+
+/* Brand mark shown in the hero's community bar — mirrors the one on the
+   Contributor Space so both spaces read as the same product. */
+const BlueMindMark = () => (
+  <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+    <path d="M16 3.6 27 9.6v12.8L16 28.4 5 22.4V9.6z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" opacity=".38" />
+    <path d="M9.5 14.4c1.7-1.9 3.4-1.9 5.1 0s3.4 1.9 5.1 0 3.4-1.9 5.1 0" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" fill="none" transform="translate(-3.6 0)" />
+    <path d="M9.5 19c1.7-1.9 3.4-1.9 5.1 0s3.4 1.9 5.1 0 3.4-1.9 5.1 0" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" fill="none" transform="translate(-3.6 0)" opacity=".55" />
+  </svg>
+);
+
+// Tints are alpha-blended (not flat hex) so they read as a soft wash over
+// whichever surface sits behind them instead of a flat light patch that
+// would stand out against a dark card.
+const HERO_VALUES = [
+  { key:'awareness', title:'Raise Awareness', text:'Your reports help spread environmental awareness.',
+    Icon: Megaphone, color:'#3B82F6', tint:'rgba(59,130,246,0.14)' },
+  { key:'impact', title:'Drive Impact', text:'Data you share helps drive real-world action.',
+    Icon: BarChart3, color:'#22A06B', tint:'rgba(34,160,107,0.14)' },
+  { key:'trust', title:'Build Trust', text:'Verified reports create tamper-proof records.',
+    Icon: Shield, color:'#7C5CD6', tint:'rgba(124,92,214,0.14)' },
+  { key:'protect', title:'Protect Together', text:'Small actions today for a better tomorrow.',
+    Icon: Leaf, color:'#CE9A2E', tint:'rgba(206,154,46,0.16)' },
+];
 
 /* ── Empty state shown to brand-new citizens instead of a wall of zeros ── */
 const NoDataYet = () => (
@@ -525,6 +680,9 @@ const NoDataYet = () => (
 
 export default function CitizenOverview() {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const navigate = useNavigate();
   const { stats, loading: sL } = useCitizenStats();
   const { leaderboard, myRow, loading: lL } = useCitizenLeaderboard();
   const { feed, loading: fL } = useCitizenFeed(24);
@@ -566,47 +724,64 @@ export default function CitizenOverview() {
 
       {toast && <div className="co-toast">{toast}</div>}
 
-      {/* ── Hero ── */}
-      <div className="co-hero">
-        {/* ── wave signature strip ── */}
-        <div className="co-wavebar" aria-hidden="true">
-          <svg className="l1" viewBox="0 0 2400 120" preserveAspectRatio="none">
-            <path d="M0,50 Q300,20 600,50 T1200,50 T1800,50 T2400,50 L2400,120 L0,120 Z" />
-          </svg>
-          <svg className="l2" viewBox="0 0 2400 120" preserveAspectRatio="none">
-            <path d="M0,66 Q300,90 600,66 T1200,66 T1800,66 T2400,66 L2400,120 L0,120 Z" />
-          </svg>
-          <svg className="l3" viewBox="0 0 2400 120" preserveAspectRatio="none">
-            <path d="M0,80 Q150,96 300,80 T600,80 T900,80 T1200,80 T1500,80 T1800,80 T2100,80 T2400,80 L2400,120 L0,120 Z" />
-          </svg>
-        </div>
+      {/* ── Hero ── same Blue Mind hero used on the Contributor Space, so
+          both spaces read as one product. Citizen has no export/report
+          endpoint, so the hero carries a single CTA instead of the pair. */}
+      <div className="bm-hero">
+        <div className="bm-hero__main">
+          <div className="bm-hero__scene">{isLight ? <CoastScene /> : <CoastSceneNight />}</div>
 
-        <svg className="co-hero-wave" viewBox="0 0 400 200" fill="none" aria-hidden="true">
-          <path d="M0,150 Q50,110 100,150 T200,150 T300,150 T400,150" stroke="var(--primary)" strokeWidth="2" opacity=".5" />
-          <path d="M0,175 Q50,140 100,175 T200,175 T300,175 T400,175" stroke="var(--secondary)" strokeWidth="2" opacity=".35" />
-          <path d="M0,125 Q50,90 100,125 T200,125 T300,125 T400,125" stroke="var(--border-glow)" strokeWidth="2" opacity=".4" />
-        </svg>
-        <div>
-          <div className="co-hero-kicker">
-            <div className="co-eyebrow">Citizen Space</div>
-            <svg className="co-heading-wave" viewBox="0 0 136 38" aria-hidden="true">
-              <path className="wave-1" d="M1 12c13-11 27-11 40 0s27 11 40 0 27-11 40 0" />
-              <path className="wave-2" d="M12 20c13-11 27-11 40 0s27 11 40 0 27-11 40 0" />
-              <path className="wave-3" d="M1 28c13-11 27-11 40 0s27 11 40 0 27-11 40 0" />
+          <div className="bm-hero__top">
+            <div className="bm-hero__brand">
+              <span className="bm-hero__logo"><BlueMindMark /></span>
+              <span className="bm-hero__brand-name">BlueMind Community</span>
+              {user?.jobTitle && <span className="bm-hero__job" title={user.jobTitle}>{user.jobTitle}</span>}
+            </div>
+          </div>
+
+          <div className="bm-hero__body">
+            <h1 className="bm-hero__title">
+              Hi {firstName},<br />
+              thank you for being part of <span>Bluemind.</span>
+            </h1>
+            <p className="bm-hero__sub">
+              Every activity you submit helps us understand pollution patterns,
+              raise awareness, and build a cleaner, healthier planet together.
+            </p>
+            <div className="bm-hero__actions">
+              <button
+                id="citizen-submit-hero"
+                type="button"
+                className="bm-hero__btn bm-hero__btn--primary"
+                onClick={() => navigate('/citizen/quick-report')}
+              >
+                <Send size={16} strokeWidth={2.25} />
+                Submit a Report
+              </button>
+            </div>
+          </div>
+
+          <div className="bm-hero__wave" aria-hidden="true">
+            <svg viewBox="0 0 1200 74" preserveAspectRatio="none">
+              <path d="M0 34C182 4 374 0 566 20c198 20 424 34 634 6V0H0z" fill="var(--bm-wave-crest)" />
+              <path d="M0 50C182 22 374 16 566 36c198 20 424 32 634 6v-8c-210 28-438 14-634-8C374 6 182 12 0 42z" fill="var(--border-glow)" opacity=".35" />
             </svg>
           </div>
-          <h1 className="co-h1">
-            Hi {firstName} — the coast is{' '}
-            <em>a little cleaner</em> because you showed up.
-          </h1>
-          <p className="co-hero-sub">
-            {s.totalReports || 0} report{s.totalReports !== 1 ? 's' : ''} logged since {sinceLabel}.
-            Every entry feeds the community map BlueMind uses to track where pollution is concentrating.
-          </p>
         </div>
-        <Link to="/citizen/quick-report" id="citizen-submit-hero" className="co-cta">
-          <span>Submit a report</span><span aria-hidden="true">→</span>
-        </Link>
+
+        <div className="bm-hero__values">
+          {HERO_VALUES.map(({ key, title, text, Icon, color, tint }) => (
+            <div key={key} className="bm-hero__value">
+              <span className="bm-hero__value-icon" style={{ background: tint, color }}>
+                <Icon size={19} strokeWidth={2.25} />
+              </span>
+              <div className="bm-hero__value-copy">
+                <h3 className="bm-hero__value-title">{title}</h3>
+                <p className="bm-hero__value-text">{text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {isNewUser ? (
