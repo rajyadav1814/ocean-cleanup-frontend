@@ -31,6 +31,14 @@ const CSS = `
 /* Plants anchored at the seabed, hinging from their base. */
 @keyframes bmReefSway { 0%,100% { transform: rotate(-5.5deg); } 50% { transform: rotate(5.5deg); } }
 @keyframes bmReefSwayS { 0%,100% { transform: rotate(3.5deg); } 50% { transform: rotate(-3.5deg); } }
+/* Octopus arms and jellyfish tentacles hang from a body above them, so they
+   hinge at the top rather than the bottom the plants use. */
+@keyframes bmReefHang  { 0%,100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+@keyframes bmReefHangS { 0%,100% { transform: rotate(4.5deg); } 50% { transform: rotate(-4.5deg); } }
+/* A jellyfish's bell contracting to push itself along. */
+@keyframes bmReefPulse { 0%,100% { transform: scaleY(1) scaleX(1); } 45% { transform: scaleY(.78) scaleX(1.1); } }
+/* The slow rise and fall of an octopus's mantle at rest. */
+@keyframes bmReefBreathe { 0%,100% { transform: scale(1); } 50% { transform: scale(.94); } }
 /* Sunlight through a moving surface. */
 @keyframes bmReefRay { 0%,100% { opacity:.16; transform: translateX(-26px) scaleX(.9); } 50% { opacity:.5; transform: translateX(26px) scaleX(1.12); } }
 @keyframes bmReefCaustic { from { transform: translateX(0); } to { transform: translateX(-400px); } }
@@ -55,6 +63,10 @@ const CSS = `
 .bm-reef__flip-b   { animation: bmReefFlipperB 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: right center; }
 .bm-reef__sway     { animation: bmReefSway 6s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom center; }
 .bm-reef__sway--s  { animation: bmReefSwayS 4.4s ease-in-out infinite; transform-box: fill-box; transform-origin: bottom center; }
+.bm-reef__hang     { animation: bmReefHang 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: top center; }
+.bm-reef__hang--s  { animation: bmReefHangS 2.5s ease-in-out infinite; transform-box: fill-box; transform-origin: top center; }
+.bm-reef__pulse    { animation: bmReefPulse 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center top; }
+.bm-reef__breathe  { animation: bmReefBreathe 4.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 .bm-reef__ray      { animation: bmReefRay 11s ease-in-out infinite; transform-box: fill-box; transform-origin: top center; }
 .bm-reef__caustic  { animation: bmReefCaustic 26s linear infinite; }
 .bm-reef__bubble   { animation: bmReefBubble linear infinite; }
@@ -177,6 +189,69 @@ const Turtle = () => (
     </g>
     <g className="bm-reef__flip-f" style={{ animationDelay: '-1.3s' }}>
       <path d="M-40 24c-14 24-36 38-64 38 4-22 22-40 50-50z" fill="#3E7B58" />
+    </g>
+  </g>
+);
+
+/* Octopus: stationary on the seabed rather than swimming, so it reads as a
+   different kind of animal, not just a slower fish. Drawn mantle-up, arms
+   hanging below — the scene positions it sitting among the coral. Each arm
+   hinges independently at the mantle so they never move in lock-step. */
+const Octopus = () => (
+  <g>
+    <g className="bm-reef__hang" style={{ animationDuration: '3.4s' }}>
+      <path d="M-24-4c-14 22-16 44-8 66" stroke="#6B4485" strokeWidth="9" strokeLinecap="round" fill="none" />
+    </g>
+    <g className="bm-reef__hang--s" style={{ animationDuration: '2.6s', animationDelay: '-.6s' }}>
+      <path d="M-14-2c-8 26-6 50 4 70" stroke="#71488C" strokeWidth="9" strokeLinecap="round" fill="none" />
+    </g>
+    <g className="bm-reef__hang" style={{ animationDuration: '3s', animationDelay: '-1.3s' }}>
+      <path d="M-4 0c-2 28 2 52 10 72" stroke="#6B4485" strokeWidth="9" strokeLinecap="round" fill="none" />
+    </g>
+    <g className="bm-reef__hang--s" style={{ animationDuration: '2.8s', animationDelay: '-1.9s' }}>
+      <path d="M6 0c2 28 8 50 18 68" stroke="#71488C" strokeWidth="9" strokeLinecap="round" fill="none" />
+    </g>
+    <g className="bm-reef__hang" style={{ animationDuration: '3.2s', animationDelay: '-.4s' }}>
+      <path d="M16-2c8 24 14 46 26 62" stroke="#6B4485" strokeWidth="9" strokeLinecap="round" fill="none" />
+    </g>
+    <g className="bm-reef__hang--s" style={{ animationDuration: '2.4s', animationDelay: '-2.4s' }}>
+      <path d="M26-4c14 20 22 40 36 54" stroke="#71488C" strokeWidth="9" strokeLinecap="round" fill="none" />
+    </g>
+    {/* Mantle, breathing gently at rest */}
+    <g className="bm-reef__breathe">
+      <ellipse cx="0" cy="-28" rx="36" ry="32" fill="#8E5FA8" />
+      <ellipse cx="-8" cy="-36" rx="24" ry="20" fill="#A576BE" opacity=".55" />
+      <circle cx="14" cy="-16" r="3.4" fill="#5E3B76" opacity=".5" />
+      <circle cx="-4" cy="-10" r="2.6" fill="#5E3B76" opacity=".4" />
+      <circle cx="-18" cy="-20" r="2.8" fill="#5E3B76" opacity=".4" />
+      <circle cx="-14" cy="-32" r="7" fill="#F4EAFB" />
+      <circle cx="-15" cy="-32" r="4" fill="#241830" />
+      <circle cx="-16.6" cy="-33.6" r="1.4" fill="#FFFFFF" />
+      <circle cx="12" cy="-32" r="7" fill="#F4EAFB" />
+      <circle cx="11" cy="-32" r="4" fill="#241830" />
+      <circle cx="9.4" cy="-33.6" r="1.4" fill="#FFFFFF" />
+    </g>
+  </g>
+);
+
+/* Jellyfish: drifts rather than swims — no travel-and-bank like the fish,
+   just a slow rise on its own bell-pulse. A second, different movement
+   language in the water column alongside "fish that swim" and "octopus
+   that sits". */
+const Jellyfish = ({ hue = '#FFAEDB', hue2 = '#FF8AC8' }) => (
+  <g>
+    <g className="bm-reef__pulse">
+      <path d="M-28 2c-2-20 10-34 28-34s30 14 28 34c-6-5-11-5-16 0-6-6-12-6-18 0-6-6-12-6-18 0-4-4-4-4-4 0z" fill={hue} opacity=".82" />
+      <path d="M-28 2c5 5 12 8 28 8s23-3 28-8" fill="none" stroke={hue2} strokeWidth="2" opacity=".55" />
+    </g>
+    <g className="bm-reef__hang" style={{ animationDuration: '2.2s' }}>
+      <path d="M-16 6c-4 22-1 42 5 60" stroke={hue2} strokeWidth="2.4" strokeLinecap="round" fill="none" opacity=".6" />
+    </g>
+    <g className="bm-reef__hang--s" style={{ animationDuration: '1.8s', animationDelay: '-.7s' }}>
+      <path d="M0 8c1 24 5 44 12 62" stroke={hue2} strokeWidth="2.4" strokeLinecap="round" fill="none" opacity=".6" />
+    </g>
+    <g className="bm-reef__hang" style={{ animationDuration: '2s', animationDelay: '-1.2s' }}>
+      <path d="M16 6c5 22 4 42-1 60" stroke={hue2} strokeWidth="2.4" strokeLinecap="round" fill="none" opacity=".6" />
     </g>
   </g>
 );
@@ -326,8 +401,6 @@ export default function ReefScene({ className = '', variant = 'hero', theme = 'd
           {[
             { y: 210, s: 0.38, dur: '26s', delay: '-4s', dir: 'l' },
             { y: 244, s: 0.34, dur: '28s', delay: '-6s', dir: 'l' },
-            { y: 196, s: 0.3,  dur: '30s', delay: '-13s', dir: 'l' },
-            { y: 268, s: 0.36, dur: '24s', delay: '-17s', dir: 'l' },
             { y: 158, s: 0.32, dur: '32s', delay: '-9s', dir: 'l' },
           ].map((f, i) => (
             <g key={`far-${i}`} className="bm-reef__travel-l" style={{ animationDuration: f.dur, animationDelay: f.delay }} opacity=".72">
@@ -341,20 +414,19 @@ export default function ReefScene({ className = '', variant = 'hero', theme = 'd
           <path d="M0 540c80-30 140-6 210-32 66-24 126 4 192-24 62-26 128 2 196-26 64-26 132 4 200-24 62-26 130 2 198-26 60-25 128 4 196-24 52-21 106 0 158-18v214H0z" fill="url(#bmrReefMid)" />
 
           {/* ── THE TURTLE ── the slow, unhurried anchor of the scene. Big
-              enough to read as the subject rather than one more fish, and on a
-              long enough cycle that a crossing is an event.
-              Hero only. The ambient copy is cropped to a whole viewport's
-              height, which scales the artwork up by nearly half again — at
-              that size the turtle drifts straight through the page's text. */}
-          {!ambient && (
-            <g className="bm-reef__travel-r" style={{ animationDuration: '58s', animationDelay: '-24s' }}>
-              <g className="bm-reef__bob" style={{ animationDuration: '13s' }}>
-                <g className="bm-reef__glide" style={{ animationDuration: '11s' }}>
-                  <g transform="translate(0 250) scale(-1.85 1.85)"><Turtle /></g>
-                </g>
+              enough to read as the subject rather than one more fish, and on
+              a long enough cycle that a crossing is an event. The ambient
+              copy crops to a whole viewport's height, which scales the
+              artwork up by roughly a third — scaled back down here to
+              compensate, so the turtle stays proportionate to everything
+              else rather than looming over it. */}
+          <g className="bm-reef__travel-r" style={{ animationDuration: '58s', animationDelay: '-24s' }}>
+            <g className="bm-reef__bob" style={{ animationDuration: '13s' }}>
+              <g className="bm-reef__glide" style={{ animationDuration: '11s' }}>
+                <g transform={`translate(0 250) scale(${ambient ? -1.4 : -1.85} ${ambient ? 1.4 : 1.85})`}><Turtle /></g>
               </g>
             </g>
-          )}
+          </g>
 
           {/* ── Blue tangs crossing the other way ── */}
           <g className="bm-reef__travel-r" style={{ animationDuration: '38s', animationDelay: '-19s' }}>
@@ -450,25 +522,32 @@ export default function ReefScene({ className = '', variant = 'hero', theme = 'd
               <g transform="translate(0 300) scale(-1.05 1.05)"><Clownfish tail=".4s" /></g>
             </g>
           </g>
-          <g className="bm-reef__travel-r" style={{ animationDuration: '34s', animationDelay: '-9s' }}>
-            <g className="bm-reef__bob" style={{ animationDuration: '6.8s', animationDelay: '-1.4s' }}>
-              <g transform="translate(0 352) scale(-.82 .82)"><Clownfish tail=".46s" /></g>
-            </g>
-          </g>
           <g className="bm-reef__travel-r" style={{ animationDuration: '29s', animationDelay: '-20s' }}>
             <g className="bm-reef__bob" style={{ animationDuration: '5.4s', animationDelay: '-3s' }}>
               <g transform="translate(0 262) scale(-.68 .68)"><Clownfish tail=".36s" /></g>
             </g>
           </g>
-          {/* ── Yellow tang pair, near depth, heading left ── */}
+          {/* ── Yellow tang, near depth, heading left ── */}
           <g className="bm-reef__travel-l" style={{ animationDuration: '36s', animationDelay: '-15s' }}>
             <g className="bm-reef__bob" style={{ animationDuration: '7.2s' }}>
               <g transform="translate(0 452) scale(.95)"><YellowTang /></g>
             </g>
           </g>
-          <g className="bm-reef__travel-l" style={{ animationDuration: '36s', animationDelay: '-16.6s' }}>
-            <g className="bm-reef__bob" style={{ animationDuration: '7.2s', animationDelay: '-.5s' }}>
-              <g transform="translate(0 492) scale(.78)"><YellowTang /></g>
+
+          {/* ── Octopus, perched among the coral rather than swimming ── */}
+          <g className="bm-reef__breathe" style={{ animationDelay: '-2s' }}>
+            <g transform="translate(870 560) scale(1.05)"><Octopus /></g>
+          </g>
+
+          {/* ── Jellyfish, drifting on their own slow rise ── */}
+          <g className="bm-reef__travel-l" style={{ animationDuration: '86s', animationDelay: '-30s' }}>
+            <g className="bm-reef__bob--far" style={{ animationDuration: '8s' }}>
+              <g transform="translate(0 150) scale(.85)"><Jellyfish /></g>
+            </g>
+          </g>
+          <g className="bm-reef__travel-r" style={{ animationDuration: '96s', animationDelay: '-52s' }}>
+            <g className="bm-reef__bob--far" style={{ animationDuration: '9.5s', animationDelay: '-3s' }}>
+              <g transform="translate(0 340) scale(.62)"><Jellyfish hue="#C7B8FF" hue2="#A896F2" /></g>
             </g>
           </g>
 
