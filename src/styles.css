@@ -1591,59 +1591,68 @@ tr:hover td {
   }
 }
 
-/* ── Glass cards over the reef ────────────────────────────────────────────
-   Contributor Space only — it is the one space with water behind it. Every
-   card surface goes translucent and frosted so the scene reads through the
-   whole page rather than only in the gaps between cards. --surface-solid
-   stays opaque for menus, popovers and text fields, which cannot be read
-   over moving artwork. */
+/* ── Content cards over the reef ───────────────────────────────────────────
+   Contributor Space only — it is the one space with water behind it. The
+   reef is ambiance, not the point: every card carrying real data (stats,
+   activity rows, forms) gets a near-solid fill so the numbers and copy read
+   exactly as they would on a plain background, with the animation visible
+   only in the margins and gaps between cards — never fighting the content
+   inside them. --surface-solid stays fully opaque for menus, popovers and
+   text fields, which can't be read over moving artwork at any opacity. */
 .contributor-space-shell {
-  /* Enough glass to see the reef swim past, enough fill that dark body text
-     still clears contrast where the water behind a card runs deep navy. */
-  --surface: rgba(255, 255, 255, 0.72);
-  --surface-hover: rgba(240, 250, 253, 0.74);
-  --border-light: rgba(255, 255, 255, 0.7);
+  --surface: rgba(255, 255, 255, 0.94);
+  --surface-hover: rgba(240, 250, 253, 0.97);
+  --border-light: rgba(210, 228, 236, 0.9);
   --border-glow: rgba(8, 127, 156, 0.4);
+  /* The hero is the one card meant to be looked *through*, not read off of —
+     its own beach artwork plus solid text colours already carry it, so it
+     stays glass instead of picking up the solid `--surface` every other
+     card just got, and the reef keeps swimming visibly behind it. */
+  --bm-hero-surface: rgba(255, 255, 255, 0.42);
 }
 
 [data-theme="dark"] .contributor-space-shell {
-  --surface: rgba(4, 20, 38, 0.6);
-  --surface-hover: rgba(255, 255, 255, 0.07);
-  --border-light: rgba(160, 210, 240, 0.22);
+  --surface: rgba(8, 24, 42, 0.93);
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(160, 210, 240, 0.24);
+  --bm-hero-surface: rgba(4, 20, 38, 0.4);
 }
 
-/* Not every card sets its own blur — several build the background inline —
-   so the frost is applied here, once, to each card surface in the space. */
-.contributor-space-shell :is(.contrib-card, .card, .kpi-card, .sidebar-container),
-.contributor-space-shell > .topbar {
-  backdrop-filter: blur(18px) saturate(1.15);
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+/* A light blur still softens a card's edge where it isn't fully opaque;
+   the saturation boost from the old, much-more-translucent version is
+   dropped since there's barely any reef colour left to lift. */
+.contributor-space-shell :is(.contrib-card, .card, .kpi-card, .sidebar-container) {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-/* Glass drops the contrast a card normally gets from an opaque fill, so the
-   type is nudged back up to compensate. */
+/* Type gets the same treatment as the cards: full-strength, not a value
+   nudged up from some translucent baseline. */
 .contributor-space-shell {
-  --text-muted: rgba(9, 36, 58, 0.78);
+  --text-muted: rgba(9, 36, 58, 0.72);
 }
 
 [data-theme="dark"] .contributor-space-shell {
-  --text-muted: rgba(233, 242, 247, 0.78);
+  --text-muted: rgba(233, 242, 247, 0.74);
 }
 
-/* The nav chrome frosts over the reef rather than hiding it — the water has
-   to carry through behind the sidebar for the page to read as one scene.
-   Content cards stay opaque; only the chrome goes translucent. */
+/* The topbar and sidebar are navigation chrome, not business content, so
+   they can stay a shade more translucent than the cards without costing
+   anything readable — but still solid enough that nav labels and the
+   account menu never fight the water behind them. */
 .contributor-space-shell > .topbar,
 .contributor-space-shell .sidebar-container {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(238, 249, 253, 0.6));
-  border-color: rgba(255, 255, 255, 0.65);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(238, 249, 253, 0.84));
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-color: rgba(255, 255, 255, 0.8);
   box-shadow: 0 20px 44px -32px rgba(6, 45, 80, 0.45);
 }
 
 [data-theme="dark"] .contributor-space-shell > .topbar,
 [data-theme="dark"] .contributor-space-shell .sidebar-container {
-  background: linear-gradient(180deg, rgba(4, 22, 40, 0.66), rgba(4, 22, 40, 0.46));
-  border-color: rgba(160, 210, 240, 0.22);
+  background: linear-gradient(180deg, rgba(4, 22, 40, 0.88), rgba(4, 22, 40, 0.78));
+  border-color: rgba(160, 210, 240, 0.24);
 }
 
 /* The backdrop sits behind everything without any extra lifting: .space-reef

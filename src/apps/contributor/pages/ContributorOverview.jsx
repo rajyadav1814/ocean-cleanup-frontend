@@ -197,7 +197,10 @@ const STYLES = `
 
   /* ── Community hero ── */
   .bm-hero {
-    position:relative; overflow:hidden; background:var(--surface);
+    /* Glass, not solid — the one card meant to be looked through so the
+       reef's motion stays visible behind the beach artwork and the text. */
+    position:relative; overflow:hidden; background:var(--bm-hero-surface, var(--surface));
+    backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
     border:1px solid var(--border-light); border-radius:20px;
     box-shadow:0 1px 2px rgba(10,30,50,.04), 0 22px 44px -38px rgba(10,30,50,.45);
   }
