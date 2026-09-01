@@ -11,7 +11,6 @@ import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { contributorApi } from '../../../services/api';
 import { eventStateMeta, verificationStateMeta } from '../eventMeta';
 import MyAreasMap from '../components/MyAreasMap';
-import { KPI_SCENES } from '../components/KpiScenes';
 
 function fmt(ts) {
   const d = new Date(ts);
@@ -75,14 +74,14 @@ const StatusPill = ({ status }) => {
 /* ── Injected responsive CSS ── */
 const STYLES = `
   .contrib-card { padding: 1.25rem 1.5rem; }
-  .contrib-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:1rem; }
-  .kpi-card { display:flex; flex-direction:column; gap:.7rem; padding:1.35rem 1.4rem; position:relative; overflow:hidden; }
-  .kpi-icon { width:44px; height:44px; border-radius:999px; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; z-index:1; }
+  .contrib-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(202px,1fr)); gap:1.1rem; }
+  .kpi-card { display:flex; flex-direction:column; gap:.75rem; padding:1.6rem 1.6rem 1.75rem; min-height:246px; position:relative; overflow:hidden; }
+  .kpi-icon { width:48px; height:48px; border-radius:999px; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; z-index:1; }
   .kpi-label { position:relative; z-index:1; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); }
   .kpi-value-row { position:relative; z-index:1; display:flex; align-items:baseline; gap:.3rem; }
-  .kpi-value { font-size:1.85rem; font-weight:800; line-height:1.1; }
-  .kpi-value-unit { font-size:.95rem; font-weight:600; color:var(--text-muted); }
-  .kpi-sub { position:relative; z-index:1; font-size:.76rem; color:var(--text-muted); margin-top:-.4rem; }
+  .kpi-value { font-size:2.15rem; font-weight:800; line-height:1.1; }
+  .kpi-value-unit { font-size:1.02rem; font-weight:600; color:var(--text-muted); }
+  .kpi-sub { position:relative; z-index:1; font-size:.79rem; color:var(--text-muted); margin-top:-.4rem; }
   .kpi-trend { position:relative; z-index:1; align-self:flex-start; display:inline-flex; align-items:center; gap:.3rem; padding:.28rem .6rem; border-radius:999px; font-size:.72rem; font-weight:700; }
   /* The headline number of the row — a solid slab of ocean with a swell
      breaking across its foot, so it reads as the card you look at first. */
@@ -92,19 +91,20 @@ const STYLES = `
   .kpi-card--featured .kpi-value-unit { color:rgba(255,255,255,.82); }
   .kpi-card--featured .kpi-icon { background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.32); color:#FFFFFF; }
   .kpi-card--featured .kpi-trend { background:rgba(255,255,255,.2); color:#FFFFFF; }
-  /* Painted habitat behind each card. Anchored bottom-right and masked away
-     toward the top-left so the icon, label, value and trend pill always sit
-     on flat colour rather than on the illustration. */
+  /* Each card's artwork is a painted illustration from /public (kpi-1..5),
+     sized to cover the card and anchored to its foot so the scene — reef,
+     turtle, shore, bottle, lighthouse — sits below the copy the way the
+     source art is composed. The PNGs are cropped to the artwork itself, so
+     the image can run edge to edge under the card's own radius. */
   .kpi-art { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; border-radius:inherit; }
-  .kpi-art svg { display:block; width:100%; height:100%; }
-  .kpi-art--fade { -webkit-mask-image:linear-gradient(105deg, transparent 0%, rgba(0,0,0,.28) 34%, rgba(0,0,0,.85) 62%, #000 100%);
-                   mask-image:linear-gradient(105deg, transparent 0%, rgba(0,0,0,.28) 34%, rgba(0,0,0,.85) 62%, #000 100%); }
+  .kpi-art img { display:block; width:100%; height:100%; object-fit:cover; object-position:center bottom; }
   [data-theme="dark"] .kpi-art, .force-dark .kpi-art { opacity:.42; }
   [data-theme="dark"] .kpi-card--featured .kpi-art,
   .force-dark .kpi-card--featured .kpi-art { opacity:.7; }
   @media(max-width:768px){
-    .kpi-card { padding:1.1rem 1.2rem; }
-    .kpi-value { font-size:1.55rem; }
+    .kpi-card { padding:1.25rem 1.3rem 1.4rem; min-height:196px; }
+    .kpi-value { font-size:1.7rem; }
+    .kpi-icon { width:42px; height:42px; }
   }
   .contrib-hero-actions { display:flex; flex-direction:column; align-items:flex-end; gap:.6rem; }
   .contrib-two-col { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; align-items:stretch; }
@@ -607,22 +607,22 @@ export default function ContributorOverview() {
   // prior 30-day window (null when the backend has no baseline yet).
   const trends = impact?.trends || {};
   const impactCards = [
-    { key:'contributions', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
+    { key:'contributions', art:'/kpi-1.png', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
       sub:'Total reports submitted', Icon: ClipboardList, accent:'#2563eb', tint:'rgba(37,99,235,0.12)',
       wash:'linear-gradient(135deg, #f4f9ff 0%, #e8f3fd 100%)',
       trend: trends.contributions ?? null },
-    { key:'verified', label:'Verified', value: nf(impact?.verifiedEvents ?? 0),
+    { key:'verified', art:'/kpi-2.png', label:'Verified', value: nf(impact?.verifiedEvents ?? 0),
       sub:'Reports verified', Icon: ShieldCheck, accent:'#0d9488', tint:'rgba(13,148,136,0.12)',
       wash:'linear-gradient(135deg, #f2fbf8 0%, #e4f4ee 100%)',
       trend: trends.verifiedEvents ?? null },
-    { key:'actions', label:'Actions Completed', value: nf(impact?.actionsCompleted ?? 0),
+    { key:'actions', art:'/kpi-3.png', label:'Actions Completed', value: nf(impact?.actionsCompleted ?? 0),
       sub:'Cleanup actions completed', Icon: CheckCircle2, accent:'#d97706', tint:'rgba(217,119,6,0.12)',
       wash:'linear-gradient(135deg, #fffaf2 0%, #fdf0e0 100%)',
       trend: trends.actionsCompleted ?? null },
-    { key:'waste', label:'Waste Removed', value: nf(impact?.kgRemoved ?? 0), unit:'kg',
+    { key:'waste', art:'/kpi-4.png', label:'Waste Removed', value: nf(impact?.kgRemoved ?? 0), unit:'kg',
       sub:'Total waste removed', Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true,
       trend: trends.kgRemoved ?? null },
-    { key:'locations', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
+    { key:'locations', art:'/kpi-5.png', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
       sub:'Locations reported', Icon: MapPin, accent:'#7c3aed', tint:'rgba(124,58,237,0.12)',
       wash:'linear-gradient(135deg, #f8f6ff 0%, #eeeefc 100%)',
       trend: trends.locationsAffected ?? null },
@@ -759,16 +759,14 @@ export default function ContributorOverview() {
           {/* ── YOUR IMPACT ── */}
           <div className="contrib-on-water" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'0.4rem' }}>
             <SectionLabel style={{ marginBottom:0 }}>Your Impact</SectionLabel>
-            {rank && (
+            {/* {rank && (
               <span style={{ fontSize:'0.74rem', color:'var(--bm-loose-text, var(--text-muted))' }}>
                 Rank #{rank}{topPercent ? ` · Top ${topPercent}%` : ''} · {nf(totalTokens)} OCEAN tokens
               </span>
-            )}
+            )} */}
           </div>
           <div className="contrib-stats">
-            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured, wash }) => {
-              const Scene = KPI_SCENES[key];
-              return (
+            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured, wash, art }) => (
               <Card key={key} className={`kpi-card${featured ? ' kpi-card--featured' : ''}`}
                 style={{ transition:'border-color .2s,transform .2s,box-shadow .2s', cursor:'default',
                   ...(!featured && isLight && wash ? { background: wash } : {}),
@@ -782,11 +780,9 @@ export default function ContributorOverview() {
                 onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; if(!featured) e.currentTarget.style.borderColor='var(--border-glow)';}}
                 onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; if(!featured) e.currentTarget.style.borderColor='var(--border-light)';}}
               >
-                {Scene && (
-                  <div className={`kpi-art${featured ? '' : ' kpi-art--fade'}`} aria-hidden="true">
-                    <Scene />
-                  </div>
-                )}
+                <div className="kpi-art" aria-hidden="true">
+                  <img src={art} alt="" loading="lazy" decoding="async" />
+                </div>
                 <div className="kpi-icon" style={featured ? undefined : { background: tint, color: accent }}>
                   <Icon size={20} strokeWidth={2.25} />
                 </div>
@@ -798,8 +794,7 @@ export default function ContributorOverview() {
                 <div className="kpi-sub">{sub}</div>
                 <TrendPill value={trend} accent={featured ? null : accent} tint={tint} />
               </Card>
-              );
-            })}
+            ))}
           </div>
 
           {/* ── NEEDS ATTENTION ──
