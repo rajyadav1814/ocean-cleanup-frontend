@@ -597,6 +597,19 @@ const STYLES = `
     background:color-mix(in srgb, var(--primary) 15%, transparent); color:var(--primary);
     border:1px solid color-mix(in srgb, var(--primary) 26%, transparent);
   }
+  /* The hero's own card background is glass in both themes (it lets the
+     reef swim through), so a piece of chrome sitting on it is really
+     sitting on CoastSceneNight's night sky/sea — a mid-toned blue, not a
+     solid dark surface. --primary-hover / --text-muted were tuned for
+     high contrast against a solid dark card and read as barely-there here.
+     Pinned to a light, halo'd/frosted treatment instead. */
+  [data-theme="dark"] .bm-hero__brand-name {
+    color:#F2FBFF; text-shadow:0 1px 3px rgba(3,20,38,.7), 0 1px 10px rgba(3,20,38,.6);
+  }
+  [data-theme="dark"] .bm-hero__job {
+    background:rgba(4,20,38,.55); color:#EDF7FD; border:1px solid rgba(160,210,240,.28);
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  }
   [data-theme="dark"] .bm-hero__btn--ghost {
     background:transparent; border-color:color-mix(in srgb, var(--primary) 50%, transparent); color:var(--primary);
   }
@@ -736,7 +749,6 @@ export default function CitizenOverview() {
 
           <div className="bm-hero__top">
             <div className="bm-hero__brand">
-              <span className="bm-hero__logo"><BlueMindMark /></span>
               <span className="bm-hero__brand-name">BlueMind Community</span>
               {user?.jobTitle && <span className="bm-hero__job" title={user.jobTitle}>{user.jobTitle}</span>}
             </div>
