@@ -1140,7 +1140,7 @@ button {
   background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
   color: white;
   box-shadow: var(--shadow-md);
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease, opacity 0.3s ease;
   font-family: inherit;
   display: inline-flex;
   align-items: center;
@@ -1244,7 +1244,7 @@ textarea {
   font-family: inherit;
   font-size: 1rem;
   color: var(--text-main);
-  transition: all 0.3s ease;
+  transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
 }
 
 input::placeholder,
@@ -1480,7 +1480,7 @@ th {
 .admin-filter {
   border: none; background: transparent; border-radius: var(--radius-md); padding: 0.5rem 1rem;
   font-size: 0.8rem; font-weight: 600; color: var(--text-muted); cursor: pointer;
-  display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s ease; font-family: var(--font-sans);
+  display: flex; align-items: center; gap: 0.4rem; transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease; font-family: var(--font-sans);
   flex-shrink: 0; white-space: nowrap;
 }
 .admin-filter.active {
@@ -1668,6 +1668,20 @@ tr:hover td {
    (pinning it in the content flow instead of floating). Neither needed it:
    they already had their own positioning doing the real work. Nothing to
    declare here now — left as a note so the fix doesn't get re-added. */
+
+/* The reef stays visible on mobile, but its costliest always-on layers
+   (mix-blend-mode rays, plankton motes, bubble columns, the distant school)
+   are dropped there — a card-covered small screen barely shows them anyway,
+   and continuously repainting them behind the cards' backdrop-filter blur
+   was the main source of mobile scroll jank. */
+@media (max-width: 640px) {
+  .space-reef .bm-reef__rays,
+  .space-reef .bm-reef__motes,
+  .space-reef .bm-reef__bubbles,
+  .space-reef .bm-reef__far-school {
+    display: none;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .space-reef svg * { animation: none !important; }

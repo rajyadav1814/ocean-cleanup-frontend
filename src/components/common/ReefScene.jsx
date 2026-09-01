@@ -360,14 +360,16 @@ export default function ReefScene({ className = '', variant = 'hero', theme = 'd
             />
           </g>
 
-          {/* ── Shafts of sunlight ── */}
-          <g style={{ mixBlendMode: 'screen' }}>
+          {/* ── Shafts of sunlight ── mixBlendMode forces an extra compositing
+              pass on every animation frame, so this layer (and the plankton,
+              bubbles and distant school below) is dropped on small screens
+              via `.bm-reef__rays` in styles.css — mobile scroll perf matters
+              more there than the ambient detail. */}
+          <g className="bm-reef__rays" style={{ mixBlendMode: 'screen' }}>
             {[
               { x: 210, w: 92,  s: 13, d: 460, dur: '13s',   delay: '0s' },
-              { x: 430, w: 150, s: 9,  d: 560, dur: '17s',   delay: '-4s' },
               { x: 700, w: 76,  s: 15, d: 420, dur: '11s',   delay: '-2s' },
               { x: 900, w: 190, s: 7,  d: 600, dur: '19s',   delay: '-9s' },
-              { x: 1180, w: 110, s: 12, d: 520, dur: '15s',  delay: '-6s' },
               { x: 1400, w: 140, s: 10, d: 470, dur: '21s',  delay: '-3s' },
             ].map((r) => (
               <g key={r.x} className="bm-reef__ray" style={{ animationDuration: r.dur, animationDelay: r.delay }}>
@@ -385,12 +387,11 @@ export default function ReefScene({ className = '', variant = 'hero', theme = 'd
           </g>
 
           {/* ── Drifting plankton ── */}
-          <g fill="#DFF6FF">
+          <g className="bm-reef__motes" fill="#DFF6FF">
             {[
-              [120, 180, 2.4, '7s', '0s'], [340, 120, 1.8, '9s', '-2s'], [560, 250, 2.6, '8s', '-5s'],
-              [780, 150, 2, '10s', '-1s'], [980, 300, 2.2, '7.5s', '-4s'], [1220, 190, 2.8, '11s', '-6s'],
-              [1420, 260, 1.9, '8.5s', '-3s'], [240, 360, 2.1, '9.5s', '-7s'], [1080, 100, 1.7, '12s', '-8s'],
-              [660, 420, 2.4, '10.5s', '-2.5s'], [1520, 120, 2, '9s', '-5.5s'], [430, 470, 2.3, '11.5s', '-1.5s'],
+              [120, 180, 2.4, '7s', '0s'], [560, 250, 2.6, '8s', '-5s'],
+              [980, 300, 2.2, '7.5s', '-4s'], [1420, 260, 1.9, '8.5s', '-3s'],
+              [1080, 100, 1.7, '12s', '-8s'], [430, 470, 2.3, '11.5s', '-1.5s'],
             ].map(([cx, cy, r, dur, delay]) => (
               <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} className="bm-reef__mote"
                 style={{ animationDuration: dur, animationDelay: delay }} />
@@ -398,17 +399,19 @@ export default function ReefScene({ className = '', variant = 'hero', theme = 'd
           </g>
 
           {/* ── Distant school, small and quick ── */}
-          {[
-            { y: 210, s: 0.38, dur: '26s', delay: '-4s', dir: 'l' },
-            { y: 244, s: 0.34, dur: '28s', delay: '-6s', dir: 'l' },
-            { y: 158, s: 0.32, dur: '32s', delay: '-9s', dir: 'l' },
-          ].map((f, i) => (
-            <g key={`far-${i}`} className="bm-reef__travel-l" style={{ animationDuration: f.dur, animationDelay: f.delay }} opacity=".72">
-              <g className="bm-reef__bob--far" style={{ animationDelay: `-${i}s` }}>
-                <g transform={`translate(0 ${f.y}) scale(${f.s})`}><YellowTang /></g>
+          <g className="bm-reef__far-school">
+            {[
+              { y: 210, s: 0.38, dur: '26s', delay: '-4s', dir: 'l' },
+              { y: 244, s: 0.34, dur: '28s', delay: '-6s', dir: 'l' },
+              { y: 158, s: 0.32, dur: '32s', delay: '-9s', dir: 'l' },
+            ].map((f, i) => (
+              <g key={`far-${i}`} className="bm-reef__travel-l" style={{ animationDuration: f.dur, animationDelay: f.delay }} opacity=".72">
+                <g className="bm-reef__bob--far" style={{ animationDelay: `-${i}s` }}>
+                  <g transform={`translate(0 ${f.y}) scale(${f.s})`}><YellowTang /></g>
+                </g>
               </g>
-            </g>
-          ))}
+            ))}
+          </g>
 
           {/* ── Mid reef ── */}
           <path d="M0 540c80-30 140-6 210-32 66-24 126 4 192-24 62-26 128 2 196-26 64-26 132 4 200-24 62-26 130 2 198-26 60-25 128 4 196-24 52-21 106 0 158-18v214H0z" fill="url(#bmrReefMid)" />
@@ -552,12 +555,12 @@ export default function ReefScene({ className = '', variant = 'hero', theme = 'd
           </g>
 
           {/* ── Bubble columns rising off the reef ── */}
-          <g fill="none" stroke="#E6F9FF" strokeWidth="1.6">
+          <g className="bm-reef__bubbles" fill="none" stroke="#E6F9FF" strokeWidth="1.6">
             {[
-              [140, 620, 7, '9s', '0s'], [152, 620, 4, '11s', '-3s'], [131, 620, 5, '13s', '-6s'],
-              [640, 610, 6, '10s', '-1.5s'], [652, 610, 3.5, '12s', '-5s'], [628, 610, 5, '14s', '-8s'],
-              [1160, 616, 8, '9.5s', '-2.5s'], [1174, 616, 4.5, '12.5s', '-7s'], [1146, 616, 5.5, '15s', '-4s'],
-              [1500, 606, 6, '11s', '-9s'], [1512, 606, 3.5, '13.5s', '-2s'],
+              [140, 620, 7, '9s', '0s'], [131, 620, 5, '13s', '-6s'],
+              [640, 610, 6, '10s', '-1.5s'], [628, 610, 5, '14s', '-8s'],
+              [1160, 616, 8, '9.5s', '-2.5s'], [1146, 616, 5.5, '15s', '-4s'],
+              [1500, 606, 6, '11s', '-9s'],
             ].map(([cx, cy, r, dur, delay], i) => (
               <circle key={i} cx={cx} cy={cy} r={r} className="bm-reef__bubble"
                 fill="rgba(230,249,255,.18)"
