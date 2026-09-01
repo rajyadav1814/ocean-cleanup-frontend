@@ -60,7 +60,7 @@ export default function Chatbot() {
 
   return (
     <div className="chatbot-root">
-      {!isOpen && showGreeting && (
+      {/* {!isOpen && showGreeting && (
         <button
           type="button"
           className="chatbot-greeting"
@@ -72,7 +72,7 @@ export default function Chatbot() {
         >
           <strong>We're Online! <br/><span>How may I help you today?</span></strong>
         </button>
-      )}
+      )} */}
       {isOpen && (
         <section className="chatbot-panel" aria-label="BlueMind chat">
           <header className="chatbot-header">
