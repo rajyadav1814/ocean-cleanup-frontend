@@ -98,9 +98,16 @@ const STYLES = `
      the image can run edge to edge under the card's own radius. */
   .kpi-art { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; border-radius:inherit; }
   .kpi-art img { display:block; width:100%; height:100%; object-fit:cover; object-position:center bottom; }
-  [data-theme="dark"] .kpi-art, .force-dark .kpi-art { opacity:.42; }
+  [data-theme="dark"] .kpi-art, .force-dark .kpi-art { opacity:.65; }
   [data-theme="dark"] .kpi-card--featured .kpi-art,
   .force-dark .kpi-card--featured .kpi-art { opacity:.7; }
+  /* Icon tint at 12% opacity reads fine against the light pastel wash but
+     disappears against the near-black dark-theme card, so it gets a hairline
+     border for definition — same treatment the hero's job pill uses. */
+  [data-theme="dark"] .kpi-card:not(.kpi-card--featured) .kpi-icon,
+  .force-dark .kpi-card:not(.kpi-card--featured) .kpi-icon {
+    border: 1px solid rgba(255,255,255,.14);
+  }
   @media(max-width:768px){
     .kpi-card { padding:1.25rem 1.3rem 1.4rem; min-height:196px; }
     .kpi-value { font-size:1.7rem; }
@@ -610,14 +617,17 @@ export default function ContributorOverview() {
     { key:'contributions', art:'/kpi-1.png', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
       sub:'Total reports submitted', Icon: ClipboardList, accent:'#2563eb', tint:'rgba(37,99,235,0.12)',
       wash:'linear-gradient(135deg, #f4f9ff 0%, #e8f3fd 100%)',
+      washDark:'linear-gradient(135deg, rgba(37,99,235,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.contributions ?? null },
     { key:'verified', art:'/kpi-2.png', label:'Verified', value: nf(impact?.verifiedEvents ?? 0),
       sub:'Reports verified', Icon: ShieldCheck, accent:'#0d9488', tint:'rgba(13,148,136,0.12)',
       wash:'linear-gradient(135deg, #f2fbf8 0%, #e4f4ee 100%)',
+      washDark:'linear-gradient(135deg, rgba(13,148,136,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.verifiedEvents ?? null },
     { key:'actions', art:'/kpi-3.png', label:'Actions Completed', value: nf(impact?.actionsCompleted ?? 0),
       sub:'Cleanup actions completed', Icon: CheckCircle2, accent:'#d97706', tint:'rgba(217,119,6,0.12)',
       wash:'linear-gradient(135deg, #fffaf2 0%, #fdf0e0 100%)',
+      washDark:'linear-gradient(135deg, rgba(217,119,6,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.actionsCompleted ?? null },
     { key:'waste', art:'/kpi-4.png', label:'Waste Removed', value: nf(impact?.kgRemoved ?? 0), unit:'kg',
       sub:'Total waste removed', Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true,
@@ -625,6 +635,7 @@ export default function ContributorOverview() {
     { key:'locations', art:'/kpi-5.png', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
       sub:'Locations reported', Icon: MapPin, accent:'#7c3aed', tint:'rgba(124,58,237,0.12)',
       wash:'linear-gradient(135deg, #f8f6ff 0%, #eeeefc 100%)',
+      washDark:'linear-gradient(135deg, rgba(124,58,237,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.locationsAffected ?? null },
   ];
 
@@ -766,10 +777,11 @@ export default function ContributorOverview() {
             )} */}
           </div>
           <div className="contrib-stats">
-            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured, wash, art }) => (
+            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured, wash, washDark, art }) => (
               <Card key={key} className={`kpi-card${featured ? ' kpi-card--featured' : ''}`}
                 style={{ transition:'border-color .2s,transform .2s,box-shadow .2s', cursor:'default',
                   ...(!featured && isLight && wash ? { background: wash } : {}),
+                  ...(!featured && !isLight && washDark ? { background: washDark } : {}),
                   ...(featured ? {
                     /* Glass like its neighbours, but tinted hard enough to
                        stay the one card the eye lands on first. */
