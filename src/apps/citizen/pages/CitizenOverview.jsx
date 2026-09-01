@@ -756,7 +756,7 @@ export default function CitizenOverview() {
 
           <div className="bm-hero__body">
             <h1 className="bm-hero__title">
-              Hi {firstName},<br />
+              Hi {firstName}, <span role="img" aria-label="waving hand">👋</span><br />
               Thank you for being part of <span>BlueMind.</span>
             </h1>
             <p className="bm-hero__sub">
