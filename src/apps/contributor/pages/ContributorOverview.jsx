@@ -11,8 +11,7 @@ import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { contributorApi } from '../../../services/api';
 import { eventStateMeta, verificationStateMeta } from '../eventMeta';
 import MyAreasMap from '../components/MyAreasMap';
-import CoastScene from '../components/CoastScene';
-import CoastSceneNight from '../components/CoastSceneNight';
+import { KPI_SCENES } from '../components/KpiScenes';
 
 function fmt(ts) {
   const d = new Date(ts);
@@ -93,8 +92,16 @@ const STYLES = `
   .kpi-card--featured .kpi-value-unit { color:rgba(255,255,255,.82); }
   .kpi-card--featured .kpi-icon { background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.32); color:#FFFFFF; }
   .kpi-card--featured .kpi-trend { background:rgba(255,255,255,.2); color:#FFFFFF; }
-  .kpi-swell { position:absolute; left:0; right:0; bottom:0; height:56px; z-index:0; pointer-events:none; }
-  .kpi-swell svg { display:block; width:100%; height:100%; }
+  /* Painted habitat behind each card. Anchored bottom-right and masked away
+     toward the top-left so the icon, label, value and trend pill always sit
+     on flat colour rather than on the illustration. */
+  .kpi-art { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; border-radius:inherit; }
+  .kpi-art svg { display:block; width:100%; height:100%; }
+  .kpi-art--fade { -webkit-mask-image:linear-gradient(105deg, transparent 0%, rgba(0,0,0,.28) 34%, rgba(0,0,0,.85) 62%, #000 100%);
+                   mask-image:linear-gradient(105deg, transparent 0%, rgba(0,0,0,.28) 34%, rgba(0,0,0,.85) 62%, #000 100%); }
+  [data-theme="dark"] .kpi-art, .force-dark .kpi-art { opacity:.42; }
+  [data-theme="dark"] .kpi-card--featured .kpi-art,
+  .force-dark .kpi-card--featured .kpi-art { opacity:.7; }
   @media(max-width:768px){
     .kpi-card { padding:1.1rem 1.2rem; }
     .kpi-value { font-size:1.55rem; }
@@ -205,12 +212,15 @@ const STYLES = `
     box-shadow:0 1px 2px rgba(10,30,50,.04), 0 22px 44px -38px rgba(10,30,50,.45);
   }
   .bm-hero__main { position:relative; padding:1.55rem 1.9rem 1.9rem; min-height:334px; }
+  /* The hero artwork is a photograph (public/hero-light.png and its night
+     counterpart), full-bleed across the card and faded out to the left by
+     the mask so the greeting, copy and buttons sit on flat card surface. */
   .bm-hero__scene {
-    position:absolute; inset:0 0 0 auto; width:min(56%,690px); z-index:0; pointer-events:none;
-    -webkit-mask-image:linear-gradient(to right, transparent 0%, rgba(0,0,0,.35) 32%, #000 62%);
-    mask-image:linear-gradient(to right, transparent 0%, rgba(0,0,0,.35) 32%, #000 62%);
+    position:absolute; inset:0; z-index:0; pointer-events:none;
+    -webkit-mask-image:linear-gradient(to right, transparent 0%, transparent 24%, rgba(0,0,0,.42) 44%, #000 68%);
+    mask-image:linear-gradient(to right, transparent 0%, transparent 24%, rgba(0,0,0,.42) 44%, #000 68%);
   }
-  .bm-hero__scene svg { display:block; width:100%; height:100%; }
+  .bm-hero__scene img { display:block; width:100%; height:100%; object-fit:cover; object-position:70% center; }
 
   .bm-hero__top { position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:1rem; }
   .bm-hero__brand { display:flex; align-items:center; gap:.85rem; min-width:0; flex:1 1 auto; flex-wrap:wrap; }
@@ -294,11 +304,20 @@ const STYLES = `
   .bm-hero__btn--ghost .bm-hero__lead-ico { color:var(--primary); }
 
   @media(max-width:1080px){
-    .bm-hero__scene { width:50%; }
+    /* Narrower card: pull the fade further right so the copy column keeps
+       the same clear run of flat surface it has on a wide screen. */
+    .bm-hero__scene {
+      -webkit-mask-image:linear-gradient(to right, transparent 0%, transparent 22%, rgba(0,0,0,.4) 46%, #000 72%);
+      mask-image:linear-gradient(to right, transparent 0%, transparent 22%, rgba(0,0,0,.4) 46%, #000 72%);
+    }
   }
   @media(max-width:860px){
     .bm-hero__main { padding:1.3rem 1.4rem 1.6rem; min-height:0; }
-    .bm-hero__scene { width:100%; opacity:.24; }
+    /* Stacked layout — the photo goes behind the whole card, dimmed, with
+       no fade, since there is no side-by-side column left to protect. */
+    .bm-hero__scene {
+      opacity:.22; -webkit-mask-image:none; mask-image:none;
+    }
     .bm-hero__body { max-width:none; }
   }
 
@@ -341,7 +360,7 @@ const STYLES = `
   }
 
   /* ── Dark theme ──
-     The artwork swaps to the night scene in JSX; these rules carry the
+     The hero photograph swaps to hero-dark.png in JSX; these rules carry the
      chrome across with it. Placed after the breakpoints above so they win
      on every width. */
   [data-theme="dark"] .bm-hero__logo {
@@ -350,7 +369,7 @@ const STYLES = `
   }
   /* The hero's own card background is glass in both themes now (it lets
      the reef swim through), so a piece of chrome sitting on it is really
-     sitting on CoastSceneNight's night sky/sea — a mid-toned blue, not a
+     sitting on the night hero photograph's sky/sea — a mid-toned blue, not a
      solid dark surface. --primary-hover / --text-muted were tuned for
      high contrast against a solid dark card and read as barely-there here.
      Pinned to a light, halo'd/frosted treatment instead, same idea as
@@ -590,18 +609,22 @@ export default function ContributorOverview() {
   const impactCards = [
     { key:'contributions', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
       sub:'Total reports submitted', Icon: ClipboardList, accent:'#2563eb', tint:'rgba(37,99,235,0.12)',
+      wash:'linear-gradient(135deg, #f4f9ff 0%, #e8f3fd 100%)',
       trend: trends.contributions ?? null },
     { key:'verified', label:'Verified', value: nf(impact?.verifiedEvents ?? 0),
       sub:'Reports verified', Icon: ShieldCheck, accent:'#0d9488', tint:'rgba(13,148,136,0.12)',
+      wash:'linear-gradient(135deg, #f2fbf8 0%, #e4f4ee 100%)',
       trend: trends.verifiedEvents ?? null },
     { key:'actions', label:'Actions Completed', value: nf(impact?.actionsCompleted ?? 0),
       sub:'Cleanup actions completed', Icon: CheckCircle2, accent:'#d97706', tint:'rgba(217,119,6,0.12)',
+      wash:'linear-gradient(135deg, #fffaf2 0%, #fdf0e0 100%)',
       trend: trends.actionsCompleted ?? null },
     { key:'waste', label:'Waste Removed', value: nf(impact?.kgRemoved ?? 0), unit:'kg',
       sub:'Total waste removed', Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true,
       trend: trends.kgRemoved ?? null },
     { key:'locations', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
       sub:'Locations reported', Icon: MapPin, accent:'#7c3aed', tint:'rgba(124,58,237,0.12)',
+      wash:'linear-gradient(135deg, #f8f6ff 0%, #eeeefc 100%)',
       trend: trends.locationsAffected ?? null },
   ];
 
@@ -613,7 +636,9 @@ export default function ContributorOverview() {
       {/* ── HERO ── */}
       <div className="bm-hero">
         <div className="bm-hero__main">
-          <div className="bm-hero__scene">{isLight ? <CoastScene /> : <CoastSceneNight />}</div>
+          <div className="bm-hero__scene" aria-hidden="true">
+            <img src={isLight ? '/hero-light.png' : '/hero-dark.png'} alt="" loading="eager" decoding="async" />
+          </div>
 
           <div className="bm-hero__top">
             <div className="bm-hero__brand">
@@ -741,9 +766,12 @@ export default function ContributorOverview() {
             )}
           </div>
           <div className="contrib-stats">
-            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured }) => (
+            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured, wash }) => {
+              const Scene = KPI_SCENES[key];
+              return (
               <Card key={key} className={`kpi-card${featured ? ' kpi-card--featured' : ''}`}
                 style={{ transition:'border-color .2s,transform .2s,box-shadow .2s', cursor:'default',
+                  ...(!featured && isLight && wash ? { background: wash } : {}),
                   ...(featured ? {
                     /* Glass like its neighbours, but tinted hard enough to
                        stay the one card the eye lands on first. */
@@ -754,13 +782,9 @@ export default function ContributorOverview() {
                 onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; if(!featured) e.currentTarget.style.borderColor='var(--border-glow)';}}
                 onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; if(!featured) e.currentTarget.style.borderColor='var(--border-light)';}}
               >
-                {featured && (
-                  <div className="kpi-swell" aria-hidden="true">
-                    <svg viewBox="0 0 240 56" preserveAspectRatio="none">
-                      <path d="M0 30c34-16 66-16 100 0s66 16 100 0 40-10 40-10v36H0z" fill="#FFFFFF" opacity=".1" />
-                      <path d="M0 40c34-16 66-16 100 0s66 16 100 0 40-8 40-8v24H0z" fill="#FFFFFF" opacity=".14" />
-                      <path d="M0 34c34-16 66-16 100 0s66 16 100 0 40-10 40-10" fill="none" stroke="#FFFFFF" strokeWidth="1.5" opacity=".3" />
-                    </svg>
+                {Scene && (
+                  <div className={`kpi-art${featured ? '' : ' kpi-art--fade'}`} aria-hidden="true">
+                    <Scene />
                   </div>
                 )}
                 <div className="kpi-icon" style={featured ? undefined : { background: tint, color: accent }}>
@@ -774,7 +798,8 @@ export default function ContributorOverview() {
                 <div className="kpi-sub">{sub}</div>
                 <TrendPill value={trend} accent={featured ? null : accent} tint={tint} />
               </Card>
-            ))}
+              );
+            })}
           </div>
 
           {/* ── NEEDS ATTENTION ──

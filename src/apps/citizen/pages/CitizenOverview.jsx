@@ -6,8 +6,6 @@ import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import SubmitActivity from '../../contributor/pages/SubmitActivity';
 import MyAreasMap from '../../contributor/components/MyAreasMap';
-import CoastScene from '../../contributor/components/CoastScene';
-import CoastSceneNight from '../../contributor/components/CoastSceneNight';
 import { eventStateMeta, verificationStateMeta } from '../../contributor/eventMeta';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -469,12 +467,15 @@ const STYLES = `
     margin-bottom: 1.4rem;
   }
   .bm-hero__main { position:relative; padding:1.55rem 1.9rem 1.9rem; min-height:334px; }
+  /* The hero artwork is a photograph (public/hero-light.png and its night
+     counterpart), full-bleed across the card and faded out to the left by
+     the mask so the greeting, copy and buttons sit on flat card surface. */
   .bm-hero__scene {
-    position:absolute; inset:0 0 0 auto; width:min(56%,690px); z-index:0; pointer-events:none;
-    -webkit-mask-image:linear-gradient(to right, transparent 0%, rgba(0,0,0,.35) 32%, #000 62%);
-    mask-image:linear-gradient(to right, transparent 0%, rgba(0,0,0,.35) 32%, #000 62%);
+    position:absolute; inset:0; z-index:0; pointer-events:none;
+    -webkit-mask-image:linear-gradient(to right, transparent 0%, transparent 24%, rgba(0,0,0,.42) 44%, #000 68%);
+    mask-image:linear-gradient(to right, transparent 0%, transparent 24%, rgba(0,0,0,.42) 44%, #000 68%);
   }
-  .bm-hero__scene svg { display:block; width:100%; height:100%; }
+  .bm-hero__scene img { display:block; width:100%; height:100%; object-fit:cover; object-position:70% center; }
 
   .bm-hero__top { position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:1rem; }
   .bm-hero__brand { display:flex; align-items:center; gap:.85rem; min-width:0; flex:1 1 auto; flex-wrap:wrap; }
@@ -558,11 +559,20 @@ const STYLES = `
   .bm-hero__btn--ghost .bm-hero__lead-ico { color:var(--primary); }
 
   @media(max-width:1080px){
-    .bm-hero__scene { width:50%; }
+    /* Narrower card: pull the fade further right so the copy column keeps
+       the same clear run of flat surface it has on a wide screen. */
+    .bm-hero__scene {
+      -webkit-mask-image:linear-gradient(to right, transparent 0%, transparent 22%, rgba(0,0,0,.4) 46%, #000 72%);
+      mask-image:linear-gradient(to right, transparent 0%, transparent 22%, rgba(0,0,0,.4) 46%, #000 72%);
+    }
   }
   @media(max-width:860px){
     .bm-hero__main { padding:1.3rem 1.4rem 1.6rem; min-height:0; }
-    .bm-hero__scene { width:100%; opacity:.24; }
+    /* Stacked layout — the photo goes behind the whole card, dimmed, with
+       no fade, since there is no side-by-side column left to protect. */
+    .bm-hero__scene {
+      opacity:.22; -webkit-mask-image:none; mask-image:none;
+    }
     .bm-hero__body { max-width:none; }
   }
 
@@ -599,7 +609,7 @@ const STYLES = `
   }
   /* The hero's own card background is glass in both themes (it lets the
      reef swim through), so a piece of chrome sitting on it is really
-     sitting on CoastSceneNight's night sky/sea — a mid-toned blue, not a
+     sitting on the night hero photograph's sky/sea — a mid-toned blue, not a
      solid dark surface. --primary-hover / --text-muted were tuned for
      high contrast against a solid dark card and read as barely-there here.
      Pinned to a light, halo'd/frosted treatment instead. */
@@ -745,7 +755,9 @@ export default function CitizenOverview() {
           endpoint, so the hero carries a single CTA instead of the pair. */}
       <div className="bm-hero">
         <div className="bm-hero__main">
-          <div className="bm-hero__scene">{isLight ? <CoastScene /> : <CoastSceneNight />}</div>
+          <div className="bm-hero__scene" aria-hidden="true">
+            <img src={isLight ? '/hero-light.png' : '/hero-dark.png'} alt="" loading="eager" decoding="async" />
+          </div>
 
           <div className="bm-hero__top">
             <div className="bm-hero__brand">

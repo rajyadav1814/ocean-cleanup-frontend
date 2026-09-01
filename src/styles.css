@@ -1565,7 +1565,7 @@ tr:hover td {
   overflow: hidden;
   pointer-events: none;
   contain: strict;
-  opacity: 0.8;
+  opacity: 0.5;
 }
 
 .space-reef svg {
