@@ -782,7 +782,7 @@ export default function CitizenOverview() {
           <div className="bm-hero__body">
             <h1 className="bm-hero__title">
               Hi {firstName}, <span role="img" aria-label="waving hand">👋</span><br />
-              Thank you for being part of <span>BlueMind.</span>
+              Thank you for being part of <span>blueMind.</span>
             </h1>
             <p className="bm-hero__sub">
               Every activity you submit helps us understand pollution patterns,
