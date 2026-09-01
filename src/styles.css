@@ -1565,6 +1565,7 @@ tr:hover td {
   overflow: hidden;
   pointer-events: none;
   contain: strict;
+  opacity: 0.8;
 }
 
 .space-reef svg {
@@ -1572,10 +1573,11 @@ tr:hover td {
   height: 100%;
 }
 
-/* No wash over the artwork — the coral colour and the swimming are meant to
-   be seen at full strength. Contrast for the few bits of type with no card
-   under them is bought per-element instead, so a couple of labels never cost
-   the whole scene its saturation.
+/* No colour wash over the artwork — the reduced visibility comes from
+   `.space-reef`'s opacity alone, so the coral hues stay true just fainter.
+   Contrast for the few bits of type with no card under them is bought
+   per-element instead, so a couple of labels never cost the whole scene its
+   saturation.
 
    The reef is dark blue wherever page content sits, in both themes, so
    on-water type goes light with a dark halo either way rather than following
