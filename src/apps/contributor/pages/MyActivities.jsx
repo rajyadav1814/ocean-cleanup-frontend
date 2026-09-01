@@ -207,18 +207,6 @@ export default function MyActivities() {
 
       <section>
         {/* ── HERO ── */}
-        <div className="ma-hero">
-          <OceanWaveStrip />
-          <div>
-            <div className="ma-eyebrow">Your Record</div>
-            <h1 className="ma-title">My <em>activities.</em></h1>
-            <p className="ma-sub">Every cleanup you've logged, in one place — a running record of your environmental impact contributions.</p>
-          </div>
-          <button type="button" className="ma-cta" onClick={() => navigate(`/${role}/submit`)}>
-            Log a cleanup <span aria-hidden="true">→</span>
-          </button>
-        </div>
-
         {/* ── FILTER TOOLBAR ── */}
         {visibleActivities.length > 0 && (
           <div className="ma-toolbar">
