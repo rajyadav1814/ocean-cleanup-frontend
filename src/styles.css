@@ -1669,12 +1669,6 @@ tr:hover td {
    they already had their own positioning doing the real work. Nothing to
    declare here now — left as a note so the fix doesn't get re-added. */
 
-/* The reef is decoration; on a small screen it is mostly hidden behind
-   full-width cards anyway, so drop it and save the compositing. */
-@media (max-width: 640px) {
-  .space-reef { display: none; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .space-reef svg * { animation: none !important; }
 }
