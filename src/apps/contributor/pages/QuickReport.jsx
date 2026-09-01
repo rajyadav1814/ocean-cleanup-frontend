@@ -748,9 +748,15 @@ export default function QuickReport() {
         }
 
         .qr-banner {
+          /* Solid, not --surface-hover — that token is a subtle highlight
+             meant to sit on an already-opaque card (like .qr-select
+             nested inside .qr-card), not to stand alone as a card fill.
+             This banner sits directly on the page, so at --surface-hover's
+             low dark-mode alpha the reef showed straight through it. */
           display: flex; align-items: center; justify-content: center; gap: 2rem; flex-wrap: wrap;
-          margin-top: auto; padding: 1.5rem 2rem; border-radius: var(--radius-lg); background: var(--surface-hover);
+          margin-top: auto; padding: 1.5rem 2rem; border-radius: var(--radius-lg); background: var(--surface);
           border: 1px solid var(--border-light);
+          backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
         }
         .qr-banner-leaf { color: var(--secondary); opacity: 0.5; flex-shrink: 0; }
         .qr-banner-divider { width: 1px; align-self: stretch; background: var(--border-light); }
