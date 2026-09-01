@@ -627,7 +627,7 @@ export default function ContributorOverview() {
           <div className="bm-hero__body">
             <h1 className="bm-hero__title">
               Hi {firstName},<br />
-              thank you for being part of <span>Bluemind.</span>
+              Thank you for being part of <span>BlueMind.</span>
             </h1>
             <p className="bm-hero__sub">
               Every activity you submit helps us understand pollution patterns,
