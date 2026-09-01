@@ -173,7 +173,7 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
             {profileOpen && (
               <div style={{
                 position: 'absolute', top: 'calc(100% + 14px)', right: 0,
-                width: '220px', background: 'var(--surface)',
+                width: '220px', background: 'var(--surface-solid)',
                 border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-lg), 0 0 20px rgba(0,0,0,0.2)', overflow: 'hidden', zIndex: 100
               }}>

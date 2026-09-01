@@ -89,7 +89,7 @@ export default function OrganizationSelect({
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     width: '100%', boxSizing: 'border-box', cursor: loading ? 'default' : 'pointer',
     padding: '1rem 1.25rem', borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--border-light)', background: 'var(--surface)',
+    border: '1px solid var(--border-light)', background: 'var(--surface-solid)',
     fontFamily: 'inherit', fontSize: '1rem', color: 'var(--text-main)',
     ...triggerStyle,
   };
@@ -138,7 +138,7 @@ export default function OrganizationSelect({
                 style={{
                   width: '100%', boxSizing: 'border-box', marginBottom: '0.5rem',
                   padding: '.6rem .75rem', borderRadius: '0.5rem',
-                  border: '1px solid var(--border-light)', background: 'var(--surface)',
+                  border: '1px solid var(--border-light)', background: 'var(--surface-solid)',
                   color: textColor, fontFamily: 'inherit', fontSize: '.95rem',
                 }}
               />

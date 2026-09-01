@@ -85,6 +85,16 @@ const STYLES = `
   .kpi-value-unit { font-size:.95rem; font-weight:600; color:var(--text-muted); }
   .kpi-sub { position:relative; z-index:1; font-size:.76rem; color:var(--text-muted); margin-top:-.4rem; }
   .kpi-trend { position:relative; z-index:1; align-self:flex-start; display:inline-flex; align-items:center; gap:.3rem; padding:.28rem .6rem; border-radius:999px; font-size:.72rem; font-weight:700; }
+  /* The headline number of the row — a solid slab of ocean with a swell
+     breaking across its foot, so it reads as the card you look at first. */
+  .kpi-card--featured { color:#FFFFFF; }
+  .kpi-card--featured .kpi-label { color:rgba(255,255,255,.8); }
+  .kpi-card--featured .kpi-sub { color:rgba(255,255,255,.72); }
+  .kpi-card--featured .kpi-value-unit { color:rgba(255,255,255,.82); }
+  .kpi-card--featured .kpi-icon { background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.32); color:#FFFFFF; }
+  .kpi-card--featured .kpi-trend { background:rgba(255,255,255,.2); color:#FFFFFF; }
+  .kpi-swell { position:absolute; left:0; right:0; bottom:0; height:56px; z-index:0; pointer-events:none; }
+  .kpi-swell svg { display:block; width:100%; height:100%; }
   @media(max-width:768px){
     .kpi-card { padding:1.1rem 1.2rem; }
     .kpi-value { font-size:1.55rem; }
@@ -185,15 +195,13 @@ const STYLES = `
     .needs-attn-view span { display:none; }
   }
 
-  /* ── Community hero ──
-     One card holding the welcome banner and the value strip beneath it, so
-     the wave divider and the tinted strip read as a single surface. */
+  /* ── Community hero ── */
   .bm-hero {
     position:relative; overflow:hidden; background:var(--surface);
     border:1px solid var(--border-light); border-radius:20px;
     box-shadow:0 1px 2px rgba(10,30,50,.04), 0 22px 44px -38px rgba(10,30,50,.45);
   }
-  .bm-hero__main { position:relative; padding:1.55rem 1.9rem 5.5rem; min-height:334px; }
+  .bm-hero__main { position:relative; padding:1.55rem 1.9rem 1.9rem; min-height:334px; }
   .bm-hero__scene {
     position:absolute; inset:0 0 0 auto; width:min(56%,690px); z-index:0; pointer-events:none;
     -webkit-mask-image:linear-gradient(to right, transparent 0%, rgba(0,0,0,.35) 32%, #000 62%);
@@ -238,7 +246,7 @@ const STYLES = `
   .bm-hero__logout[aria-expanded="true"] .bm-hero__caret { transform:rotate(180deg); }
   .bm-hero__menu {
     position:absolute; top:calc(100% + .5rem); right:0; z-index:30; width:212px; overflow:hidden;
-    background:var(--surface); border:1px solid var(--border-light); border-radius:12px;
+    background:var(--surface-solid); border:1px solid var(--border-light); border-radius:12px;
     box-shadow:0 24px 44px -22px rgba(10,30,50,.5);
   }
   .bm-hero__menu-head { padding:.75rem .9rem; background:var(--surface-hover); border-bottom:1px solid var(--border-light); }
@@ -282,34 +290,13 @@ const STYLES = `
   .bm-hero__btn--ghost:hover { border-color:var(--border-glow); transform:translateY(-1px); }
   .bm-hero__btn--ghost .bm-hero__lead-ico { color:var(--primary); }
 
-  /* Wave divider: crest breaking over a shallow-water band, both ends
-     tied to theme tokens so the divider matches the card's own surface. */
-  .bm-hero__wave {
-    --bm-wave-crest: var(--surface);
-    position:absolute; left:0; right:0; bottom:0; height:74px; z-index:1; pointer-events:none;
-    background:linear-gradient(180deg, var(--surface-hover) 0%, color-mix(in srgb, var(--surface-hover) 55%, var(--border-glow) 45%) 100%);
-  }
-  .bm-hero__wave svg { position:absolute; inset:0; display:block; width:100%; height:100%; }
-
-  .bm-hero__values {
-    position:relative; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.35rem 1.9rem;
-    padding:1.4rem 1.9rem 1.5rem; background:var(--surface-hover); border-top:1px solid var(--border-light);
-  }
-  .bm-hero__value { display:flex; align-items:flex-start; gap:.85rem; min-width:0; }
-  .bm-hero__value-icon { width:42px; height:42px; flex-shrink:0; border-radius:999px; display:grid; place-items:center; }
-  .bm-hero__value-title { margin:0; font-size:.87rem; font-weight:700; color:var(--text-main); }
-  .bm-hero__value-copy { min-width:0; max-width:166px; }
-  .bm-hero__value-text { margin:.22rem 0 0; font-size:.78rem; line-height:1.5; color:var(--text-muted); }
-
   @media(max-width:1080px){
     .bm-hero__scene { width:50%; }
-    .bm-hero__values { grid-template-columns:repeat(2,minmax(0,1fr)); }
   }
   @media(max-width:860px){
-    .bm-hero__main { padding:1.3rem 1.4rem 4.75rem; min-height:0; }
+    .bm-hero__main { padding:1.3rem 1.4rem 1.6rem; min-height:0; }
     .bm-hero__scene { width:100%; opacity:.24; }
     .bm-hero__body { max-width:none; }
-    .bm-hero__wave { height:72px; }
   }
 
   @media(max-width:640px){
@@ -319,8 +306,6 @@ const STYLES = `
     .bm-hero__sub { font-size:.9rem; }
     .bm-hero__actions { gap:.6rem; }
     .bm-hero__btn { flex:1 1 100%; justify-content:center; height:48px; }
-    .bm-hero__values { grid-template-columns:1fr; gap:1rem; padding:1.15rem 1.25rem; }
-    .bm-hero__value-copy { max-width:none; }
   }
   /* Below this the wordmark would truncate mid-word, so the mark carries
      the brand on its own. */
@@ -328,6 +313,28 @@ const STYLES = `
     .bm-hero__brand-name { display:none; }
     .bm-hero__brand { gap:.6rem; }
     .bm-hero__member { padding:.4rem .65rem; font-size:.64rem; letter-spacing:.08em; }
+  }
+
+  /* ── Community values ──
+     Standalone card beneath the hero — was fused to the hero's own surface
+     as a bottom strip, split out so it reads as its own info card instead
+     of trailing off the hero's rounded corners. */
+  .contrib-values {
+    display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.35rem 1.9rem;
+    padding:1.4rem 1.6rem;
+  }
+  .contrib-value { display:flex; align-items:flex-start; gap:.85rem; min-width:0; }
+  .contrib-value-icon { width:42px; height:42px; flex-shrink:0; border-radius:999px; display:grid; place-items:center; }
+  .contrib-value-title { margin:0; font-size:.87rem; font-weight:700; color:var(--text-main); }
+  .contrib-value-copy { min-width:0; max-width:166px; }
+  .contrib-value-text { margin:.22rem 0 0; font-size:.78rem; line-height:1.5; color:var(--text-muted); }
+
+  @media(max-width:1080px){
+    .contrib-values { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media(max-width:640px){
+    .contrib-values { grid-template-columns:1fr; gap:1rem; padding:1.15rem 1.25rem; }
+    .contrib-value-copy { max-width:none; }
   }
 
   /* ── Dark theme ──
@@ -351,22 +358,15 @@ const STYLES = `
   }
   [data-theme="dark"] .bm-hero__logout:hover,
   [data-theme="dark"] .bm-hero__btn--ghost:hover { box-shadow:0 10px 26px -16px rgba(0,0,0,.6); }
-  /* An opaque crest, so the night artwork stops cleanly at the divider
-     rather than bleeding through the card's translucent surface. */
-  [data-theme="dark"] .bm-hero__wave {
-    --bm-wave-crest:#08202F;
-    background:linear-gradient(180deg,#0E3148 0%,#0A2133 100%);
-  }
-  [data-theme="dark"] .bm-hero__value-icon {
+  [data-theme="dark"] .contrib-value-icon {
     border:1px solid color-mix(in srgb, currentColor 30%, transparent);
   }
-  [data-theme="dark"] .bm-hero__value:not(:first-child) {
+  [data-theme="dark"] .contrib-value:not(:first-child) {
     border-left:1px solid var(--border-light); margin-left:-.95rem; padding-left:.95rem;
   }
   @media(max-width:640px){
-    [data-theme="dark"] .bm-hero__value:not(:first-child) { border-left:none; margin-left:0; padding-left:0; }
+    [data-theme="dark"] .contrib-value:not(:first-child) { border-left:none; margin-left:0; padding-left:0; }
   }
-
 `;
 
 /* Brand mark shown in the hero's community bar. */
@@ -424,10 +424,10 @@ const CardHead = ({ title, sub, icon: Icon }) => (
    style stays in sync instead of being copy-pasted inline per card. */
 const SectionLabel = ({ children, hint, style }) => (
   <div style={{ marginBottom: hint ? '0.2rem' : '0.5rem', ...style }}>
-    <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'.06em' }}>
+    <div style={{ fontSize:'0.72rem', fontWeight:700, color:'var(--bm-loose-text, var(--text-muted))', textTransform:'uppercase', letterSpacing:'.06em' }}>
       {children}
     </div>
-    {hint && <p style={{ margin:'0.15rem 0 0.6rem', fontSize:'0.74rem', color:'var(--text-muted)', lineHeight:1.4 }}>{hint}</p>}
+    {hint && <p style={{ margin:'0.15rem 0 0.6rem', fontSize:'0.74rem', color:'var(--bm-loose-text, var(--text-muted))', lineHeight:1.4 }}>{hint}</p>}
   </div>
 );
 
@@ -602,7 +602,7 @@ export default function ContributorOverview() {
             <div className="bm-hero__brand">
               <span className="bm-hero__logo"><BlueMindMark /></span>
               <span className="bm-hero__brand-name">BlueMind Community</span>
-            
+
               {user?.jobTitle && <span className="bm-hero__job" title={user.jobTitle}>{user.jobTitle}</span>}
             </div>
 
@@ -639,28 +639,23 @@ export default function ContributorOverview() {
             </div>
           </div>
 
-          <div className="bm-hero__wave" aria-hidden="true">
-            <svg viewBox="0 0 1200 74" preserveAspectRatio="none">
-              <path d="M0 34C182 4 374 0 566 20c198 20 424 34 634 6V0H0z" fill="var(--bm-wave-crest)" />
-              <path d="M0 50C182 22 374 16 566 36c198 20 424 32 634 6v-8c-210 28-438 14-634-8C374 6 182 12 0 42z" fill="var(--border-glow)" opacity=".35" />
-            </svg>
-          </div>
-        </div>
-
-        <div className="bm-hero__values">
-          {HERO_VALUES.map(({ key, title, text, Icon, color, tint }) => (
-            <div key={key} className="bm-hero__value">
-              <span className="bm-hero__value-icon" style={{ background: tint, color }}>
-                <Icon size={19} strokeWidth={2.25} />
-              </span>
-              <div className="bm-hero__value-copy">
-                <h3 className="bm-hero__value-title">{title}</h3>
-                <p className="bm-hero__value-text">{text}</p>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
+
+      {/* ── COMMUNITY VALUES ── standalone info card, below the hero ── */}
+      <Card className="contrib-values">
+        {HERO_VALUES.map(({ key, title, text, Icon, color, tint }) => (
+          <div key={key} className="contrib-value">
+            <span className="contrib-value-icon" style={{ background: tint, color }}>
+              <Icon size={19} strokeWidth={2.25} />
+            </span>
+            <div className="contrib-value-copy">
+              <h3 className="contrib-value-title">{title}</h3>
+              <p className="contrib-value-text">{text}</p>
+            </div>
+          </div>
+        ))}
+      </Card>
 
       {/* ── EXPORT FIELD REPORT PANEL ── */}
       {exportOpen && (
@@ -721,36 +716,47 @@ export default function ContributorOverview() {
       ) : (
         <>
           {/* ── YOUR IMPACT ── */}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'0.4rem' }}>
+          <div className="contrib-on-water" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'0.4rem' }}>
             <SectionLabel style={{ marginBottom:0 }}>Your Impact</SectionLabel>
             {rank && (
-              <span style={{ fontSize:'0.74rem', color:'var(--text-muted)' }}>
+              <span style={{ fontSize:'0.74rem', color:'var(--bm-loose-text, var(--text-muted))' }}>
                 Rank #{rank}{topPercent ? ` · Top ${topPercent}%` : ''} · {nf(totalTokens)} OCEAN tokens
               </span>
             )}
           </div>
           <div className="contrib-stats">
             {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured }) => (
-              <Card key={key} className="kpi-card"
+              <Card key={key} className={`kpi-card${featured ? ' kpi-card--featured' : ''}`}
                 style={{ transition:'border-color .2s,transform .2s,box-shadow .2s', cursor:'default',
                   ...(featured ? {
-                    background:`linear-gradient(135deg, ${accent}14, ${accent}26)`,
-                    border:`1.5px solid ${accent}59`,
-                    boxShadow:`0 10px 26px -16px ${accent}73`,
+                    /* Glass like its neighbours, but tinted hard enough to
+                       stay the one card the eye lands on first. */
+                    background:'linear-gradient(150deg, rgba(47,143,214,.86) 0%, rgba(29,111,191,.88) 46%, rgba(20,83,155,.9) 100%)',
+                    border:'1.5px solid rgba(255,255,255,.3)',
+                    boxShadow:'0 18px 36px -22px rgba(20,83,155,.95)',
                   } : {}) }}
                 onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; if(!featured) e.currentTarget.style.borderColor='var(--border-glow)';}}
                 onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; if(!featured) e.currentTarget.style.borderColor='var(--border-light)';}}
               >
-                <div className="kpi-icon" style={{ background: featured ? accent : tint, color: featured ? '#fff' : accent }}>
+                {featured && (
+                  <div className="kpi-swell" aria-hidden="true">
+                    <svg viewBox="0 0 240 56" preserveAspectRatio="none">
+                      <path d="M0 30c34-16 66-16 100 0s66 16 100 0 40-10 40-10v36H0z" fill="#FFFFFF" opacity=".1" />
+                      <path d="M0 40c34-16 66-16 100 0s66 16 100 0 40-8 40-8v24H0z" fill="#FFFFFF" opacity=".14" />
+                      <path d="M0 34c34-16 66-16 100 0s66 16 100 0 40-10 40-10" fill="none" stroke="#FFFFFF" strokeWidth="1.5" opacity=".3" />
+                    </svg>
+                  </div>
+                )}
+                <div className="kpi-icon" style={featured ? undefined : { background: tint, color: accent }}>
                   <Icon size={20} strokeWidth={2.25} />
                 </div>
                 <div className="kpi-label">{label}</div>
                 <div className="kpi-value-row">
-                  <span className="kpi-value" style={{ color: accent }}>{value}</span>
+                  <span className="kpi-value" style={{ color: featured ? '#FFFFFF' : accent }}>{value}</span>
                   {unit && <span className="kpi-value-unit">{unit}</span>}
                 </div>
                 <div className="kpi-sub">{sub}</div>
-                <TrendPill value={trend} accent={accent} tint={tint} />
+                <TrendPill value={trend} accent={featured ? null : accent} tint={tint} />
               </Card>
             ))}
           </div>

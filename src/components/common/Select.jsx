@@ -58,7 +58,7 @@ export default function Select({ id, value, onChange, options, placeholder = 'Se
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     width: '100%', boxSizing: 'border-box', cursor: disabled ? 'default' : 'pointer',
     padding: '1rem 1.25rem', borderRadius: 'var(--radius-md)',
-    border: '1px solid var(--border-light)', background: 'var(--surface)',
+    border: '1px solid var(--border-light)', background: 'var(--surface-solid)',
     fontFamily: 'inherit', fontSize: '1rem', color: 'var(--text-main)',
     ...triggerStyle,
   };

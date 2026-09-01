@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import SubmitActivity from '../apps/contributor/pages/SubmitActivity';
 import QuickReport from '../apps/contributor/pages/QuickReport';
 import EventDetail from '../apps/contributor/pages/EventDetail';
@@ -23,6 +24,7 @@ import CitizenOverview from '../apps/citizen/pages/CitizenOverview';
 import LandingPage from '../app/page';
 import ProfileSettings from '../apps/profile/pages/ProfileSettings';
 import Chatbot from '../components/common/Chatbot';
+import ReefScene from '../components/common/ReefScene';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuth();
@@ -42,6 +44,7 @@ function ProtectedRoute({ children, allowedRoles }) {
 
 function MainLayout({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { theme } = useTheme();
   const location = useLocation();
   const isCitizenSpace = location.pathname.startsWith('/citizen');
   const isContributorSpace = location.pathname.startsWith('/contributor');
@@ -49,6 +52,15 @@ function MainLayout({ children }) {
 
   return (
     <div className={`app-shell${isCitizenSpace ? ' citizen-space-shell' : ''}${isContributorSpace ? ' contributor-space-shell' : ''}${isVerifierSpace ? ' verifier-space-shell' : ''}`}>
+      {/* Animated reef held behind the whole space so the page reads as one
+          continuous body of water rather than a flat background. Fixed, so
+          it stays put while the content scrolls over it. Its own palette
+          follows the theme — a deep-water dive at night, sunlit shallows in
+          the day — rather than reusing one dark image under a light wash,
+          which read as a slab of midnight ocean under a white UI. */}
+      {isContributorSpace && (
+        <div className="space-reef" aria-hidden="true"><ReefScene variant="ambient" theme={theme} /></div>
+      )}
       <Header toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       <main className="main-layout">
         <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />

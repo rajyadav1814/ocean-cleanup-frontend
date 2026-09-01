@@ -26,6 +26,7 @@
     radial-gradient(ellipse 70% 60% at 100% 100%, rgba(11, 45, 74, 0.22), transparent 55%),
     linear-gradient(135deg, #06121c 0%, #071f33 55%, #0b2d4a 100%);
   --surface: rgba(3, 14, 25, 0.72);
+  --surface-solid: #071B2E;
   --surface-hover: rgba(11, 45, 74, 0.78);
   --border-light: rgba(61, 214, 224, 0.15);
   --border-glow: rgba(61, 214, 224, 0.35);
@@ -87,6 +88,7 @@
     radial-gradient(ellipse 70% 60% at 100% 100%, rgba(11, 45, 74, 0.22), transparent 55%),
     linear-gradient(135deg, #06121c 0%, #071f33 55%, #0b2d4a 100%);
   --surface: rgba(3, 14, 25, 0.72);
+  --surface-solid: #071B2E;
   --surface-hover: rgba(11, 45, 74, 0.78);
   --border-light: rgba(61, 214, 224, 0.15);
   --border-glow: rgba(61, 214, 224, 0.35);
@@ -141,6 +143,7 @@
     radial-gradient(ellipse 70% 60% at 100% 100%, rgba(61, 214, 224, 0.2), transparent 55%),
     linear-gradient(135deg, #ffffff 0%, #f4fbfd 52%, #e4f7fa 100%);
   --surface: rgba(255, 255, 255, 0.82);
+  --surface-solid: #FFFFFF;
   --surface-hover: rgba(235, 250, 252, 0.96);
   --border-light: rgba(8, 127, 156, 0.17);
   --border-glow: rgba(8, 127, 156, 0.32);
@@ -429,6 +432,7 @@ a {
   --success: #2E9E9B;
   --warning: #C6821E;
   --surface: #FFFFFF;
+  --surface-solid: #FFFFFF;
   --surface-hover: #F4F9FC;
   --border-light: #E4EDF4;
   --border-glow: #7FC3E8;
@@ -852,6 +856,7 @@ a {
   --primary-hover: #a9d8f0;
   --secondary: #0b82c9;
   --surface: rgba(4, 18, 31, 0.55);
+  --surface-solid: #06192B;
   --surface-hover: rgba(255, 255, 255, 0.055);
   --border-light: rgba(160, 210, 240, 0.18);
   --border-glow: rgba(127, 195, 232, 0.5);
@@ -1235,7 +1240,7 @@ textarea {
   padding: 1rem 1.25rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
-  background: var(--surface);
+  background: var(--surface-solid);
   font-family: inherit;
   font-size: 1rem;
   color: var(--text-main);
@@ -1545,4 +1550,118 @@ tr:hover td {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+/* ── Living reef backdrop (Contributor Space) ─────────────────────────────
+   The animated ReefScene held behind the entire space, fixed to the
+   viewport so the water stays still while the page scrolls over it. A veil
+   sits on top of the artwork — not on the content — so the reef stays
+   readable as depth without ever competing with the cards in front of it.
+   `contain: strict` keeps the always-running SVG animations from
+   invalidating layout for the rest of the page. */
+.space-reef {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  contain: strict;
+}
+
+.space-reef svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* No wash over the artwork — the coral colour and the swimming are meant to
+   be seen at full strength. Contrast for the few bits of type with no card
+   under them is bought per-element instead, so a couple of labels never cost
+   the whole scene its saturation.
+
+   The reef is dark blue wherever page content sits, in both themes, so
+   on-water type goes light with a dark halo either way rather than following
+   the theme's own text colour. Colour travels through --bm-loose-text so it
+   overrides the inline styles those labels carry, without !important. */
+/* Only where the reef is actually behind the page: below 640px .space-reef
+   is dropped, and light-on-dark type there would be light on light. */
+@media (min-width: 641px) {
+  .contributor-space-shell .contrib-on-water {
+    --bm-loose-text: #EDF7FD;
+    text-shadow: 0 1px 2px rgba(3, 20, 38, 0.75), 0 1px 12px rgba(3, 20, 38, 0.85);
+  }
+}
+
+/* ── Glass cards over the reef ────────────────────────────────────────────
+   Contributor Space only — it is the one space with water behind it. Every
+   card surface goes translucent and frosted so the scene reads through the
+   whole page rather than only in the gaps between cards. --surface-solid
+   stays opaque for menus, popovers and text fields, which cannot be read
+   over moving artwork. */
+.contributor-space-shell {
+  /* Enough glass to see the reef swim past, enough fill that dark body text
+     still clears contrast where the water behind a card runs deep navy. */
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-hover: rgba(240, 250, 253, 0.74);
+  --border-light: rgba(255, 255, 255, 0.7);
+  --border-glow: rgba(8, 127, 156, 0.4);
+}
+
+[data-theme="dark"] .contributor-space-shell {
+  --surface: rgba(4, 20, 38, 0.6);
+  --surface-hover: rgba(255, 255, 255, 0.07);
+  --border-light: rgba(160, 210, 240, 0.22);
+}
+
+/* Not every card sets its own blur — several build the background inline —
+   so the frost is applied here, once, to each card surface in the space. */
+.contributor-space-shell :is(.contrib-card, .card, .kpi-card, .sidebar-container),
+.contributor-space-shell > .topbar {
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+}
+
+/* Glass drops the contrast a card normally gets from an opaque fill, so the
+   type is nudged back up to compensate. */
+.contributor-space-shell {
+  --text-muted: rgba(9, 36, 58, 0.78);
+}
+
+[data-theme="dark"] .contributor-space-shell {
+  --text-muted: rgba(233, 242, 247, 0.78);
+}
+
+/* The nav chrome frosts over the reef rather than hiding it — the water has
+   to carry through behind the sidebar for the page to read as one scene.
+   Content cards stay opaque; only the chrome goes translucent. */
+.contributor-space-shell > .topbar,
+.contributor-space-shell .sidebar-container {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(238, 249, 253, 0.6));
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 20px 44px -32px rgba(6, 45, 80, 0.45);
+}
+
+[data-theme="dark"] .contributor-space-shell > .topbar,
+[data-theme="dark"] .contributor-space-shell .sidebar-container {
+  background: linear-gradient(180deg, rgba(4, 22, 40, 0.66), rgba(4, 22, 40, 0.46));
+  border-color: rgba(160, 210, 240, 0.22);
+}
+
+/* The backdrop sits behind everything without any extra lifting: .space-reef
+   is `position: fixed`, and the topbar (sticky), the sidebar and the main
+   column (all positioned via .main-layout) already paint after it in DOM
+   order. Earlier this file forced `position: relative` onto the topbar and
+   the chatbot to "lift" them above the reef — that stripped the topbar of
+   its `sticky` (making it scroll away) and the chatbot of its `fixed`
+   (pinning it in the content flow instead of floating). Neither needed it:
+   they already had their own positioning doing the real work. Nothing to
+   declare here now — left as a note so the fix doesn't get re-added. */
+
+/* The reef is decoration; on a small screen it is mostly hidden behind
+   full-width cards anyway, so drop it and save the compositing. */
+@media (max-width: 640px) {
+  .space-reef { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .space-reef svg * { animation: none !important; }
 }
