@@ -134,7 +134,12 @@ const STYLES = `
   /* Keep Citizen Space on the same midnight-ocean system as Login and
      Signup. These variables intentionally live beneath the page root so
      the dashboard can still offer its light theme without leaking styles
-     into the rest of the application. */
+     into the rest of the application.
+     --surface used to be a near-invisible 5.5% white wash — glassmorphism
+     that read fine over a plain dark gradient, but over the animated reef
+     behind the space now it left every stat and panel nearly see-through.
+     Solid, like the light theme's own --surface always was, so business
+     content stays readable and the water only shows in the gaps. */
   [data-theme="dark"] .co-root,
   .force-dark .co-root {
     --primary: #6FC9C4;
@@ -143,13 +148,13 @@ const STYLES = `
     --warning: #F8B84E;
     --success: #6FC9C4;
 
-    --surface: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
-    --surface-hover: rgba(255,255,255,.055);
-    --border-light: rgba(160,210,240,.18);
+    --surface: rgba(8, 24, 42, 0.93);
+    --surface-hover: rgba(255, 255, 255, 0.08);
+    --border-light: rgba(160,210,240,.24);
     --border-glow: #7FC3E8;
 
     --text-main: #F2F7FA;
-    --text-muted: rgba(233,242,247,.68);
+    --text-muted: rgba(233,242,247,.74);
   }
 
   [data-theme="dark"] .co-stat,
@@ -157,8 +162,8 @@ const STYLES = `
   .force-dark .co-stat,
   .force-dark .co-panel {
     box-shadow: 0 24px 48px -30px rgba(3,12,22,.65);
-    backdrop-filter: blur(18px) saturate(1.3);
-    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 
   [data-theme="dark"] .co-badge.earned,
@@ -454,15 +459,16 @@ const STYLES = `
   .co-empty-sub { margin: 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; max-width: 420px; }
 
   /* ── Community hero ──
-     One card holding the welcome banner and the value strip beneath it, so
-     the wave divider and the tinted strip read as a single surface. */
+     Glass, not solid — the reef behind the whole space stays visible
+     through it, same treatment as the Contributor Space hero. */
   .bm-hero {
-    position:relative; overflow:hidden; background:var(--surface);
+    position:relative; overflow:hidden; background:var(--bm-hero-surface, var(--surface));
+    backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
     border:1px solid var(--border-light); border-radius:20px;
     box-shadow:0 1px 2px rgba(10,30,50,.04), 0 22px 44px -38px rgba(10,30,50,.45);
     margin-bottom: 1.4rem;
   }
-  .bm-hero__main { position:relative; padding:1.55rem 1.9rem 5.5rem; min-height:334px; }
+  .bm-hero__main { position:relative; padding:1.55rem 1.9rem 1.9rem; min-height:334px; }
   .bm-hero__scene {
     position:absolute; inset:0 0 0 auto; width:min(56%,690px); z-index:0; pointer-events:none;
     -webkit-mask-image:linear-gradient(to right, transparent 0%, rgba(0,0,0,.35) 32%, #000 62%);
@@ -551,34 +557,13 @@ const STYLES = `
   .bm-hero__btn--ghost:hover { border-color:var(--border-glow); transform:translateY(-1px); }
   .bm-hero__btn--ghost .bm-hero__lead-ico { color:var(--primary); }
 
-  /* Wave divider: crest breaking over a shallow-water band, both ends
-     tied to theme tokens so the divider matches the card's own surface. */
-  .bm-hero__wave {
-    --bm-wave-crest: var(--surface);
-    position:absolute; left:0; right:0; bottom:0; height:74px; z-index:1; pointer-events:none;
-    background:linear-gradient(180deg, var(--surface-hover) 0%, color-mix(in srgb, var(--surface-hover) 55%, var(--border-glow) 45%) 100%);
-  }
-  .bm-hero__wave svg { position:absolute; inset:0; display:block; width:100%; height:100%; }
-
-  .bm-hero__values {
-    position:relative; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.35rem 1.9rem;
-    padding:1.4rem 1.9rem 1.5rem; background:var(--surface-hover); border-top:1px solid var(--border-light);
-  }
-  .bm-hero__value { display:flex; align-items:flex-start; gap:.85rem; min-width:0; }
-  .bm-hero__value-icon { width:42px; height:42px; flex-shrink:0; border-radius:999px; display:grid; place-items:center; }
-  .bm-hero__value-title { margin:0; font-size:.87rem; font-weight:700; color:var(--text-main); }
-  .bm-hero__value-copy { min-width:0; max-width:166px; }
-  .bm-hero__value-text { margin:.22rem 0 0; font-size:.78rem; line-height:1.5; color:var(--text-muted); }
-
   @media(max-width:1080px){
     .bm-hero__scene { width:50%; }
-    .bm-hero__values { grid-template-columns:repeat(2,minmax(0,1fr)); }
   }
   @media(max-width:860px){
-    .bm-hero__main { padding:1.3rem 1.4rem 4.75rem; min-height:0; }
+    .bm-hero__main { padding:1.3rem 1.4rem 1.6rem; min-height:0; }
     .bm-hero__scene { width:100%; opacity:.24; }
     .bm-hero__body { max-width:none; }
-    .bm-hero__wave { height:72px; }
   }
 
   @media(max-width:640px){
@@ -588,8 +573,6 @@ const STYLES = `
     .bm-hero__sub { font-size:.9rem; }
     .bm-hero__actions { gap:.6rem; }
     .bm-hero__btn { flex:1 1 100%; justify-content:center; height:48px; }
-    .bm-hero__values { grid-template-columns:1fr; gap:1rem; padding:1.15rem 1.25rem; }
-    .bm-hero__value-copy { max-width:none; }
   }
   /* Below this the wordmark would truncate mid-word, so the mark carries
      the brand on its own. */
@@ -599,19 +582,21 @@ const STYLES = `
     .bm-hero__member { padding:.4rem .65rem; font-size:.64rem; letter-spacing:.08em; }
   }
 
-  /* ── Dark theme ──
-     The artwork swaps to the night scene in JSX; these rules carry the
-     chrome across with it. Placed after the breakpoints above so they win
-     on every width. */
+  /* ── Both themes ──
+     The hero's glass fill already carries both themes (see --bm-hero-surface
+     above); the primary button is the one thing that still needs a nudge —
+     the light theme's deeper teal goes muddy against the reef. */
+  .bm-hero__btn--primary {
+    background:linear-gradient(135deg,#28A79C,#12786F);
+    box-shadow:0 20px 34px -20px rgba(20,140,128,.85);
+  }
+  .bm-hero__btn--primary:hover { background:linear-gradient(135deg,#31BBAE,#178C81); }
+
+  /* ── Dark theme ── */
   [data-theme="dark"] .bm-hero__logo {
     background:color-mix(in srgb, var(--primary) 15%, transparent); color:var(--primary);
     border:1px solid color-mix(in srgb, var(--primary) 26%, transparent);
   }
-  [data-theme="dark"] .bm-hero__btn--primary {
-    background:linear-gradient(135deg,#0F7168,#18A294);
-    box-shadow:0 20px 34px -20px rgba(24,162,148,.75);
-  }
-  [data-theme="dark"] .bm-hero__btn--primary:hover { background:linear-gradient(135deg,#13847A,#1EB7A6); }
   [data-theme="dark"] .bm-hero__btn--ghost {
     background:transparent; border-color:color-mix(in srgb, var(--primary) 50%, transparent); color:var(--primary);
   }
@@ -620,20 +605,38 @@ const STYLES = `
   }
   [data-theme="dark"] .bm-hero__logout:hover,
   [data-theme="dark"] .bm-hero__btn--ghost:hover { box-shadow:0 10px 26px -16px rgba(0,0,0,.6); }
-  /* An opaque crest, so the night artwork stops cleanly at the divider
-     rather than bleeding through the card's translucent surface. */
-  [data-theme="dark"] .bm-hero__wave {
-    --bm-wave-crest:#08202F;
-    background:linear-gradient(180deg,#0E3148 0%,#0A2133 100%);
+
+  /* ── Community values ──
+     Standalone card beneath the hero, matching the Contributor Space —
+     was fused to the hero's own surface as a bottom strip, split out so it
+     reads as its own info card instead of trailing off the hero's rounded
+     corners. */
+  .contrib-values {
+    display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1.35rem 1.9rem;
+    padding:1.4rem 1.6rem;
   }
-  [data-theme="dark"] .bm-hero__value-icon {
+  .contrib-value { display:flex; align-items:flex-start; gap:.85rem; min-width:0; }
+  .contrib-value-icon { width:42px; height:42px; flex-shrink:0; border-radius:999px; display:grid; place-items:center; }
+  .contrib-value-title { margin:0; font-size:.87rem; font-weight:700; color:var(--text-main); }
+  .contrib-value-copy { min-width:0; max-width:166px; }
+  .contrib-value-text { margin:.22rem 0 0; font-size:.78rem; line-height:1.5; color:var(--text-muted); }
+
+  @media(max-width:1080px){
+    .contrib-values { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media(max-width:640px){
+    .contrib-values { grid-template-columns:1fr; gap:1rem; padding:1.15rem 1.25rem; }
+    .contrib-value-copy { max-width:none; }
+  }
+
+  [data-theme="dark"] .contrib-value-icon {
     border:1px solid color-mix(in srgb, currentColor 30%, transparent);
   }
-  [data-theme="dark"] .bm-hero__value:not(:first-child) {
+  [data-theme="dark"] .contrib-value:not(:first-child) {
     border-left:1px solid var(--border-light); margin-left:-.95rem; padding-left:.95rem;
   }
   @media(max-width:640px){
-    [data-theme="dark"] .bm-hero__value:not(:first-child) { border-left:none; margin-left:0; padding-left:0; }
+    [data-theme="dark"] .contrib-value:not(:first-child) { border-left:none; margin-left:0; padding-left:0; }
   }
 `;
 
@@ -761,27 +764,22 @@ export default function CitizenOverview() {
             </div>
           </div>
 
-          <div className="bm-hero__wave" aria-hidden="true">
-            <svg viewBox="0 0 1200 74" preserveAspectRatio="none">
-              <path d="M0 34C182 4 374 0 566 20c198 20 424 34 634 6V0H0z" fill="var(--bm-wave-crest)" />
-              <path d="M0 50C182 22 374 16 566 36c198 20 424 32 634 6v-8c-210 28-438 14-634-8C374 6 182 12 0 42z" fill="var(--border-glow)" opacity=".35" />
-            </svg>
-          </div>
         </div>
+      </div>
 
-        <div className="bm-hero__values">
-          {HERO_VALUES.map(({ key, title, text, Icon, color, tint }) => (
-            <div key={key} className="bm-hero__value">
-              <span className="bm-hero__value-icon" style={{ background: tint, color }}>
-                <Icon size={19} strokeWidth={2.25} />
-              </span>
-              <div className="bm-hero__value-copy">
-                <h3 className="bm-hero__value-title">{title}</h3>
-                <p className="bm-hero__value-text">{text}</p>
-              </div>
+      {/* ── COMMUNITY VALUES ── standalone info card, below the hero ── */}
+      <div className="co-panel contrib-values" style={{ marginBottom: '1.4rem' }}>
+        {HERO_VALUES.map(({ key, title, text, Icon, color, tint }) => (
+          <div key={key} className="contrib-value">
+            <span className="contrib-value-icon" style={{ background: tint, color }}>
+              <Icon size={19} strokeWidth={2.25} />
+            </span>
+            <div className="contrib-value-copy">
+              <h3 className="contrib-value-title">{title}</h3>
+              <p className="contrib-value-text">{text}</p>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {isNewUser ? (

@@ -1552,13 +1552,12 @@ tr:hover td {
   }
 }
 
-/* ── Living reef backdrop (Contributor Space) ─────────────────────────────
-   The animated ReefScene held behind the entire space, fixed to the
-   viewport so the water stays still while the page scrolls over it. A veil
-   sits on top of the artwork — not on the content — so the reef stays
-   readable as depth without ever competing with the cards in front of it.
+/* ── Living reef backdrop (Contributor + Citizen Space) ────────────────────
+   The animated ReefScene held behind the whole space, fixed to the
+   viewport so the water stays still while the page scrolls over it.
    `contain: strict` keeps the always-running SVG animations from
-   invalidating layout for the rest of the page. */
+   invalidating layout for the rest of the page. Both spaces share the same
+   Blue Mind hero and card system, so both get the reef behind them. */
 .space-reef {
   position: fixed;
   inset: 0;
@@ -1585,21 +1584,22 @@ tr:hover td {
 /* Only where the reef is actually behind the page: below 640px .space-reef
    is dropped, and light-on-dark type there would be light on light. */
 @media (min-width: 641px) {
-  .contributor-space-shell .contrib-on-water {
+  :is(.contributor-space-shell, .citizen-space-shell) .contrib-on-water {
     --bm-loose-text: #EDF7FD;
     text-shadow: 0 1px 2px rgba(3, 20, 38, 0.75), 0 1px 12px rgba(3, 20, 38, 0.85);
   }
 }
 
 /* ── Content cards over the reef ───────────────────────────────────────────
-   Contributor Space only — it is the one space with water behind it. The
-   reef is ambiance, not the point: every card carrying real data (stats,
-   activity rows, forms) gets a near-solid fill so the numbers and copy read
-   exactly as they would on a plain background, with the animation visible
-   only in the margins and gaps between cards — never fighting the content
-   inside them. --surface-solid stays fully opaque for menus, popovers and
-   text fields, which can't be read over moving artwork at any opacity. */
-.contributor-space-shell {
+   Contributor and Citizen Space only — the two spaces with water behind
+   them. The reef is ambiance, not the point: every card carrying real data
+   (stats, activity rows, forms) gets a near-solid fill so the numbers and
+   copy read exactly as they would on a plain background, with the
+   animation visible only in the margins and gaps between cards — never
+   fighting the content inside them. --surface-solid stays fully opaque for
+   menus, popovers and text fields, which can't be read over moving artwork
+   at any opacity. */
+:is(.contributor-space-shell, .citizen-space-shell) {
   --surface: rgba(255, 255, 255, 0.94);
   --surface-hover: rgba(240, 250, 253, 0.97);
   --border-light: rgba(210, 228, 236, 0.9);
@@ -1611,7 +1611,7 @@ tr:hover td {
   --bm-hero-surface: rgba(255, 255, 255, 0.42);
 }
 
-[data-theme="dark"] .contributor-space-shell {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) {
   --surface: rgba(8, 24, 42, 0.93);
   --surface-hover: rgba(255, 255, 255, 0.08);
   --border-light: rgba(160, 210, 240, 0.24);
@@ -1620,19 +1620,21 @@ tr:hover td {
 
 /* A light blur still softens a card's edge where it isn't fully opaque;
    the saturation boost from the old, much-more-translucent version is
-   dropped since there's barely any reef colour left to lift. */
-.contributor-space-shell :is(.contrib-card, .card, .kpi-card, .sidebar-container) {
+   dropped since there's barely any reef colour left to lift. .co-panel and
+   .co-stat are Citizen Space's equivalents of .contrib-card and .kpi-card. */
+:is(.contributor-space-shell, .citizen-space-shell)
+  :is(.contrib-card, .card, .kpi-card, .sidebar-container, .co-panel, .co-stat, .co-tabs) {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 
 /* Type gets the same treatment as the cards: full-strength, not a value
    nudged up from some translucent baseline. */
-.contributor-space-shell {
+:is(.contributor-space-shell, .citizen-space-shell) {
   --text-muted: rgba(9, 36, 58, 0.72);
 }
 
-[data-theme="dark"] .contributor-space-shell {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) {
   --text-muted: rgba(233, 242, 247, 0.74);
 }
 
@@ -1640,8 +1642,8 @@ tr:hover td {
    they can stay a shade more translucent than the cards without costing
    anything readable — but still solid enough that nav labels and the
    account menu never fight the water behind them. */
-.contributor-space-shell > .topbar,
-.contributor-space-shell .sidebar-container {
+:is(.contributor-space-shell, .citizen-space-shell) > .topbar,
+:is(.contributor-space-shell, .citizen-space-shell) .sidebar-container {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(238, 249, 253, 0.84));
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -1649,8 +1651,8 @@ tr:hover td {
   box-shadow: 0 20px 44px -32px rgba(6, 45, 80, 0.45);
 }
 
-[data-theme="dark"] .contributor-space-shell > .topbar,
-[data-theme="dark"] .contributor-space-shell .sidebar-container {
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) > .topbar,
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) .sidebar-container {
   background: linear-gradient(180deg, rgba(4, 22, 40, 0.88), rgba(4, 22, 40, 0.78));
   border-color: rgba(160, 210, 240, 0.24);
 }
