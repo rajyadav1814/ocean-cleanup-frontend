@@ -241,6 +241,27 @@ const STYLES = `
   }
   .bm-hero__scene img { display:block; width:100%; height:100%; object-fit:cover; object-position:70% center; }
 
+  /* Animated ocean sitting behind the whole hero — a deep-water gradient
+     plus three parallax wave bands, each a repeating SVG path scrolled by
+     translateX. The path's period tiles evenly into the loop distance so
+     the seam is invisible. Sits above the photo but below all copy/CTAs. */
+  .bm-hero__ocean { position:absolute; inset:0; z-index:1; overflow:hidden; pointer-events:none; }
+  .bm-hero__ocean::before {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(180deg, transparent 0%, transparent 55%, color-mix(in srgb, var(--secondary) 22%, transparent) 100%);
+  }
+  .bm-hero__wave { position:absolute; bottom:0; left:0; width:200%; height:150px; }
+  .bm-hero__wave--back { animation:bm-wave-scroll 26s linear infinite; opacity:.16; }
+  .bm-hero__wave--mid { animation:bm-wave-scroll 18s linear infinite reverse; opacity:.24; }
+  .bm-hero__wave--front { animation:bm-wave-scroll 12s linear infinite; opacity:.4; }
+  @keyframes bm-wave-scroll { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+  @media(prefers-reduced-motion:reduce){
+    .bm-hero__wave { animation:none; }
+  }
+  @media(max-width:860px){
+    .bm-hero__wave { height:100px; }
+  }
+
   .bm-hero__top { position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:1rem; }
   .bm-hero__brand { display:flex; align-items:center; gap:.85rem; min-width:0; flex:1 1 auto; flex-wrap:wrap; }
   .bm-hero__brand-id { display:flex; align-items:center; gap:.85rem; min-width:0; }
@@ -664,6 +685,18 @@ export default function ContributorOverview() {
         <div className="bm-hero__main">
           <div className="bm-hero__scene" aria-hidden="true">
             <img src={isLight ? '/hero-light.png' : '/hero-dark.png'} alt="" loading="eager" decoding="async" />
+          </div>
+
+          <div className="bm-hero__ocean" aria-hidden="true">
+            <svg className="bm-hero__wave bm-hero__wave--back" viewBox="0 0 2400 150" preserveAspectRatio="none">
+              <path fill="#7DE7F0" d="M0,75 C200,140 400,10 600,75 C800,140 1000,10 1200,75 C1400,140 1600,10 1800,75 C2000,140 2200,10 2400,75 L2400,150 L0,150 Z" />
+            </svg>
+            <svg className="bm-hero__wave bm-hero__wave--mid" viewBox="0 0 2400 150" preserveAspectRatio="none">
+              <path fill="#2E9E9B" d="M0,90 C200,25 400,150 600,90 C800,25 1000,150 1200,90 C1400,25 1600,150 1800,90 C2000,25 2200,150 2400,90 L2400,150 L0,150 Z" />
+            </svg>
+            <svg className="bm-hero__wave bm-hero__wave--front" viewBox="0 0 2400 150" preserveAspectRatio="none">
+              <path fill="#0B3B5C" d="M0,65 C200,120 400,10 600,65 C800,120 1000,10 1200,65 C1400,120 1600,10 1800,65 C2000,120 2200,10 2400,65 L2400,150 L0,150 Z" />
+            </svg>
           </div>
 
           <div className="bm-hero__top">
