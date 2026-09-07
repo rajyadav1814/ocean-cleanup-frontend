@@ -6,6 +6,7 @@ import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import SubmitActivity from '../../contributor/pages/SubmitActivity';
 import MyAreasMap from '../../contributor/components/MyAreasMap';
+import JourneyPath from '../../../components/common/JourneyPath';
 import { eventStateMeta, verificationStateMeta } from '../../contributor/eventMeta';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -179,26 +180,15 @@ const STYLES = `
     gap: 1rem; margin-bottom: 1.4rem;
   }
   .co-stat {
-    position: relative; overflow: hidden; min-height: 246px;
-    /* Content is centred on the card's axis: the illustrations are
-       symmetrical, with the scene rising from both bottom corners, so a
-       left-aligned block reads off-balance against them. */
-    display: flex; flex-direction: column; align-items: center; text-align: center;
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
     background: var(--surface); border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg); padding: 1.6rem 1.6rem 1.75rem;
+    border-radius: var(--radius-lg); padding: 1.4rem 1.5rem 1.6rem;
     box-shadow: 0 1px 2px rgba(10,30,50,.04);
     transition: border-color 0.2s, transform 0.2s;
   }
   .co-stat:hover { border-color: var(--border-glow); transform: translateY(-2px); }
-  /* Each card's artwork is a painted illustration from /public/citizen
-     (kpi-1..4), sized to cover the card and anchored to its foot so the
-     scene sits below the copy the way the source art is composed. The PNGs
-     are cropped to the artwork itself, so the image can run edge to edge
-     under the card's own radius. */
-  .co-stat-art { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; border-radius: inherit; }
-  .co-stat-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center bottom; }
-  [data-theme="dark"] .co-stat-art, .force-dark .co-stat-art { opacity: .42; }
-  .co-stat-top { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 0.7rem; }
+  .co-stat-top { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 0.7rem; }
   .co-stat-icon {
     flex-shrink: 0; width: 46px; height: 46px; border-radius: 999px;
     display: flex; align-items: center; justify-content: center;
@@ -216,7 +206,7 @@ const STYLES = `
   .co-stat-value-unit { font-size: 1rem; font-weight: 600; color: var(--text-muted); margin-left: 0.25rem; }
   .co-stat-desc {
     position: relative; z-index: 1;
-    display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+    display: flex; align-items: center; gap: 0.4rem;
     font-size: 0.76rem; color: var(--text-muted); font-family: var(--font-sans);
     margin-top: 0.9rem;
   }
@@ -450,7 +440,7 @@ const STYLES = `
   }
   @media (max-width: 520px) {
     .co-badges { grid-template-columns: repeat(2,1fr); }
-    .co-stat   { padding: 1.25rem 1.3rem 1.4rem; min-height: 196px; }
+    .co-stat   { padding: 1.15rem 1.2rem 1.3rem; }
     .co-stat-value { font-size: 1.6rem; }
     .co-panel  { padding: 1.2rem; }
     .co-cta    { align-self: flex-start; margin-bottom: 2.4rem; }
@@ -757,6 +747,16 @@ export default function CitizenOverview() {
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     .slice(0, 6);
 
+  // Live counts for the "Where your report goes" pipeline (same event
+  // model as the contributor space's equivalent card).
+  const journeyCounts = {
+    spotted: myEvents.length,
+    checking: myEvents.filter((e) => e.eventState !== 'addressed'
+      && ['unverified', 'supported'].includes(e.verificationState)).length,
+    dispatched: myEvents.filter((e) => ['action_planned', 'action_underway'].includes(e.eventState)).length,
+    resolved: myEvents.filter((e) => e.eventState === 'addressed').length,
+  };
+
   return (
     <div className="co-root">
       <style>{STYLES}</style>
@@ -828,30 +828,27 @@ export default function CitizenOverview() {
       <div className="co-stats">
         {[
           {
-            key: 'reports', art: '/citizen/kpi-1.png', label: 'Reports', Icon: FileText, accent: 'var(--primary)', tint: 'rgba(46,158,155,.14)',
+            key: 'reports', label: 'Reports', Icon: FileText, accent: 'var(--primary)', tint: 'rgba(46,158,155,.14)',
             value: s.totalReports || 0, unit: '',
             DescIcon: Calendar, sub: `since ${sinceLabel}`,
           },
           {
-            key: 'waste', art: '/citizen/kpi-2.png', label: 'Waste logged', Icon: Trash2, accent: '#22c55e', tint: 'rgba(34,197,94,.14)',
+            key: 'waste', label: 'Waste logged', Icon: Trash2, accent: '#22c55e', tint: 'rgba(34,197,94,.14)',
             value: Number(s.totalKg || 0).toFixed(1), unit: 'kg',
             DescIcon: ShieldCheck, sub: 'verified + pending',
           },
           {
-            key: 'badges', art: '/citizen/kpi-3.png', label: 'Badges earned', Icon: Award, accent: 'var(--warning)', tint: 'rgba(198,130,30,.14)',
+            key: 'badges', label: 'Badges earned', Icon: Award, accent: 'var(--warning)', tint: 'rgba(198,130,30,.14)',
             value: `${earned.length} / ${badges.length || 8}`, unit: '',
             DescIcon: MapPin, sub: badges.find(b => !b.earned)?.title || 'All earned!',
           },
           {
-            key: 'rank', art: '/citizen/kpi-4.png', label: 'City rank', Icon: Trophy, accent: 'var(--secondary)', tint: 'rgba(20,102,158,.14)',
+            key: 'rank', label: 'City rank', Icon: Trophy, accent: 'var(--secondary)', tint: 'rgba(20,102,158,.14)',
             value: s.cityRank ? `#${s.cityRank}` : '—', unit: '',
             DescIcon: Users, sub: lbRows.length ? `of ${lbRows.length} citizens` : 'not ranked yet',
           },
-        ].map(({ key, label, Icon, accent, tint, value, unit, DescIcon, sub, art }) => (
+        ].map(({ key, label, Icon, accent, tint, value, unit, DescIcon, sub }) => (
           <div key={key} className="co-stat" style={{ '--stat-accent': accent, '--stat-tint': tint }}>
-            <div className="co-stat-art" aria-hidden="true">
-              <img src={art} alt="" loading="lazy" decoding="async" />
-            </div>
             <div className="co-stat-top">
               <div className="co-stat-icon"><Icon size={20} strokeWidth={2} /></div>
               <div>
@@ -862,6 +859,14 @@ export default function CitizenOverview() {
             <div className="co-stat-desc"><DescIcon size={13} strokeWidth={2.25} />{sub}</div>
           </div>
         ))}
+      </div>
+
+      {/* ── Where your report goes ── */}
+      <div className="co-panel" style={{ marginBottom: '1.2rem' }}>
+        <div className="co-panel-kicker">The Pipeline</div>
+        <div className="co-panel-title">Where your report goes</div>
+        <div className="co-panel-desc">Every report moves through the same four steps.</div>
+        <JourneyPath counts={journeyCounts} />
       </div>
 
       {/* ── Needs Attention + Impact Stories ──

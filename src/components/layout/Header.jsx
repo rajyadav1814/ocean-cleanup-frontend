@@ -1,9 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import NotificationBell from './NotificationBell';
+
+// Same three destinations as the Contributor/Citizen sidebar's top links —
+// mirrored here so they stay reachable from the header regardless of
+// scroll position or sidebar collapse state.
+const HEADER_NAV_LINKS = {
+  contributor: [
+    { to: '/contributor/overview', label: 'Overview' },
+    { to: '/contributor/quick-report', label: 'Submit Activity' },
+    { to: '/contributor/my-activities', label: 'My Activities' },
+  ],
+  citizen: [
+    { to: '/citizen/overview', label: 'Overview' },
+    { to: '/citizen/quick-report', label: 'Submit Activity' },
+    { to: '/citizen/my-activities', label: 'My Activities' },
+  ],
+};
 
 function getDisplayName(user) {
   return user?.displayName
@@ -125,7 +141,31 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
           <span>Bluemind</span>
         </Link>
       </div>
+
+      {!hideActions && HEADER_NAV_LINKS[role] && (
+        <nav className="header-center-nav">
+          {HEADER_NAV_LINKS[role].map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) => `header-center-nav__link${isActive ? ' is-active' : ''}`}
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+      )}
+
       <div className="nav-links">
+        {!hideActions && (role === 'contributor' || role === 'citizen') && (
+          <div className="header-impact-pill" title="Keep logging — every kg counts!">
+            <span className="header-impact-pill__icon" aria-hidden="true">🌊</span>
+            <span className="header-impact-pill__text">
+              <span className="header-impact-pill__kicker">Your impact</span>
+              <span className="header-impact-pill__value">Active</span>
+            </span>
+          </div>
+        )}
         {!hideActions && (
           <>
             <button className="secondary" onClick={toggleTheme} aria-label="Toggle Theme" style={{ padding: '0.5rem', borderRadius: '50%' }}>
