@@ -1070,6 +1070,20 @@ main {
   }
 }
 
+.app-footer {
+  flex-shrink: 0;
+  padding: 1.1rem 1rem 1.5rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+@media (min-width: 768px) {
+  .app-footer {
+    padding: 1.1rem 1.5rem 1.75rem;
+  }
+}
+
 /* Glassmorphism Sidebar */
 .sidebar-container {
   background: var(--surface);

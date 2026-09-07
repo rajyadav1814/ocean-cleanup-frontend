@@ -53,6 +53,9 @@ function MainLayout({ children }) {
           {children}
         </div>
       </main>
+      <footer className="app-footer">
+        © 2026 BlueMind &nbsp;·&nbsp; info@bluemind.si
+      </footer>
       {(isCitizenSpace || isContributorSpace) && <Chatbot />}
     </div>
   );
