@@ -84,19 +84,11 @@ const STYLES = `
   .kpi-value-unit { font-size:1.02rem; font-weight:600; color:var(--text-muted); }
   .kpi-sub { position:relative; z-index:1; font-size:.79rem; color:var(--text-muted); margin-top:-.4rem; }
   .kpi-trend { position:relative; z-index:1; align-self:flex-start; display:inline-flex; align-items:center; gap:.3rem; padding:.28rem .6rem; border-radius:999px; font-size:.72rem; font-weight:700; }
-  /* The headline number of the row — a solid slab of ocean with a swell
-     breaking across its foot, so it reads as the card you look at first. */
-  .kpi-card--featured { color:#FFFFFF; }
-  .kpi-card--featured .kpi-label { color:rgba(255,255,255,.8); }
-  .kpi-card--featured .kpi-sub { color:rgba(255,255,255,.72); }
-  .kpi-card--featured .kpi-value-unit { color:rgba(255,255,255,.82); }
-  .kpi-card--featured .kpi-icon { background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.32); color:#FFFFFF; }
-  .kpi-card--featured .kpi-trend { background:rgba(255,255,255,.2); color:#FFFFFF; }
-  /* Icon tint at 12% opacity reads fine against the light pastel wash but
-     disappears against the near-black dark-theme card, so it gets a hairline
-     border for definition — same treatment the hero's job pill uses. */
-  [data-theme="dark"] .kpi-card:not(.kpi-card--featured) .kpi-icon,
-  .force-dark .kpi-card:not(.kpi-card--featured) .kpi-icon {
+  /* Icon tint at 12% opacity reads fine in light mode but disappears
+     against the near-black dark-theme card, so it gets a hairline border
+     for definition — same treatment the hero's job pill uses. */
+  [data-theme="dark"] .kpi-icon,
+  .force-dark .kpi-icon {
     border: 1px solid rgba(255,255,255,.14);
   }
   @media(max-width:768px){
@@ -647,26 +639,18 @@ export default function ContributorOverview() {
   const impactCards = [
     { key:'contributions', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
       sub:'Total reports submitted', Icon: ClipboardList, accent:'#2563eb', tint:'rgba(37,99,235,0.12)',
-      wash:'linear-gradient(135deg, #f4f9ff 0%, #e8f3fd 100%)',
-      washDark:'linear-gradient(135deg, rgba(37,99,235,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.contributions ?? null },
     { key:'verified', label:'Verified', value: nf(impact?.verifiedEvents ?? 0),
       sub:'Reports verified', Icon: ShieldCheck, accent:'#0d9488', tint:'rgba(13,148,136,0.12)',
-      wash:'linear-gradient(135deg, #f2fbf8 0%, #e4f4ee 100%)',
-      washDark:'linear-gradient(135deg, rgba(13,148,136,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.verifiedEvents ?? null },
     { key:'actions', label:'Actions Completed', value: nf(impact?.actionsCompleted ?? 0),
       sub:'Cleanup actions completed', Icon: CheckCircle2, accent:'#d97706', tint:'rgba(217,119,6,0.12)',
-      wash:'linear-gradient(135deg, #fffaf2 0%, #fdf0e0 100%)',
-      washDark:'linear-gradient(135deg, rgba(217,119,6,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.actionsCompleted ?? null },
     { key:'waste', label:'Waste Removed', value: nf(impact?.kgRemoved ?? 0), unit:'kg',
-      sub:'Total waste removed', Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true,
+      sub:'Total waste removed', Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)',
       trend: trends.kgRemoved ?? null },
     { key:'locations', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
       sub:'Locations reported', Icon: MapPin, accent:'#7c3aed', tint:'rgba(124,58,237,0.12)',
-      wash:'linear-gradient(135deg, #f8f6ff 0%, #eeeefc 100%)',
-      washDark:'linear-gradient(135deg, rgba(124,58,237,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.locationsAffected ?? null },
   ];
 
@@ -694,7 +678,7 @@ export default function ContributorOverview() {
           <div className="bm-hero__body">
             <h1 className="bm-hero__title">
               Hi {firstName}, <span role="img" aria-label="waving hand">👋</span><br />
-              Thank you for being part of <span>blueMind.</span>
+              Thank you for being part of <span>BlueMind.</span>
             </h1>
             <p className="bm-hero__sub">
               Every activity you submit helps us understand pollution patterns,
@@ -803,31 +787,22 @@ export default function ContributorOverview() {
             <SectionLabel style={{ marginBottom:0 }}>Your Impact</SectionLabel>
           </div>
           <div className="contrib-stats">
-            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured, wash, washDark }) => (
-              <Card key={key} className={`kpi-card${featured ? ' kpi-card--featured' : ''}`}
-                style={{ transition:'border-color .2s,transform .2s,box-shadow .2s', cursor:'default',
-                  ...(!featured && isLight && wash ? { background: wash } : {}),
-                  ...(!featured && !isLight && washDark ? { background: washDark } : {}),
-                  ...(featured ? {
-                    /* Glass like its neighbours, but tinted hard enough to
-                       stay the one card the eye lands on first. */
-                    background:'linear-gradient(150deg, rgba(47,143,214,.86) 0%, rgba(29,111,191,.88) 46%, rgba(20,83,155,.9) 100%)',
-                    border:'1.5px solid rgba(255,255,255,.3)',
-                    boxShadow:'0 18px 36px -22px rgba(20,83,155,.95)',
-                  } : {}) }}
-                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; if(!featured) e.currentTarget.style.borderColor='var(--border-glow)';}}
-                onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; if(!featured) e.currentTarget.style.borderColor='var(--border-light)';}}
+            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend }) => (
+              <Card key={key} className="kpi-card"
+                style={{ transition:'border-color .2s,transform .2s', cursor:'default' }}
+                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.borderColor='var(--border-glow)';}}
+                onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.borderColor='var(--border-light)';}}
               >
-                <div className="kpi-icon" style={featured ? undefined : { background: tint, color: accent }}>
+                <div className="kpi-icon" style={{ background: tint, color: accent }}>
                   <Icon size={20} strokeWidth={2.25} />
                 </div>
                 <div className="kpi-label">{label}</div>
                 <div className="kpi-value-row">
-                  <span className="kpi-value" style={{ color: featured ? '#FFFFFF' : accent }}>{value}</span>
+                  <span className="kpi-value" style={{ color: accent }}>{value}</span>
                   {unit && <span className="kpi-value-unit">{unit}</span>}
                 </div>
                 <div className="kpi-sub">{sub}</div>
-                <TrendPill value={trend} accent={featured ? null : accent} tint={tint} />
+                <TrendPill value={trend} accent={accent} tint={tint} />
               </Card>
             ))}
           </div>

@@ -138,7 +138,7 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
             <path d="M2.9 9.6h18.2M2.9 14.4h18.2" stroke="currentColor" strokeWidth="1.1" opacity=".72" />
             <path d="M12 2.75c2.6 2.6 3.9 5.7 3.9 9.25S14.6 18.65 12 21.25c-2.6-2.6-3.9-5.7-3.9-9.25S9.4 5.35 12 2.75Z" stroke="currentColor" strokeWidth="1.1" opacity=".72" />
           </svg>
-          <span>Bluemind</span>
+          <span>BlueMind</span>
         </Link>
       </div>
 
