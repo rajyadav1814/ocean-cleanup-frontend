@@ -360,7 +360,7 @@ export default function EventDetail() {
   const headerIcon = FAMILY_ICONS[primaryFamily] || FAMILY_ICONS.pollution_waste;
 
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '2rem', maxWidth: '1320px', fontFamily: 'var(--font-sans)' }}>
+    <section style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '2rem', maxWidth: '1320px', width: '100%', margin: '0 auto', fontFamily: 'var(--font-sans)' }}>
       <style>{`.ed-select {
         appearance: none; -webkit-appearance: none;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237b8fa1' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
