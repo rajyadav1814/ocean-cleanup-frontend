@@ -38,6 +38,7 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const profileRef = useRef(null);
@@ -261,14 +262,41 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
           </div>
         )}
 
-        <button className="mobile-menu-btn secondary" onClick={toggleMobileMenu} aria-label="Menu" style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
+        {!hideActions && HEADER_NAV_LINKS[role] && (
+          <button
+            className="mobile-menu-btn secondary"
+            onClick={() => {
+              setMobileNavOpen((open) => !open);
+              toggleMobileMenu?.();
+            }}
+            aria-label="Menu"
+            aria-expanded={mobileNavOpen}
+            style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)' }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        )}
       </div>
+
+      {!hideActions && HEADER_NAV_LINKS[role] && mobileNavOpen && (
+        <nav className="header-mobile-nav">
+          {HEADER_NAV_LINKS[role].map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              onClick={() => setMobileNavOpen(false)}
+              className={({ isActive }) => `header-mobile-nav__link${isActive ? ' is-active' : ''}`}
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+      )}
+
       <LogoutModal />
     </header>
   );
