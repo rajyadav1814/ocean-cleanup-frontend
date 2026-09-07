@@ -16,15 +16,9 @@
   --primary-hover: var(--brand-700);
   --secondary: var(--brand-400);
   --dark: var(--brand-50);
-  /* Four corner glows, each a different hue, layered over a static base —
-     paired with `background-attachment: fixed` on body so the glows stay
-     pinned to the viewport corners instead of drifting as the page scrolls. */
-  --bg-gradient:
-    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(53, 185, 214, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(61, 214, 224, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(30, 107, 145, 0.18), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 100%, rgba(11, 45, 74, 0.22), transparent 55%),
-    linear-gradient(135deg, #06121c 0%, #071f33 55%, #0b2d4a 100%);
+  /* Dark-mode counterpart of the light theme's diagonal blue wash — same
+     direction and shape, darkened into the app's own ocean palette. */
+  --bg-gradient: linear-gradient(135deg, #2E86C8 0%, #14669E 55%, #0c2a42 100%);
   --surface: rgba(3, 14, 25, 0.72);
   --surface-solid: #071B2E;
   --surface-hover: rgba(11, 45, 74, 0.78);
@@ -81,12 +75,7 @@
   --primary-hover: var(--brand-700);
   --secondary: var(--brand-400);
   --dark: var(--brand-50);
-  --bg-gradient:
-    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(53, 185, 214, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(61, 214, 224, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(30, 107, 145, 0.18), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 100%, rgba(11, 45, 74, 0.22), transparent 55%),
-    linear-gradient(135deg, #06121c 0%, #071f33 55%, #0b2d4a 100%);
+  --bg-gradient: linear-gradient(135deg, #2E86C8 0%, #14669E 55%, #112f47 100%);
   --surface: rgba(3, 14, 25, 0.72);
   --surface-solid: #071B2E;
   --surface-hover: rgba(11, 45, 74, 0.78);
@@ -133,15 +122,9 @@
   --primary-hover: #04657c;
   --secondary: #1596b5;
   --dark: #ffffff;
-  /* Same teal/blue pairing as the ocean-wave-strip layers, as four corner
-     glows pinned to the viewport (see `background-attachment: fixed` on
-     body) instead of a wash that drifted with scroll position. */
-  --bg-gradient:
-    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(61, 214, 224, 0.22), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(11, 130, 201, 0.18), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(11, 130, 201, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 100%, rgba(61, 214, 224, 0.2), transparent 55%),
-    linear-gradient(135deg, #ffffff 0%, #f4fbfd 52%, #e4f7fa 100%);
+  /* Solid sky-to-ocean blue diagonal, replacing the previous pale
+     white-based wash — the whole light theme now sits on this. */
+  --bg-gradient: linear-gradient(135deg, #8FD3F2 0%, #4FA6DE 55%, #2E86C8 100%);
   --surface: rgba(255, 255, 255, 0.82);
   --surface-solid: #FFFFFF;
   --surface-hover: rgba(235, 250, 252, 0.96);
@@ -862,12 +845,7 @@ a {
   --border-glow: rgba(127, 195, 232, 0.5);
   --text-main: #f2f7fa;
   --text-muted: rgba(233, 242, 247, 0.68);
-  --bg-gradient:
-    radial-gradient(60% 50% at 4% 4%, #0a3a5c 0%, transparent 58%),
-    radial-gradient(60% 50% at 96% 4%, #17587f 0%, transparent 58%),
-    radial-gradient(65% 55% at 4% 96%, #0a4f83 0%, transparent 62%),
-    radial-gradient(65% 55% at 96% 96%, #123f66 0%, transparent 62%),
-    linear-gradient(172deg, #05192e 0%, #072744 44%, #08395f 100%);
+  --bg-gradient: linear-gradient(135deg, #2E86C8 0%, #14669E 55%, #0f2c44 100%);
   background: var(--bg-gradient);
   background-attachment: fixed;
 }
@@ -931,8 +909,8 @@ a {
 .brand-wordmark {
   color: rgba(232, 242, 255, 0.8);
   font-family: var(--font-sans);
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1;
   margin: 0;
@@ -943,8 +921,8 @@ a {
 }
 
 .brand-wordmark__mark {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1.5rem;
+  height: 1.5rem;
   flex: 0 0 auto;
 }
 
@@ -978,9 +956,9 @@ a {
 }
 
 .header-center-nav__link {
-  padding: 0.45rem 0.85rem;
+  padding: 0.55rem 1rem;
   border-radius: 999px;
-  font-size: 0.84rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-muted);
   text-decoration: none;
@@ -1067,6 +1045,7 @@ main {
   flex-direction: column;
   align-items: stretch;
   position: relative;
+  padding-top: 0.5rem;
 }
 
 .main-content {
@@ -1083,6 +1062,7 @@ main {
     flex-direction: row;
     padding: 1.5rem;
     gap: 1.5rem;
+    padding-top: 0.5rem;
   }
 
   .main-content {
