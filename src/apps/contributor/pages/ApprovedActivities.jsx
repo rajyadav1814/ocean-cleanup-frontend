@@ -25,7 +25,7 @@ export default function ApprovedActivities() {
       <section>
         <div className="card mb-6" style={{ padding: '1.25rem 1.75rem' }}>
           <h3 style={{ marginBottom: '0.25rem' }}>Approved Activities</h3>
-          <p className="text-muted" style={{ margin: 0 }}>Verified cleanup activities that have been approved by a verifier.</p>
+          <p className="text-muted" style={{ margin: 0 }}>Contributions that have been verified and approved.</p>
         </div>
 
         {approvedActivities.length === 0 ? (

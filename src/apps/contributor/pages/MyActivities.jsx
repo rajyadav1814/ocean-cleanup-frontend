@@ -232,9 +232,9 @@ export default function MyActivities() {
         {visibleActivities.length === 0 ? (
           <div className="ma-empty">
             <div className="ma-empty__icon">🌊</div>
-            <p>No activities submitted yet. Start cleaning!</p>
-            <button type="button" className="ma-cta" onClick={() => navigate(`/${role}/submit`)}>
-              Log your first cleanup <span aria-hidden="true">→</span>
+            <p>No contributions yet — share what you've seen, measured, or done.</p>
+            <button type="button" className="ma-cta" onClick={() => navigate(`/${role}/quick-report`)}>
+              Make your first contribution <span aria-hidden="true">→</span>
             </button>
           </div>
         ) : filtered.length === 0 ? (

@@ -111,6 +111,73 @@ const CheckPill = ({ label, color }) => (
   </span>
 );
 
+// Metric-specific phrasing where "12 kg debris removed kg" would read
+// awkwardly; anything not listed still gets a legible generic phrase.
+const IMPACT_PHRASES = {
+  debris_removed_kg: (v, u) => `${v}${u ? ` ${u}` : ''} removed`,
+};
+function formatImpactPhrase({ metric, value, unit }) {
+  const phrase = IMPACT_PHRASES[metric];
+  if (phrase) return phrase(value, unit);
+  return `${value}${unit ? ` ${unit}` : ''} ${metric.replace(/_/g, ' ')}`;
+}
+
+// The narrative spine of the page (spec §4-5): what changed because of
+// this contribution, told as a short sequence rather than left for the
+// reader to reconstruct from separate Subjects/Relationships/History/
+// Verifications cards. Built entirely from data those other cards already
+// have — this is a synthesis layer, not a new data source.
+function buildStoryBeats(event) {
+  const beats = [];
+
+  beats.push({ text: `Reported ${fmt(event.createdAt)}.`, done: true });
+
+  const corroborators = event.relationships.filter((r) => r.relationshipType === 'corroborates').length;
+  if (corroborators > 0) {
+    beats.push({
+      text: `${corroborators} other ${corroborators === 1 ? 'person' : 'people'} reported the same thing — Blue Mind joined the reports into this one event, not ${corroborators + 1} separate problems.`,
+      done: true,
+    });
+  }
+
+  const actionRelationships = event.relationships.filter((r) => ['removed', 'rescued', 'restored'].includes(r.relationshipType));
+  if (actionRelationships.length > 0) {
+    const impactPhrase = event.impact.length > 0
+      ? event.impact.map(formatImpactPhrase).join(' · ')
+      : null;
+    beats.push({
+      text: impactPhrase
+        ? `Action taken: ${impactPhrase}.`
+        : `Action taken — ${RELATIONSHIP_LABEL[actionRelationships[0].relationshipType] || actionRelationships[0].relationshipType}.`,
+      done: true,
+    });
+  } else if (event.eventState === 'action_planned' || event.eventState === 'action_underway') {
+    beats.push({ text: 'An action is underway in response to this.', done: true });
+  }
+
+  const verifiedEntry = event.verifications.find((v) => v.outcome === 'verified');
+  const disputedEntry = event.verifications.find((v) => v.outcome === 'disputed' || v.outcome === 'unable_to_verify');
+  if (verifiedEntry) {
+    beats.push({ text: `Verified by a reviewer on ${fmt(verifiedEntry.createdAt)}.`, done: true });
+  } else if (disputedEntry) {
+    beats.push({ text: `A verifier flagged this as ${disputedEntry.outcome.replace(/_/g, ' ')} on ${fmt(disputedEntry.createdAt)}.`, done: true });
+  }
+
+  // The forward-looking beat — what hasn't happened yet, so the story
+  // never dead-ends on "reported" with no sense of what comes next.
+  if (event.eventState === 'addressed' && verifiedEntry) {
+    beats.push({ text: 'Resolved and verified — this is what changed because of you.', done: true, final: true });
+  } else if (event.eventState === 'addressed') {
+    beats.push({ text: 'Marked complete — waiting on a verifier to confirm it.', done: false });
+  } else if (corroborators > 0 || actionRelationships.length > 0) {
+    beats.push({ text: 'Blue Mind is still tracking this — check back for what happens next.', done: false });
+  } else {
+    beats.push({ text: 'Still open — Blue Mind is watching for corroboration or action.', done: false });
+  }
+
+  return beats;
+}
+
 const HistoryIcon = ({ field }) => (
   <span style={{
     width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -155,7 +222,7 @@ const ProofBadge = ({ proof }) => {
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
       </svg>
-      {proof.hashMatches ? 'Tamper-proof' : 'Proof recorded'}
+      {proof.hashMatches ? 'Verified on-chain' : 'Proof recorded'}
     </a>
   );
 };
@@ -358,6 +425,7 @@ export default function EventDetail() {
   const canPlanAction = isContributor && !isAction && event.eventState !== 'addressed';
   const primaryFamily = event.subjects[0]?.family;
   const headerIcon = FAMILY_ICONS[primaryFamily] || FAMILY_ICONS.pollution_waste;
+  const storyBeats = buildStoryBeats(event);
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '2rem', maxWidth: '1320px', fontFamily: 'var(--font-sans)' }}>
@@ -440,6 +508,46 @@ export default function EventDetail() {
               )}
             </div>
           </div>
+        </div>
+      </Card>
+
+      {/* ── STORY ── the narrative spine (spec §4-5): what changed because
+          of this contribution, told as a sequence instead of left for the
+          reader to reconstruct from the cards below. */}
+      <Card>
+        <SectionLabel icon={
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+        }>What changed because of you</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {storyBeats.map((beat, i) => (
+            <div key={i} style={{ display: 'flex', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                <span style={{
+                  width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: beat.done ? 'color-mix(in srgb, #10b981 18%, transparent)' : 'var(--surface-hover)',
+                  border: beat.done ? 'none' : '1px solid var(--border-light)',
+                  color: '#10b981',
+                }}>
+                  {beat.done && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </span>
+                {i < storyBeats.length - 1 && <span style={{ width: '2px', flex: 1, minHeight: '0.6rem', background: 'var(--border-light)', margin: '0.15rem 0' }} />}
+              </div>
+              <p style={{
+                margin: '0 0 1rem', fontSize: '0.85rem', lineHeight: 1.45,
+                color: beat.done ? 'var(--text-main)' : 'var(--text-muted)',
+                fontWeight: beat.final ? 700 : 400,
+              }}>
+                {beat.text}
+              </p>
+            </div>
+          ))}
         </div>
       </Card>
 

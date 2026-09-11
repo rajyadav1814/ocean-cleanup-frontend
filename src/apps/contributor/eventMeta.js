@@ -47,3 +47,53 @@ export const PROVENANCE_META = {
 export function provenanceMeta(source) {
   return PROVENANCE_META[source] || PROVENANCE_META.user_provided;
 }
+
+// Adaptive "Your Impact" metrics (spec §8): which two numbers a
+// contributor's dashboard leads with, chosen by whichever subject family
+// dominates their events — a wildlife observer sees rescues, a
+// water-quality contributor sees anomalies, not everyone forced into
+// "cleanup actions completed" / "kg removed". Shared between
+// ContributorOverview's dashboard cards and the dedicated MyImpact page so
+// the two never disagree about what a contributor's numbers mean.
+export const FAMILY_IMPACT_METRICS = {
+  pollution_waste: (impact) => [
+    { key: 'actions', label: 'Actions Completed', value: impact.actionsCompleted ?? 0, unit: '', sub: 'Cleanup actions completed' },
+    { key: 'waste', label: 'Waste Removed', value: impact.kgRemoved ?? 0, unit: 'kg', sub: 'Total waste removed' },
+  ],
+  life: (impact, byFamily) => [
+    { key: 'observations', label: 'Wildlife Observations', value: byFamily.life?.total ?? 0, unit: '', sub: 'Life subjects reported' },
+    { key: 'rescues', label: 'Rescues', value: byFamily.life?.addressed ?? 0, unit: '', sub: 'Individuals rescued or resolved' },
+  ],
+  water: (impact, byFamily) => [
+    { key: 'measurements', label: 'Measurements Submitted', value: byFamily.water?.total ?? 0, unit: '', sub: 'Water-quality readings' },
+    { key: 'anomalies', label: 'Anomalies Flagged', value: byFamily.water?.needsAttention ?? 0, unit: '', sub: 'Readings needing attention' },
+  ],
+  habitat: (impact, byFamily) => [
+    { key: 'sites', label: 'Sites Monitored', value: byFamily.habitat?.total ?? 0, unit: '', sub: 'Habitat sites reported' },
+    { key: 'conditionChanges', label: 'Condition Changes', value: byFamily.habitat?.addressed ?? 0, unit: '', sub: 'Condition changes recorded' },
+  ],
+  conditions: (impact, byFamily) => [
+    { key: 'readings', label: 'Readings Submitted', value: byFamily.conditions?.total ?? 0, unit: '', sub: 'Condition readings' },
+    { key: 'changes', label: 'Changes Flagged', value: byFamily.conditions?.needsAttention ?? 0, unit: '', sub: 'Changes needing attention' },
+  ],
+  human_action: (impact) => [
+    { key: 'actions', label: 'Actions Completed', value: impact.actionsCompleted ?? 0, unit: '', sub: 'Actions completed' },
+    { key: 'locations', label: 'Locations Affected', value: impact.locationsAffected ?? 0, unit: '', sub: 'Locations affected' },
+  ],
+};
+
+export function dominantSubjectFamily(byFamily) {
+  const entries = Object.entries(byFamily || {});
+  if (entries.length === 0) return 'pollution_waste';
+  return entries.reduce(
+    (best, [family, counts]) => (counts.total > (byFamily[best]?.total ?? -1) ? family : best),
+    entries[0][0]
+  );
+}
+
+export function adaptiveImpactMetrics(impact) {
+  const byFamily = impact?.byFamily || {};
+  const family = dominantSubjectFamily(byFamily);
+  const fn = FAMILY_IMPACT_METRICS[family] || FAMILY_IMPACT_METRICS.pollution_waste;
+  return fn(impact || {}, byFamily);
+}

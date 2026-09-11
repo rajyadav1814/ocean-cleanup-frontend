@@ -12,6 +12,15 @@ import { invalidateContributorStats } from '../../../store/contributorSlice';
 import { invalidateCitizenStats } from '../../../store/citizenSlice';
 import { invalidateEvents } from '../../../store/eventsSlice';
 import { fileToDataUrl } from '../../../utils/file';
+import { provenanceMeta } from '../eventMeta';
+
+// For the confirm screen's "When did this happen?" <input type="datetime-local">
+// — local time, minute precision, no timezone suffix (the format that
+// input expects and can round-trip).
+function toDatetimeLocal(date) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 // pollution_waste subject codes that map cleanly onto the legacy activities
 // table's fixed `category` column (plastic/glass/metal/organic/mixed/other,
@@ -263,7 +272,6 @@ export default function QuickReport() {
   const dispatch = useDispatch();
   const { user } = useAuth();
   const isCitizen = user?.role === 'citizen';
-  const detailedFormPath = isCitizen ? '/citizen/submit' : '/contributor/submit';
   const overviewPath = isCitizen ? '/citizen/overview' : '/contributor/overview';
   // Org context comes from the contributor's own profile by default (spec
   // §19: "ask again only when context actually changes") — organizations
@@ -308,6 +316,11 @@ export default function QuickReport() {
   // itself just located the point (not a manually placed pin).
   const [locationAccuracy, setLocationAccuracy] = useState(null);
   const [locationCaptureMethod, setLocationCaptureMethod] = useState(null);
+  // Defaults to "now" (system_captured); becomes user_provided the moment
+  // the contributor edits it — same provenance contract as quantity above,
+  // surfaced on the confirm screen instead of silently defaulting server-side.
+  const [occurredAt, setOccurredAt] = useState(() => toDatetimeLocal(new Date()));
+  const [occurredAtTouched, setOccurredAtTouched] = useState(false);
   const [extraFields, setExtraFields] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -619,6 +632,7 @@ export default function QuickReport() {
       volunteers: 1,
       lat, lon,
       gps: lat != null && lon != null ? `${lat}, ${lon}` : null,
+      timestamp: new Date(occurredAt).toISOString(),
       locationAccuracy: locationAccuracy ?? undefined,
       locationCaptureMethod: locationCaptureMethod ?? undefined,
       notes: noteParts.join(' — '),
@@ -682,15 +696,6 @@ export default function QuickReport() {
         .qr-header { position: relative; text-align: left; padding: 0 0.5rem; }
         .qr-header h1 { display: inline-flex; align-items: center; gap: 0.5rem; }
         .qr-header-leaf { color: var(--secondary); opacity: 0.75; }
-        .qr-detailed-pill {
-          display: inline-flex; align-items: center; gap: 0.4rem;
-          position: absolute; top: 0; right: 0;
-          background: var(--surface); border: 1px solid var(--border-light);
-          border-radius: 999px; padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: 600;
-          color: var(--primary); cursor: pointer; font-family: inherit; white-space: nowrap;
-          transition: border-color .2s, transform .2s;
-        }
-        .qr-detailed-pill:hover { border-color: var(--border-glow); transform: translateY(-1px); }
 
         /* Hero (Photo/Video) — the featured, highest-traffic path gets a
            full-width card with its actions exposed directly, skipping what
@@ -771,7 +776,6 @@ export default function QuickReport() {
 
         @media (max-width: 640px) {
           .qr-header { text-align: left; }
-          .qr-detailed-pill { position: static; margin-top: 0.75rem; }
           .qr-grid { grid-template-columns: 1fr; }
           .qr-hero { flex-direction: column; }
           .qr-hero-art { min-height: 160px; }
@@ -941,15 +945,6 @@ export default function QuickReport() {
       `}</style>
 
       <div className="qr-header">
-        <button type="button" className="qr-detailed-pill" onClick={() => navigate(detailedFormPath)}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6" />
-          </svg>
-          Use the detailed form instead
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-          </svg>
-        </button>
         <h1 style={{ margin: '0 0 0.4rem', fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-main)' }}>
           What would you like to report? <Leaf size={20} style={{ marginLeft: '0.1rem' }} className="qr-header-leaf" />
         </h1>
@@ -1006,17 +1001,12 @@ export default function QuickReport() {
           </div>
 
           <div className="qr-grid">
-            {/* Measurement/Upload are professional-workflow tiles — kept for
-                contributors (who also have the full detailed form), left out
-                for citizens so their intake stays to the two lightweight
-                capture modes rather than dangling stubs that dead-end into
-                the same heavy form this page exists to avoid (spec §2). */}
-            {!isCitizen && (
-              <>
-                <Tile icon="chart" theme="green" title="Measurement" sub="Enter a structured environmental measurement." onClick={openMeasurementForm} />
-                <Tile icon="upload" theme="orange" title="Upload" sub="Upload an existing report, spreadsheet, or dataset." onClick={() => documentInputRef.current?.click()} />
-              </>
-            )}
+            {/* Every contributor type gets all 4 entry methods — a
+                water-quality tech or citizen scientist needs Measurement
+                and Upload just as much as a cleanup contributor does
+                (universal-contributor spec §1). */}
+            <Tile icon="chart" theme="green" title="Measurement" sub="Enter a structured environmental measurement." onClick={openMeasurementForm} />
+            <Tile icon="upload" theme="orange" title="Upload" sub="Upload an existing report, spreadsheet, or dataset." onClick={() => documentInputRef.current?.click()} />
             <Tile icon="voice" theme="violet" title="Tell Blue Mind" sub="Speak or type what happened, in your own words." onClick={() => setMode('text-choose')} />
           </div>
         </>
@@ -1299,6 +1289,32 @@ export default function QuickReport() {
               Location
             </label>
             <MapLocationPicker value={location} lat={lat} lon={lon} onChange={handleLocationChange} />
+            {/* Surfaces the provenance MapLocationPicker already captures
+                (device GPS vs. a hand-placed pin) instead of recording it
+                silently — same "traceable, not just trusted" contract as
+                the quantity field below (spec §7). */}
+            {locationCaptureMethod && (
+              <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: provenanceMeta(locationCaptureMethod === 'gps' ? 'system_captured' : 'user_provided').color }}>
+                {locationCaptureMethod === 'gps'
+                  ? `Blue Mind used your device's location${locationAccuracy ? ` (±${Math.round(locationAccuracy)}m)` : ''} — drag the pin if it's off.`
+                  : 'You placed this pin yourself.'}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
+              When did this happen?
+            </label>
+            <input
+              type="datetime-local" value={occurredAt} max={toDatetimeLocal(new Date())}
+              onChange={(e) => { setOccurredAt(e.target.value); setOccurredAtTouched(true); }}
+              style={{ padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.88rem' }}
+            />
+            <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: provenanceMeta(occurredAtTouched ? 'user_provided' : 'system_captured').color }}>
+              {occurredAtTouched ? 'You set this time.' : "Set to right now — nudge it if that's not when this happened."}
+            </p>
           </div>
 
           {!isCitizen && (
@@ -1326,8 +1342,8 @@ export default function QuickReport() {
             {aiEstimatedQuantity != null && (
               <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                 {Number(quantity) === Number(aiEstimatedQuantity)
-                  ? `Blue Mind's estimate — recorded as AI inferred.`
-                  : `Edited from Blue Mind's ${aiEstimatedQuantity}kg estimate — recorded as user provided.`}
+                  ? `Blue Mind estimated this from what you shared — tap to correct.`
+                  : `You corrected Blue Mind's ${aiEstimatedQuantity}kg estimate.`}
               </p>
             )}
           </div>

@@ -9,7 +9,7 @@ import { useContributorImpact } from '../../../hooks/useContributorImpact';
 import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { contributorApi } from '../../../services/api';
-import { eventStateMeta, verificationStateMeta } from '../eventMeta';
+import { eventStateMeta, verificationStateMeta, adaptiveImpactMetrics } from '../eventMeta';
 import MyAreasMap from '../components/MyAreasMap';
 
 function fmt(ts) {
@@ -431,7 +431,7 @@ const HERO_VALUES = [
     Icon: Megaphone, color:'#3B82F6', tint:'rgba(59,130,246,0.14)' },
   { key:'impact', title:'Drive Impact', text:'Data you share helps drive real-world action.',
     Icon: BarChart3, color:'#22A06B', tint:'rgba(34,160,107,0.14)' },
-  { key:'trust', title:'Build Trust', text:'Verified reports create tamper-proof records.',
+  { key:'trust', title:'Build Trust', text:'Evidence stays traceable — see what you submitted, what Blue Mind added, and what got verified.',
     Icon: Shield, color:'#7C5CD6', tint:'rgba(124,92,214,0.14)' },
   { key:'protect', title:'Protect Together', text:'Small actions today for a better tomorrow.',
     Icon: Leaf, color:'#CE9A2E', tint:'rgba(206,154,46,0.16)' },
@@ -526,7 +526,7 @@ export default function ContributorOverview() {
   const navigate = useNavigate();
 
   const { activities, loading: actsLoading } = useActivities();
-  const { stats, loading: statsLoading } = useContributorStats();
+  const { loading: statsLoading } = useContributorStats();
   const { impact, loading: impactLoading } = useContributorImpact();
   const { events: myEvents, loading: eventsLoading } = useEvents(user?.id);
 
@@ -596,6 +596,30 @@ export default function ContributorOverview() {
       .slice(0, 6),
     [myEvents]);
 
+  // Hero "what changed since you were last here" (spec §15) — picks the
+  // single most recently-updated event with genuinely good news, in
+  // priority order (resolved > verified > corroborated), rather than a
+  // static welcome message that never reflects what actually happened.
+  const heroUpdate = useMemo(() => {
+    if (!myEvents.length) return null;
+    const byRecency = [...myEvents].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    const subjectLabelFor = (e) => e.subjects?.[0]?.label || 'issue';
+
+    const resolved = byRecency.find((e) => e.eventState === 'addressed');
+    if (resolved) return `the ${subjectLabelFor(resolved)} you reported is resolved.`;
+
+    const verified = byRecency.find((e) => e.verificationState === 'verified');
+    if (verified) return `one of your reports was verified.`;
+
+    const corroborated = byRecency.find((e) => e.corroborationCount > 0);
+    if (corroborated) {
+      const n = corroborated.corroborationCount;
+      return `${n} other ${n === 1 ? 'person has' : 'people have'} confirmed what you saw.`;
+    }
+
+    return null;
+  }, [myEvents]);
+
   if (actsLoading || statsLoading || impactLoading || eventsLoading) return <LoadingSpinner />;
 
   const firstName = user?.firstName || user?.displayName?.split(' ')[0] || 'there';
@@ -604,15 +628,18 @@ export default function ContributorOverview() {
   // card instead of a dashboard full of zero-value KPIs.
   const isNewUser = myActivities.length === 0;
 
-  const totalTokens = stats?.totalTokens ?? 0;
-  const rank         = stats?.rank        ?? null;
-  const topPercent   = stats?.topPercent  ?? null;
-
   // The five numbers the spec's own "Your Impact" example calls out
   // (spec §22) — sourced from the event model via /api/contributor/impact,
   // not the legacy activities aggregate. `trend` is the % change vs. the
   // prior 30-day window (null when the backend has no baseline yet).
   const trends = impact?.trends || {};
+  // Positions 3 & 4 adapt to whichever subject family dominates this
+  // contributor's events (spec §8) — a wildlife observer sees
+  // "Rescues"/"Wildlife Observations" here instead of "kg removed"
+  // regardless of contribution type. Trend data only exists for the
+  // cleanup-specific kgRemoved/actionsCompleted pair today, so non-cleanup
+  // metrics render without a trend arrow rather than a misleading one.
+  const [adaptiveActions, adaptiveFeatured] = adaptiveImpactMetrics(impact);
   const impactCards = [
     { key:'contributions', art:'/kpi-1.png', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
       sub:'Total reports submitted', Icon: ClipboardList, accent:'#2563eb', tint:'rgba(37,99,235,0.12)',
@@ -624,14 +651,14 @@ export default function ContributorOverview() {
       wash:'linear-gradient(135deg, #f2fbf8 0%, #e4f4ee 100%)',
       washDark:'linear-gradient(135deg, rgba(13,148,136,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.verifiedEvents ?? null },
-    { key:'actions', art:'/kpi-3.png', label:'Actions Completed', value: nf(impact?.actionsCompleted ?? 0),
-      sub:'Cleanup actions completed', Icon: CheckCircle2, accent:'#d97706', tint:'rgba(217,119,6,0.12)',
+    { key: adaptiveActions.key, art:'/kpi-3.png', label: adaptiveActions.label, value: nf(adaptiveActions.value),
+      sub: adaptiveActions.sub, Icon: CheckCircle2, accent:'#d97706', tint:'rgba(217,119,6,0.12)',
       wash:'linear-gradient(135deg, #fffaf2 0%, #fdf0e0 100%)',
       washDark:'linear-gradient(135deg, rgba(217,119,6,.5) 0%, rgba(8,24,42,.85) 75%)',
-      trend: trends.actionsCompleted ?? null },
-    { key:'waste', art:'/kpi-4.png', label:'Waste Removed', value: nf(impact?.kgRemoved ?? 0), unit:'kg',
-      sub:'Total waste removed', Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true,
-      trend: trends.kgRemoved ?? null },
+      trend: adaptiveActions.key === 'actions' ? trends.actionsCompleted ?? null : null },
+    { key: adaptiveFeatured.key, art:'/kpi-4.png', label: adaptiveFeatured.label, value: nf(adaptiveFeatured.value), unit: adaptiveFeatured.unit,
+      sub: adaptiveFeatured.sub, Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true,
+      trend: adaptiveFeatured.key === 'waste' ? trends.kgRemoved ?? null : null },
     { key:'locations', art:'/kpi-5.png', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
       sub:'Locations reported', Icon: MapPin, accent:'#7c3aed', tint:'rgba(124,58,237,0.12)',
       wash:'linear-gradient(135deg, #f8f6ff 0%, #eeeefc 100%)',
@@ -663,11 +690,12 @@ export default function ContributorOverview() {
           <div className="bm-hero__body">
             <h1 className="bm-hero__title">
               Hi {firstName}, <span role="img" aria-label="waving hand">👋</span><br />
-              Thank you for being part of <span>blueMind.</span>
+              {heroUpdate ? <>Here&rsquo;s what changed: <span>{heroUpdate}</span></> : <>Thank you for being part of <span>blueMind.</span></>}
             </h1>
             <p className="bm-hero__sub">
-              Every activity you submit helps us understand pollution patterns,
-              raise awareness, and build a cleaner, healthier planet together.
+              {heroUpdate
+                ? "You contribute, Blue Mind understands it, others confirm or connect it, and you see what changed."
+                : 'Every activity you submit helps us understand pollution patterns, raise awareness, and build a cleaner, healthier planet together.'}
             </p>
             <div className="bm-hero__actions">
               <button
@@ -706,6 +734,18 @@ export default function ContributorOverview() {
               <p className="contrib-value-text">{text}</p>
             </div>
           </div>
+        ))}
+      </Card>
+
+      {/* ── UNIVERSAL LIFECYCLE STRIP (spec §3) ── same loop for every
+          contributor type, not just cleanup: contribute → understood →
+          connected/verified → outcome → seen. */}
+      <Card style={{ display:'flex', alignItems:'center', flexWrap:'wrap', gap:'0.5rem 1rem', padding:'0.9rem 1.25rem' }}>
+        {['You contribute', 'Blue Mind understands', 'Others confirm or connect it', 'Something happens', 'You see what changed'].map((step, i, arr) => (
+          <span key={step} style={{ display:'inline-flex', alignItems:'center', gap:'0.5rem 1rem' }}>
+            <span style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--text-main)' }}>{step}</span>
+            {i < arr.length - 1 && <ChevronRight size={14} strokeWidth={2.5} style={{ color:'var(--text-muted)' }} />}
+          </span>
         ))}
       </Card>
 
@@ -767,48 +807,6 @@ export default function ContributorOverview() {
         <NoDataYet onLog={() => navigate('/contributor/quick-report')} />
       ) : (
         <>
-          {/* ── YOUR IMPACT ── */}
-          <div className="contrib-on-water" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'0.4rem' }}>
-            <SectionLabel style={{ marginBottom:0 }}>Your Impact</SectionLabel>
-            {/* {rank && (
-              <span style={{ fontSize:'0.74rem', color:'var(--bm-loose-text, var(--text-muted))' }}>
-                Rank #{rank}{topPercent ? ` · Top ${topPercent}%` : ''} · {nf(totalTokens)} OCEAN tokens
-              </span>
-            )} */}
-          </div>
-          <div className="contrib-stats">
-            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured, wash, washDark, art }) => (
-              <Card key={key} className={`kpi-card${featured ? ' kpi-card--featured' : ''}`}
-                style={{ transition:'border-color .2s,transform .2s,box-shadow .2s', cursor:'default',
-                  ...(!featured && isLight && wash ? { background: wash } : {}),
-                  ...(!featured && !isLight && washDark ? { background: washDark } : {}),
-                  ...(featured ? {
-                    /* Glass like its neighbours, but tinted hard enough to
-                       stay the one card the eye lands on first. */
-                    background:'linear-gradient(150deg, rgba(47,143,214,.86) 0%, rgba(29,111,191,.88) 46%, rgba(20,83,155,.9) 100%)',
-                    border:'1.5px solid rgba(255,255,255,.3)',
-                    boxShadow:'0 18px 36px -22px rgba(20,83,155,.95)',
-                  } : {}) }}
-                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; if(!featured) e.currentTarget.style.borderColor='var(--border-glow)';}}
-                onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; if(!featured) e.currentTarget.style.borderColor='var(--border-light)';}}
-              >
-                <div className="kpi-art" aria-hidden="true">
-                  <img src={art} alt="" loading="lazy" decoding="async" />
-                </div>
-                <div className="kpi-icon" style={featured ? undefined : { background: tint, color: accent }}>
-                  <Icon size={20} strokeWidth={2.25} />
-                </div>
-                <div className="kpi-label">{label}</div>
-                <div className="kpi-value-row">
-                  <span className="kpi-value" style={{ color: featured ? '#FFFFFF' : accent }}>{value}</span>
-                  {unit && <span className="kpi-value-unit">{unit}</span>}
-                </div>
-                <div className="kpi-sub">{sub}</div>
-                <TrendPill value={trend} accent={featured ? null : accent} tint={tint} />
-              </Card>
-            ))}
-          </div>
-
           {/* ── NEEDS ATTENTION ──
               Environmental events tied to this contributor's reports that
               Blue Mind hasn't marked addressed yet (spec §22). */}
@@ -850,6 +848,13 @@ export default function ContributorOverview() {
                           <Calendar size={12} strokeWidth={2.25} />
                           <span>{fmt(e.occurredAt || e.createdAt)}</span>
                         </div>
+                        {/* Corroboration (spec §5): their reports were joined to
+                            yours, not filed as separate problems. */}
+                        {e.corroborationCount > 0 && (
+                          <div style={{ fontSize:'0.72rem', color:'var(--secondary)', marginTop:'0.25rem', fontWeight:600 }}>
+                            {e.corroborationCount} other {e.corroborationCount === 1 ? 'person' : 'people'} reported this too — joined into one event.
+                          </div>
+                        )}
                       </div>
                       <div className="needs-attn-pills">
                         <span className="needs-attn-pill" style={{ background:`${stateMeta.color}1F`, color:stateMeta.color }}>
@@ -863,6 +868,56 @@ export default function ContributorOverview() {
                       <div className="needs-attn-view">
                         <span>View details</span><ChevronRight size={16} strokeWidth={2.25} />
                       </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+
+          {/* ── WHAT CHANGED BECAUSE OF YOU ──
+              The outcome chain the rest of the dashboard doesn't otherwise
+              show (spec §4-5): corroborated by others, connected into one
+              event, acted on, verified — not just "reported". */}
+          <Card>
+            <CardHead title="What Changed Because of You" sub="What happened after you reported it" />
+            {impactStories.length === 0 ? (
+              <p style={emptyStyle}>No resolved reports yet — check back once one of your reports is addressed.</p>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column' }}>
+                {impactStories.flatMap((e) => {
+                  const subjects = e.subjects?.length ? e.subjects : [{ label: 'Issue', code: null }];
+                  return subjects.map((s) => ({ event: e, subject: s }));
+                }).map(({ event: e, subject: s }, i, arr) => {
+                  const meta = wasteCodeMeta[s.code] || defaultWasteMeta;
+                  const { Icon } = meta;
+                  const verMeta = verificationStateMeta(e.verificationState);
+                  return (
+                    <Link key={`${e.eventId}-${s.eventSubjectId || s.code}`} to={`/contributor/events/${e.eventId}`}
+                      style={{ display:'flex', gap:'0.7rem', alignItems:'center', padding:'0.7rem 0', textDecoration:'none', color:'inherit',
+                      borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                      <div style={{ width:'38px', height:'38px', borderRadius:'11px', flexShrink:0,
+                        background:meta.bg, color:meta.color, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <Icon size={18} strokeWidth={2} />
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:'0.86rem', fontWeight:700, color:'var(--text-main)', lineHeight:1.3 }}>
+                          {s.label} resolved
+                        </div>
+                        <div style={{ fontSize:'0.76rem', color:'var(--text-muted)', marginTop:'0.15rem' }}>
+                          {e.locationLabel || 'Unknown location'}
+                        </div>
+                        {e.corroborationCount > 0 && (
+                          <div style={{ fontSize:'0.72rem', color:'var(--secondary)', marginTop:'0.2rem', fontWeight:600 }}>
+                            {e.corroborationCount} other {e.corroborationCount === 1 ? 'report was' : 'reports were'} joined into this one event, not filed separately.
+                          </div>
+                        )}
+                        <div style={{ display:'inline-flex', alignItems:'center', gap:'0.3rem', marginTop:'0.3rem',
+                          fontSize:'0.68rem', fontWeight:700, color:verMeta.color, textTransform:'uppercase', letterSpacing:'.04em' }}>
+                          <ShieldCheck size={11} strokeWidth={2.5} />{verMeta.label}
+                        </div>
+                      </div>
+                      <CheckCircle2 size={19} strokeWidth={2} color="var(--success)" style={{ flexShrink:0 }} />
                     </Link>
                   );
                 })}
@@ -948,47 +1003,45 @@ export default function ContributorOverview() {
             <MyAreasMap events={myEvents} isFullscreen={mapFullscreen} onExitFullscreen={() => setMapFullscreen(false)} />
           </Card>
 
-          {/* ── IMPACT STORIES ──
-              "The debris you reported on June 12 was removed on June 16"
-              (spec §22-23) — the closure loop the rest of the dashboard
-              doesn't otherwise show. */}
-          <Card>
-            <CardHead title="Impact Stories" sub="What happened after you reported it" />
-            {impactStories.length === 0 ? (
-              <p style={emptyStyle}>No resolved reports yet — check back once one of your reports is addressed.</p>
-            ) : (
-              <>
-                <div style={{ display:'flex', flexDirection:'column' }}>
-                  {impactStories.flatMap((e) => {
-                    const subjects = e.subjects?.length ? e.subjects : [{ label: 'Issue', code: null }];
-                    return subjects.map((s) => ({ event: e, subject: s }));
-                  }).map(({ event: e, subject: s }, i, arr) => {
-                    const meta = wasteCodeMeta[s.code] || defaultWasteMeta;
-                    const { Icon } = meta;
-                    return (
-                      <Link key={`${e.eventId}-${s.eventSubjectId || s.code}`} to={`/contributor/events/${e.eventId}`}
-                        style={{ display:'flex', gap:'0.7rem', alignItems:'center', padding:'0.7rem 0', textDecoration:'none', color:'inherit',
-                        borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                        <div style={{ width:'38px', height:'38px', borderRadius:'11px', flexShrink:0,
-                          background:meta.bg, color:meta.color, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                          <Icon size={18} strokeWidth={2} />
-                        </div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:'0.86rem', fontWeight:700, color:'var(--text-main)', lineHeight:1.3 }}>
-                            {s.label} cleared
-                          </div>
-                          <div style={{ fontSize:'0.76rem', color:'var(--text-muted)', marginTop:'0.15rem' }}>
-                            {e.locationLabel || 'Unknown location'}
-                          </div>
-                        </div>
-                        <CheckCircle2 size={19} strokeWidth={2} color="var(--success)" style={{ flexShrink:0 }} />
-                      </Link>
-                    );
-                  })}
+          {/* ── YOUR IMPACT ──
+              Last on the page, not first (spec §16): the outcome-focused
+              sections above (Needs Attention, What Changed Because of You)
+              are what should draw the eye before raw numbers do. */}
+          <div className="contrib-on-water" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'0.4rem' }}>
+            <SectionLabel style={{ marginBottom:0 }}>Your Impact</SectionLabel>
+          </div>
+          <div className="contrib-stats">
+            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured, wash, washDark, art }) => (
+              <Card key={key} className={`kpi-card${featured ? ' kpi-card--featured' : ''}`}
+                style={{ transition:'border-color .2s,transform .2s,box-shadow .2s', cursor:'default',
+                  ...(!featured && isLight && wash ? { background: wash } : {}),
+                  ...(!featured && !isLight && washDark ? { background: washDark } : {}),
+                  ...(featured ? {
+                    /* Glass like its neighbours, but tinted hard enough to
+                       stay the one card the eye lands on first. */
+                    background:'linear-gradient(150deg, rgba(47,143,214,.86) 0%, rgba(29,111,191,.88) 46%, rgba(20,83,155,.9) 100%)',
+                    border:'1.5px solid rgba(255,255,255,.3)',
+                    boxShadow:'0 18px 36px -22px rgba(20,83,155,.95)',
+                  } : {}) }}
+                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; if(!featured) e.currentTarget.style.borderColor='var(--border-glow)';}}
+                onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; if(!featured) e.currentTarget.style.borderColor='var(--border-light)';}}
+              >
+                <div className="kpi-art" aria-hidden="true">
+                  <img src={art} alt="" loading="lazy" decoding="async" />
                 </div>
-              </>
-            )}
-          </Card>
+                <div className="kpi-icon" style={featured ? undefined : { background: tint, color: accent }}>
+                  <Icon size={20} strokeWidth={2.25} />
+                </div>
+                <div className="kpi-label">{label}</div>
+                <div className="kpi-value-row">
+                  <span className="kpi-value" style={{ color: featured ? '#FFFFFF' : accent }}>{value}</span>
+                  {unit && <span className="kpi-value-unit">{unit}</span>}
+                </div>
+                <div className="kpi-sub">{sub}</div>
+                <TrendPill value={trend} accent={featured ? null : accent} tint={tint} />
+              </Card>
+            ))}
+          </div>
         </>
       )}
 

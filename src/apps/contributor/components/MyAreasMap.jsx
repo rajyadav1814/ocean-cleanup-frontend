@@ -292,6 +292,11 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
   return (
     <>
       <LayerBar activeLayerId={activeLayerId} onSelect={handleSelectLayer} counts={layerCounts} compact />
+      {/* The map answers a question, not just shows pins (spec §9/§24) —
+          state it in words, not just as a chip label. */}
+      <p style={{ margin: '0 0 0.6rem', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>
+        {activeLayer.question}
+      </p>
       {orgPicker}
       {statusLine}
       {layeredEvents.length === 0 && activeLayer.id !== 'near-me' && (
@@ -307,6 +312,9 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
           <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--surface)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '0.9rem 1.1rem 0', flexShrink: 0 }}>
               <LayerBar activeLayerId={activeLayerId} onSelect={handleSelectLayer} counts={layerCounts} />
+              <p style={{ margin: '0 0 0.6rem', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                {activeLayer.question}
+              </p>
               {orgPicker}
               {statusLine}
             </div>
