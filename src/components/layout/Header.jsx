@@ -157,7 +157,7 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
                 borderRadius: 'var(--radius-md)',
                 textDecoration: 'none',
                 fontWeight: 500,
-                fontSize: '0.88rem',
+                fontSize: '1rem',
                 fontFamily: 'var(--font-sans)',
                 whiteSpace: 'nowrap',
                 transition: 'all 0.2s',

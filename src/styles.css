@@ -931,7 +931,7 @@ a {
 .brand-wordmark {
   color: rgba(232, 242, 255, 0.8);
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: 1.15rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -943,8 +943,8 @@ a {
 }
 
 .brand-wordmark__mark {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1.4rem;
+  height: 1.4rem;
   flex: 0 0 auto;
 }
 

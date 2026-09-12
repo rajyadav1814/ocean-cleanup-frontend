@@ -815,7 +815,7 @@ export default function ContributorOverview() {
 
           <div className="bm-hero__top">
             <div className="bm-hero__brand">
-              <span className="bm-hero__brand-name">BlueMind Community</span>
+              <span className="bm-hero__brand-name">Contributor Community</span>
 
               {user?.jobTitle && <span className="bm-hero__job" title={user.jobTitle}>{user.jobTitle}</span>}
             </div>
