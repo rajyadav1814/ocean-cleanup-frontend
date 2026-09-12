@@ -674,9 +674,31 @@ export default function ContributorOverview() {
   const myActivities = useMemo(() =>
     activities.filter(a => a.contributorId === user?.id), [activities, user]);
 
-  const recent = useMemo(() =>
-    [...myActivities].sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp)).slice(0,5),
-    [myActivities]);
+  // Recent Activity reads the legacy activities table. A contributor whose
+  // data lives only in the event model (spec §10's migration) has none, and
+  // saw an empty card next to a dashboard full of their events — so fall
+  // back to the event model and render those rows in event vocabulary
+  // rather than forcing them into activity shape (which would print a
+  // meaningless "0 kg · undefined vol." line).
+  const recent = useMemo(() => {
+    if (myActivities.length > 0) {
+      return [...myActivities]
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 5)
+        .map((a) => ({
+          kind: 'activity', id: a.id, title: a.location, at: a.timestamp,
+          status: a.status, quantity: a.quantity, volunteers: a.volunteers, reviewNote: a.reviewNote,
+        }));
+    }
+    return [...myEvents]
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+      .slice(0, 5)
+      .map((e) => ({
+        kind: 'event', id: e.eventId, title: e.locationLabel || e.title || 'Report',
+        at: e.createdAt, eventState: e.eventState, verificationState: e.verificationState,
+        subjects: e.subjects,
+      }));
+  }, [myActivities, myEvents]);
 
   // Needs Attention / Impact Stories read the environmental-event model,
   // not the legacy activity status — event_state and verification_state
@@ -761,7 +783,12 @@ export default function ContributorOverview() {
 
   // New user = hasn't logged any activity at all yet. Show a single "get started"
   // card instead of a dashboard full of zero-value KPIs.
-  const isNewUser = myActivities.length === 0;
+  // "New" means they haven't contributed anything at all — checked against
+  // BOTH models. Keying this off legacy activities alone hid the entire
+  // dashboard from contributors whose data lives only in the event model
+  // (spec §10's migration): 16 events, no activities row, and the page
+  // still said "log your first cleanup".
+  const isNewUser = myActivities.length === 0 && myEvents.length === 0;
 
   // The five numbers the spec's own "Your Impact" example calls out
   // (spec §22) — sourced from the event model via /api/contributor/impact,
@@ -1131,30 +1158,47 @@ export default function ContributorOverview() {
           <Card>
             <CardHead icon={Activity} title="Recent Activity" sub="Your latest report updates" />
             <div style={{ display:'flex', flexDirection:'column' }}>
+              {recent.length === 0 && (
+                <p style={emptyStyle}>Nothing yet — your contributions will appear here.</p>
+              )}
               {recent.map((act, i) => {
+                const isEvent = act.kind === 'event';
                 const s = activityStatusMeta[act.status] || activityStatusMeta.pending;
-                const { Icon } = s;
+                const stateMeta = isEvent ? eventStateMeta(act.eventState) : null;
+                const Icon = isEvent ? Activity : s.Icon;
                 return (
                   <div key={act.id} style={{ display:'flex', gap:'0.7rem', padding:'0.9rem 0',
                     borderBottom: i < recent.length-1 ? '1px solid var(--border-light)' : 'none' }}>
                     <div style={{ width:'38px', height:'38px', borderRadius:'11px', flexShrink:0,
-                      background:s.bg, color:s.color,
+                      background: isEvent ? `color-mix(in srgb, ${stateMeta.color} 14%, transparent)` : s.bg,
+                      color: isEvent ? stateMeta.color : s.color,
                       display:'flex', alignItems:'center', justifyContent:'center' }}>
                       <Icon size={18} strokeWidth={2.25} />
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ display:'flex', justifyContent:'space-between', gap:'0.6rem', alignItems:'flex-start', flexWrap:'nowrap' }}>
                         <span style={{ fontWeight:700, fontSize:'0.86rem', flex:1, wordBreak:'break-word', lineHeight: 1.3 }}>
-                          {act.location}
+                          {act.title}
                         </span>
-                        <StatusPill status={act.status} />
+                        {isEvent ? (
+                          <span style={{ flexShrink:0, fontSize:'0.68rem', fontWeight:700, whiteSpace:'nowrap',
+                            color:stateMeta.color, background:`color-mix(in srgb, ${stateMeta.color} 12%, transparent)`,
+                            border:`1px solid color-mix(in srgb, ${stateMeta.color} 30%, transparent)`,
+                            borderRadius:'999px', padding:'0.2rem 0.6rem' }}>
+                            {stateMeta.label}
+                          </span>
+                        ) : (
+                          <StatusPill status={act.status} />
+                        )}
                       </div>
                       <div style={{ display:'flex', alignItems:'center', flexWrap:'wrap', gap:'0.3rem', fontSize:'0.74rem', color:'var(--text-muted)', marginTop:'0.35rem' }}>
                         <Calendar size={12} />
-                        {fmtDateTime(act.timestamp)}
-                        <span>· {act.quantity} kg · {act.volunteers} vol.</span>
+                        {fmtDateTime(act.at)}
+                        {isEvent
+                          ? (act.subjects?.length > 0 && <span>· {act.subjects.map((sub) => sub.label).join(', ')}</span>)
+                          : <span>· {act.quantity} kg · {act.volunteers} vol.</span>}
                       </div>
-                      {act.status==='rejected' && act.reviewNote && (
+                      {!isEvent && act.status==='rejected' && act.reviewNote && (
                         <div style={{ marginTop:'0.4rem', fontSize:'0.72rem', color:'#f87171',
                           background:'rgba(239,68,68,.08)', borderRadius:'6px', padding:'0.28rem 0.5rem' }}>
                           {act.reviewNote}
@@ -1165,7 +1209,7 @@ export default function ContributorOverview() {
                 );
               })}
             </div>
-            {myActivities.length > 5 && (
+            {(myActivities.length > 5 || (myActivities.length === 0 && myEvents.length > 5)) && (
               <button id="view-all-btn" onClick={() => navigate('/contributor/my-activities')}
                 style={{ marginTop:'0.9rem', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:'0.35rem',
                   background:'rgba(59,130,246,.1)', border:'none', borderRadius:'var(--radius-md)',
