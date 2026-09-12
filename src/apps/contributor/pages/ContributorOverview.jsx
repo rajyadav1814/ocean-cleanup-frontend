@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ClipboardList, ShieldCheck, CheckCircle2, Recycle, MapPin, TrendingUp, TrendingDown, Bell, AlertCircle, Calendar, ChevronRight, Maximize, Activity, Clock, XCircle, BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets, Send, FileText, LogOut, ChevronDown, Users, Megaphone, BarChart3, Shield, UserCog } from 'lucide-react';
+import { ClipboardList, ShieldCheck, CheckCircle2, Recycle, MapPin, TrendingUp, TrendingDown, Bell, AlertCircle, Calendar, ChevronRight, Maximize, Activity, Clock, XCircle, BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets, Send, FileText, LogOut, ChevronDown, Users, Megaphone, BarChart3, Shield, UserCog, Trophy } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useActivities } from '../../../hooks/useActivities';
@@ -11,6 +11,7 @@ import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { contributorApi } from '../../../services/api';
 import { eventStateMeta, verificationStateMeta } from '../eventMeta';
 import MyAreasMap from '../components/MyAreasMap';
+import JourneyPath from '../../../components/common/JourneyPath';
 
 function fmt(ts) {
   const d = new Date(ts);
@@ -75,7 +76,7 @@ const StatusPill = ({ status }) => {
 const STYLES = `
   .contrib-card { padding: 1.25rem 1.5rem; }
   .contrib-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(202px,1fr)); gap:1.1rem; }
-  .kpi-card { display:flex; flex-direction:column; gap:.75rem; padding:1.6rem 1.6rem 1.75rem; min-height:246px; position:relative; overflow:hidden; }
+  .kpi-card { display:flex; flex-direction:column; gap:.75rem; padding:1.4rem 1.6rem 1.6rem; position:relative; overflow:hidden; }
   .kpi-icon { width:48px; height:48px; border-radius:999px; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; z-index:1; }
   .kpi-label { position:relative; z-index:1; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); }
   .kpi-value-row { position:relative; z-index:1; display:flex; align-items:baseline; gap:.3rem; }
@@ -83,37 +84,48 @@ const STYLES = `
   .kpi-value-unit { font-size:1.02rem; font-weight:600; color:var(--text-muted); }
   .kpi-sub { position:relative; z-index:1; font-size:.79rem; color:var(--text-muted); margin-top:-.4rem; }
   .kpi-trend { position:relative; z-index:1; align-self:flex-start; display:inline-flex; align-items:center; gap:.3rem; padding:.28rem .6rem; border-radius:999px; font-size:.72rem; font-weight:700; }
-  /* The headline number of the row — a solid slab of ocean with a swell
-     breaking across its foot, so it reads as the card you look at first. */
-  .kpi-card--featured { color:#FFFFFF; }
-  .kpi-card--featured .kpi-label { color:rgba(255,255,255,.8); }
-  .kpi-card--featured .kpi-sub { color:rgba(255,255,255,.72); }
-  .kpi-card--featured .kpi-value-unit { color:rgba(255,255,255,.82); }
-  .kpi-card--featured .kpi-icon { background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.32); color:#FFFFFF; }
-  .kpi-card--featured .kpi-trend { background:rgba(255,255,255,.2); color:#FFFFFF; }
-  /* Each card's artwork is a painted illustration from /public (kpi-1..5),
-     sized to cover the card and anchored to its foot so the scene — reef,
-     turtle, shore, bottle, lighthouse — sits below the copy the way the
-     source art is composed. The PNGs are cropped to the artwork itself, so
-     the image can run edge to edge under the card's own radius. */
-  .kpi-art { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; border-radius:inherit; }
-  .kpi-art img { display:block; width:100%; height:100%; object-fit:cover; object-position:center bottom; }
-  [data-theme="dark"] .kpi-art, .force-dark .kpi-art { opacity:.65; }
-  [data-theme="dark"] .kpi-card--featured .kpi-art,
-  .force-dark .kpi-card--featured .kpi-art { opacity:.7; }
-  /* Icon tint at 12% opacity reads fine against the light pastel wash but
-     disappears against the near-black dark-theme card, so it gets a hairline
-     border for definition — same treatment the hero's job pill uses. */
-  [data-theme="dark"] .kpi-card:not(.kpi-card--featured) .kpi-icon,
-  .force-dark .kpi-card:not(.kpi-card--featured) .kpi-icon {
+  /* Icon tint at 12% opacity reads fine in light mode but disappears
+     against the near-black dark-theme card, so it gets a hairline border
+     for definition — same treatment the hero's job pill uses. */
+  [data-theme="dark"] .kpi-icon,
+  .force-dark .kpi-icon {
     border: 1px solid rgba(255,255,255,.14);
   }
   @media(max-width:768px){
-    .kpi-card { padding:1.25rem 1.3rem 1.4rem; min-height:196px; }
+    .kpi-card { padding:1.15rem 1.3rem 1.3rem; }
     .kpi-value { font-size:1.7rem; }
     .kpi-icon { width:42px; height:42px; }
   }
   .contrib-hero-actions { display:flex; flex-direction:column; align-items:flex-end; gap:.6rem; }
+  /* ── Points / rank banner ──
+     Same gamification strip the badges/leaderboard already give Citizen
+     Space — Contributor's stats endpoint has always returned totalTokens/
+     rank/topPercent, this just surfaces it. */
+  .points-banner {
+    display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+    background:linear-gradient(135deg, color-mix(in srgb, var(--primary) 12%, var(--surface)), color-mix(in srgb, var(--secondary) 10%, var(--surface)));
+    border:1px solid color-mix(in srgb, var(--primary) 25%, var(--border-light));
+    border-radius:999px; padding:0.75rem 1.4rem;
+  }
+  .points-banner-icon {
+    width:38px; height:38px; border-radius:999px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--primary), var(--secondary)); color:#fff;
+  }
+  .points-banner-value { font-size:1.15rem; font-weight:800; color:var(--text-main); }
+  .points-banner-unit { font-size:0.76rem; color:var(--text-muted); margin-left:0.35rem; }
+  .points-banner-divider { width:1px; align-self:stretch; background:var(--border-light); }
+  .points-banner-item { font-size:0.84rem; color:var(--text-muted); }
+  .points-banner-item strong { color:var(--text-main); font-weight:700; }
+  .points-banner-pill {
+    margin-left:auto; padding:0.3rem 0.75rem; border-radius:999px; font-size:0.72rem; font-weight:800;
+    text-transform:uppercase; letter-spacing:.04em; color:#fff;
+    background:linear-gradient(135deg, var(--primary), var(--secondary));
+  }
+  @media(max-width:640px){
+    .points-banner { justify-content:flex-start; }
+    .points-banner-pill { margin-left:0; }
+  }
   .contrib-two-col { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; align-items:stretch; }
   .contrib-two-col > .contrib-card { height:100%; }
   .contrib-job-badge {
@@ -175,7 +187,7 @@ const STYLES = `
   .needs-attn-head { display:flex; align-items:flex-start; gap:0.9rem; margin-bottom:0.9rem; }
   .needs-attn-bell {
     position:relative; flex-shrink:0; width:48px; height:48px; border-radius:999px;
-    background:rgba(37,99,235,0.1); color:var(--primary); display:flex; align-items:center; justify-content:center;
+    background:rgba(46,158,155,0.12); color:var(--primary); display:flex; align-items:center; justify-content:center;
   }
   .needs-attn-bell::after {
     content:''; position:absolute; top:2px; right:2px; width:10px; height:10px; border-radius:999px;
@@ -190,7 +202,7 @@ const STYLES = `
     display:flex; align-items:center; gap:0.75rem; padding:0.85rem 0; text-decoration:none; color:inherit;
   }
   .needs-attn-icon {
-    flex-shrink:0; width:40px; height:40px; border-radius:10px; background:rgba(37,99,235,0.1);
+    flex-shrink:0; width:40px; height:40px; border-radius:10px; background:rgba(46,158,155,0.12);
     color:var(--primary); display:flex; align-items:center; justify-content:center;
   }
   .needs-attn-meta { display:flex; align-items:center; gap:0.3rem; flex-wrap:wrap; }
@@ -228,6 +240,27 @@ const STYLES = `
     mask-image:linear-gradient(to right, transparent 0%, transparent 24%, rgba(0,0,0,.42) 44%, #000 68%);
   }
   .bm-hero__scene img { display:block; width:100%; height:100%; object-fit:cover; object-position:70% center; }
+
+  /* Animated ocean sitting behind the whole hero — a deep-water gradient
+     plus three parallax wave bands, each a repeating SVG path scrolled by
+     translateX. The path's period tiles evenly into the loop distance so
+     the seam is invisible. Sits above the photo but below all copy/CTAs. */
+  .bm-hero__ocean { position:absolute; inset:0; z-index:1; overflow:hidden; pointer-events:none; }
+  .bm-hero__ocean::before {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(180deg, transparent 0%, transparent 55%, color-mix(in srgb, var(--secondary) 22%, transparent) 100%);
+  }
+  .bm-hero__wave { position:absolute; bottom:0; left:0; width:200%; height:150px; }
+  .bm-hero__wave--back { animation:bm-wave-scroll 26s linear infinite; opacity:.16; }
+  .bm-hero__wave--mid { animation:bm-wave-scroll 18s linear infinite reverse; opacity:.24; }
+  .bm-hero__wave--front { animation:bm-wave-scroll 12s linear infinite; opacity:.4; }
+  @keyframes bm-wave-scroll { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+  @media(prefers-reduced-motion:reduce){
+    .bm-hero__wave { animation:none; }
+  }
+  @media(max-width:860px){
+    .bm-hero__wave { height:100px; }
+  }
 
   .bm-hero__top { position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:1rem; }
   .bm-hero__brand { display:flex; align-items:center; gap:.85rem; min-width:0; flex:1 1 auto; flex-wrap:wrap; }
@@ -596,6 +629,17 @@ export default function ContributorOverview() {
       .slice(0, 6),
     [myEvents]);
 
+  // Live counts for the "Where your report goes" pipeline — how many of
+  // this contributor's reports currently sit at each stage, not a
+  // cumulative funnel. Same myEvents the sections above already read.
+  const journeyCounts = useMemo(() => ({
+    spotted: myEvents.length,
+    checking: myEvents.filter(e => e.eventState !== 'addressed'
+      && ['unverified', 'supported'].includes(e.verificationState)).length,
+    dispatched: myEvents.filter(e => ['action_planned', 'action_underway'].includes(e.eventState)).length,
+    resolved: myEvents.filter(e => e.eventState === 'addressed').length,
+  }), [myEvents]);
+
   if (actsLoading || statsLoading || impactLoading || eventsLoading) return <LoadingSpinner />;
 
   const firstName = user?.firstName || user?.displayName?.split(' ')[0] || 'there';
@@ -614,28 +658,20 @@ export default function ContributorOverview() {
   // prior 30-day window (null when the backend has no baseline yet).
   const trends = impact?.trends || {};
   const impactCards = [
-    { key:'contributions', art:'/kpi-1.png', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
+    { key:'contributions', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
       sub:'Total reports submitted', Icon: ClipboardList, accent:'#2563eb', tint:'rgba(37,99,235,0.12)',
-      wash:'linear-gradient(135deg, #f4f9ff 0%, #e8f3fd 100%)',
-      washDark:'linear-gradient(135deg, rgba(37,99,235,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.contributions ?? null },
-    { key:'verified', art:'/kpi-2.png', label:'Verified', value: nf(impact?.verifiedEvents ?? 0),
+    { key:'verified', label:'Verified', value: nf(impact?.verifiedEvents ?? 0),
       sub:'Reports verified', Icon: ShieldCheck, accent:'#0d9488', tint:'rgba(13,148,136,0.12)',
-      wash:'linear-gradient(135deg, #f2fbf8 0%, #e4f4ee 100%)',
-      washDark:'linear-gradient(135deg, rgba(13,148,136,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.verifiedEvents ?? null },
-    { key:'actions', art:'/kpi-3.png', label:'Actions Completed', value: nf(impact?.actionsCompleted ?? 0),
+    { key:'actions', label:'Actions Completed', value: nf(impact?.actionsCompleted ?? 0),
       sub:'Cleanup actions completed', Icon: CheckCircle2, accent:'#d97706', tint:'rgba(217,119,6,0.12)',
-      wash:'linear-gradient(135deg, #fffaf2 0%, #fdf0e0 100%)',
-      washDark:'linear-gradient(135deg, rgba(217,119,6,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.actionsCompleted ?? null },
-    { key:'waste', art:'/kpi-4.png', label:'Waste Removed', value: nf(impact?.kgRemoved ?? 0), unit:'kg',
-      sub:'Total waste removed', Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true,
+    { key:'waste', label:'Waste Removed', value: nf(impact?.kgRemoved ?? 0), unit:'kg',
+      sub:'Total waste removed', Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)',
       trend: trends.kgRemoved ?? null },
-    { key:'locations', art:'/kpi-5.png', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
+    { key:'locations', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
       sub:'Locations reported', Icon: MapPin, accent:'#7c3aed', tint:'rgba(124,58,237,0.12)',
-      wash:'linear-gradient(135deg, #f8f6ff 0%, #eeeefc 100%)',
-      washDark:'linear-gradient(135deg, rgba(124,58,237,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.locationsAffected ?? null },
   ];
 
@@ -651,9 +687,21 @@ export default function ContributorOverview() {
             <img src={isLight ? '/hero-light.png' : '/hero-dark.png'} alt="" loading="eager" decoding="async" />
           </div>
 
+          <div className="bm-hero__ocean" aria-hidden="true">
+            <svg className="bm-hero__wave bm-hero__wave--back" viewBox="0 0 2400 150" preserveAspectRatio="none">
+              <path fill="#7DE7F0" d="M0,75 C200,140 400,10 600,75 C800,140 1000,10 1200,75 C1400,140 1600,10 1800,75 C2000,140 2200,10 2400,75 L2400,150 L0,150 Z" />
+            </svg>
+            <svg className="bm-hero__wave bm-hero__wave--mid" viewBox="0 0 2400 150" preserveAspectRatio="none">
+              <path fill="#2E9E9B" d="M0,90 C200,25 400,150 600,90 C800,25 1000,150 1200,90 C1400,25 1600,150 1800,90 C2000,25 2200,150 2400,90 L2400,150 L0,150 Z" />
+            </svg>
+            <svg className="bm-hero__wave bm-hero__wave--front" viewBox="0 0 2400 150" preserveAspectRatio="none">
+              <path fill="#0B3B5C" d="M0,65 C200,120 400,10 600,65 C800,120 1000,10 1200,65 C1400,120 1600,10 1800,65 C2000,120 2200,10 2400,65 L2400,150 L0,150 Z" />
+            </svg>
+          </div>
+
           <div className="bm-hero__top">
             <div className="bm-hero__brand">
-              <span className="bm-hero__brand-name">BlueMind Community</span>
+              <span className="bm-hero__brand-name">Contributor Community</span>
 
               {user?.jobTitle && <span className="bm-hero__job" title={user.jobTitle}>{user.jobTitle}</span>}
             </div>
@@ -663,7 +711,7 @@ export default function ContributorOverview() {
           <div className="bm-hero__body">
             <h1 className="bm-hero__title">
               Hi {firstName}, <span role="img" aria-label="waving hand">👋</span><br />
-              Thank you for being part of <span>blueMind.</span>
+              Thank you for being part of <span>BlueMind.</span>
             </h1>
             <p className="bm-hero__sub">
               Every activity you submit helps us understand pollution patterns,
@@ -770,44 +818,51 @@ export default function ContributorOverview() {
           {/* ── YOUR IMPACT ── */}
           <div className="contrib-on-water" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'0.4rem' }}>
             <SectionLabel style={{ marginBottom:0 }}>Your Impact</SectionLabel>
-            {/* {rank && (
-              <span style={{ fontSize:'0.74rem', color:'var(--bm-loose-text, var(--text-muted))' }}>
-                Rank #{rank}{topPercent ? ` · Top ${topPercent}%` : ''} · {nf(totalTokens)} OCEAN tokens
-              </span>
-            )} */}
           </div>
           <div className="contrib-stats">
-            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured, wash, washDark, art }) => (
-              <Card key={key} className={`kpi-card${featured ? ' kpi-card--featured' : ''}`}
-                style={{ transition:'border-color .2s,transform .2s,box-shadow .2s', cursor:'default',
-                  ...(!featured && isLight && wash ? { background: wash } : {}),
-                  ...(!featured && !isLight && washDark ? { background: washDark } : {}),
-                  ...(featured ? {
-                    /* Glass like its neighbours, but tinted hard enough to
-                       stay the one card the eye lands on first. */
-                    background:'linear-gradient(150deg, rgba(47,143,214,.86) 0%, rgba(29,111,191,.88) 46%, rgba(20,83,155,.9) 100%)',
-                    border:'1.5px solid rgba(255,255,255,.3)',
-                    boxShadow:'0 18px 36px -22px rgba(20,83,155,.95)',
-                  } : {}) }}
-                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; if(!featured) e.currentTarget.style.borderColor='var(--border-glow)';}}
-                onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; if(!featured) e.currentTarget.style.borderColor='var(--border-light)';}}
+            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend }) => (
+              <Card key={key} className="kpi-card"
+                style={{ transition:'border-color .2s,transform .2s', cursor:'default' }}
+                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.borderColor='var(--border-glow)';}}
+                onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.borderColor='var(--border-light)';}}
               >
-                <div className="kpi-art" aria-hidden="true">
-                  <img src={art} alt="" loading="lazy" decoding="async" />
-                </div>
-                <div className="kpi-icon" style={featured ? undefined : { background: tint, color: accent }}>
+                <div className="kpi-icon" style={{ background: tint, color: accent }}>
                   <Icon size={20} strokeWidth={2.25} />
                 </div>
                 <div className="kpi-label">{label}</div>
                 <div className="kpi-value-row">
-                  <span className="kpi-value" style={{ color: featured ? '#FFFFFF' : accent }}>{value}</span>
+                  <span className="kpi-value" style={{ color: accent }}>{value}</span>
                   {unit && <span className="kpi-value-unit">{unit}</span>}
                 </div>
                 <div className="kpi-sub">{sub}</div>
-                <TrendPill value={trend} accent={featured ? null : accent} tint={tint} />
+                <TrendPill value={trend} accent={accent} tint={tint} />
               </Card>
             ))}
           </div>
+
+          {/* ── POINTS / RANK ── */}
+          {rank && (
+            <div className="points-banner">
+              <span className="points-banner-icon"><Trophy size={20} strokeWidth={2.25} /></span>
+              <div>
+                <span className="points-banner-value">{nf(totalTokens)}</span>
+                <span className="points-banner-unit">points</span>
+              </div>
+              <span className="points-banner-divider" />
+              <span className="points-banner-item">
+                Rank <strong>#{rank}</strong> of {nf(stats?.totalContributors ?? '')} contributors
+              </span>
+              {topPercent != null && (
+                <span className="points-banner-pill">Top {topPercent}%</span>
+              )}
+            </div>
+          )}
+
+          {/* ── WHERE YOUR REPORT GOES ── */}
+          <Card>
+            <CardHead title="Where your report goes" sub="Every report moves through the same four steps" />
+            <JourneyPath counts={journeyCounts} />
+          </Card>
 
           {/* ── NEEDS ATTENTION ──
               Environmental events tied to this contributor's reports that

@@ -1,9 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import NotificationBell from './NotificationBell';
+
+// Same three destinations as the Contributor/Citizen sidebar's top links —
+// mirrored here so they stay reachable from the header regardless of
+// scroll position or sidebar collapse state.
+const HEADER_NAV_LINKS = {
+  contributor: [
+    { to: '/contributor/overview', label: 'Overview' },
+    { to: '/contributor/quick-report', label: 'Submit Activity' },
+    { to: '/contributor/my-activities', label: 'My Activities' },
+  ],
+  citizen: [
+    { to: '/citizen/overview', label: 'Overview' },
+    { to: '/citizen/quick-report', label: 'Submit Activity' },
+    { to: '/citizen/my-activities', label: 'My Activities' },
+  ],
+};
 
 function getDisplayName(user) {
   return user?.displayName
@@ -22,6 +38,7 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const profileRef = useRef(null);
@@ -122,10 +139,34 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
             <path d="M2.9 9.6h18.2M2.9 14.4h18.2" stroke="currentColor" strokeWidth="1.1" opacity=".72" />
             <path d="M12 2.75c2.6 2.6 3.9 5.7 3.9 9.25S14.6 18.65 12 21.25c-2.6-2.6-3.9-5.7-3.9-9.25S9.4 5.35 12 2.75Z" stroke="currentColor" strokeWidth="1.1" opacity=".72" />
           </svg>
-          <span>Bluemind</span>
+          <span>BlueMind</span>
         </Link>
       </div>
+
+      {!hideActions && HEADER_NAV_LINKS[role] && (
+        <nav className="header-center-nav">
+          {HEADER_NAV_LINKS[role].map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) => `header-center-nav__link${isActive ? ' is-active' : ''}`}
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+      )}
+
       <div className="nav-links">
+        {!hideActions && (role === 'contributor' || role === 'citizen') && (
+          <div className="header-impact-pill" title="Keep logging — every kg counts!">
+            <span className="header-impact-pill__icon" aria-hidden="true">🌊</span>
+            <span className="header-impact-pill__text">
+              <span className="header-impact-pill__kicker">Your impact</span>
+              <span className="header-impact-pill__value">Active</span>
+            </span>
+          </div>
+        )}
         {!hideActions && (
           <>
             <button className="secondary" onClick={toggleTheme} aria-label="Toggle Theme" style={{ padding: '0.5rem', borderRadius: '50%' }}>
@@ -221,14 +262,41 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
           </div>
         )}
 
-        <button className="mobile-menu-btn secondary" onClick={toggleMobileMenu} aria-label="Menu" style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
-        </button>
+        {!hideActions && HEADER_NAV_LINKS[role] && (
+          <button
+            className="mobile-menu-btn secondary"
+            onClick={() => {
+              setMobileNavOpen((open) => !open);
+              toggleMobileMenu?.();
+            }}
+            aria-label="Menu"
+            aria-expanded={mobileNavOpen}
+            style={{ padding: '0.5rem', borderRadius: 'var(--radius-md)' }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+        )}
       </div>
+
+      {!hideActions && HEADER_NAV_LINKS[role] && mobileNavOpen && (
+        <nav className="header-mobile-nav">
+          {HEADER_NAV_LINKS[role].map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              onClick={() => setMobileNavOpen(false)}
+              className={({ isActive }) => `header-mobile-nav__link${isActive ? ' is-active' : ''}`}
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+      )}
+
       <LogoutModal />
     </header>
   );

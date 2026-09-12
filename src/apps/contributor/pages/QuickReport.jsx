@@ -158,55 +158,15 @@ const VoiceBars = ({ reverse }) => (
   </span>
 );
 
-// Faint per-theme motif in the tile's bottom-right corner — a sparkline for
-// Measurement, stacked files for Upload, a soundwave for Tell Blue Mind —
-// purely decorative (pointer-events none) so it never competes with the
-// button's own click target.
-const TILE_DECORATION = {
-  green: (
-    <svg width="70" height="46" viewBox="0 0 70 46" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-      <path d="M2 40l10-6 10 4 12-14 12 2 10-18" />
-    </svg>
-  ),
-  orange: (
-    <svg width="60" height="50" viewBox="0 0 60 50" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="6" y="4" width="26" height="32" rx="3" transform="rotate(-8 19 20)" />
-      <rect x="24" y="10" width="26" height="32" rx="3" transform="rotate(6 37 26)" />
-    </svg>
-  ),
-  violet: (
-    <svg width="64" height="30" viewBox="0 0 64 30" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-      <line x1="2" y1="15" x2="2" y2="15" /><line x1="10" y1="9" x2="10" y2="21" />
-      <line x1="18" y1="4" x2="18" y2="26" /><line x1="26" y1="11" x2="26" y2="19" />
-      <line x1="34" y1="1" x2="34" y2="29" /><line x1="42" y1="8" x2="42" y2="22" />
-      <line x1="50" y1="12" x2="50" y2="18" /><line x1="58" y1="6" x2="58" y2="24" />
-    </svg>
-  ),
-};
-
-const Tile = ({ icon, title, sub, onClick, disabled, theme }) => {
-  const accent = TILE_THEME[theme].accent;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="qr-tile"
-      style={{ '--tile-accent': accent, opacity: disabled ? 0.5 : 1, cursor: disabled ? 'default' : 'pointer' }}
-    >
-      {TILE_DECORATION[theme] && <span className="qr-tile-deco" aria-hidden="true">{TILE_DECORATION[theme]}</span>}
-      <span className="qr-tile-icon">{TILE_ICONS[icon]}</span>
-      <span className="qr-tile-title">{title}</span>
-      <span className="qr-tile-underline" aria-hidden="true" />
-      <span className="qr-tile-sub">{sub}</span>
-      <span className="qr-tile-arrow" aria-hidden="true">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-        </svg>
-      </span>
-    </button>
-  );
-};
+// The four landing tabs — icon/title/sub feed both the tab strip button
+// and (icon only) the panel header beneath it, and accent drives every
+// themed color in the active panel via the --tile-accent custom property.
+const LANDING_TABS = [
+  { key: 'photo', icon: 'camera', title: 'Photo / Video', sub: 'Take one now, pick from your gallery, or add a clip.', theme: 'blue' },
+  { key: 'voice', icon: 'voice', title: 'Tell BlueMind', sub: 'Say it out loud or type it, in your own words.', theme: 'violet' },
+  { key: 'measurement', icon: 'chart', title: 'Measurement', sub: 'Readings from a probe, or a weighed haul.', theme: 'green' },
+  { key: 'upload', icon: 'upload', title: 'Upload', sub: 'An existing report, spreadsheet or dataset.', theme: 'orange' },
+];
 
 // Surfaces condition/severity/hazard (spec §7.3-7.4 vocabulary) right on
 // the chip so the contributor can see and, via Remove, reject what Blue
@@ -276,7 +236,11 @@ export default function QuickReport() {
   const videoInputRef = useRef(null);
   const documentInputRef = useRef(null);
 
-  const [mode, setMode] = useState('landing'); // landing | photo | text-choose | text | voice | video-describe | video | document | measurement-form | confirm
+  const [mode, setMode] = useState('landing'); // landing | photo | video-describe | video | document | confirm
+  // Which of the four landing tiles is open — the landing step now shows
+  // one persistent tab strip with a single content panel underneath it,
+  // rather than a grid of tiles that each drilled into their own screen.
+  const [activeTab, setActiveTab] = useState('photo'); // photo | voice | measurement | upload
   // `mode` is a transient step in the flow and gets overwritten to
   // 'confirm' once a draft is ready — inputSource persists alongside the
   // draft so the confirm screen can still tell a voice note from typed
@@ -435,9 +399,8 @@ export default function QuickReport() {
   // Documents/datasets: extract text server-side, classify the extracted
   // text the same way a typed note would be (spec §16), and keep the
   // original file as separate evidence rather than discarding it once
-  // it's been read (spec §13).
-  async function handleDocumentSelected(e) {
-    const file = e.target.files?.[0];
+  // it's been read (spec §13). Shared by the file picker and drag-drop.
+  async function processDocumentFile(file) {
     if (!file) return;
     if (file.size > MAX_DOCUMENT_BYTES) {
       setDocumentError(`That file is too large (max ${Math.round(MAX_DOCUMENT_BYTES / (1024 * 1024))}MB).`);
@@ -455,12 +418,23 @@ export default function QuickReport() {
     runInference({ documentBase64: dataUrl, sourceOverride: 'document' });
   }
 
-  function openMeasurementForm() {
-    setMode('measurement-form');
-    if (waterSubjects.length === 0) {
+  function handleDocumentSelected(e) {
+    processDocumentFile(e.target.files?.[0]);
+  }
+
+  function handleDocumentDrop(e) {
+    e.preventDefault();
+    processDocumentFile(e.dataTransfer.files?.[0]);
+  }
+
+  // Parameters for the Measurement tab are fetched once, the first time
+  // that tab is opened, rather than eagerly on page load.
+  useEffect(() => {
+    if (activeTab === 'measurement' && waterSubjects.length === 0) {
       eventApi.listSubjects('water').then((res) => { if (res.ok) setWaterSubjects(res.subjects); });
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   function toggleParam(code) {
     setMeasurementValues((prev) => {
@@ -482,10 +456,6 @@ export default function QuickReport() {
     .filter(([, v]) => v.value !== '' && !Number.isNaN(Number(v.value)));
   const canSubmitMeasurement = measurementSubjects.length > 0 && location
     && (measurementSource !== 'instrument' || instrumentName.trim()) && !measurementSubmitting;
-  // Split so picked parameters stay expanded at the top with their value/unit
-  // fields, while everything else collapses into a dense pick list below.
-  const pickedWaterSubjects = waterSubjects.filter((s) => measurementValues[s.code]);
-  const unpickedWaterSubjects = waterSubjects.filter((s) => !measurementValues[s.code]);
 
   async function handleMeasurementSubmit() {
     if (!canSubmitMeasurement) return;
@@ -718,6 +688,86 @@ export default function QuickReport() {
         .qr-hero-caption { display: flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; font-weight: 600; color: var(--tile-accent); }
 
         .qr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.1rem; }
+
+        /* Landing tab strip — four persistent tiles above one shared
+           content panel, rather than each tile drilling into its own
+           screen. The active tab grows a small connector arrow down into
+           the panel so the pair reads as one piece. */
+        .qr-tabbar { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.85rem; }
+        .qr-tab {
+          position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 0.55rem;
+          padding: 1rem 1.1rem; background: var(--surface); border: 1px solid var(--border-light);
+          border-radius: var(--radius-lg); text-align: left; font-family: var(--font-sans); cursor: pointer;
+          transition: border-color .2s, background .2s, transform .15s;
+        }
+        .qr-tab:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--tile-accent) 40%, var(--border-light)); }
+        .qr-tab--active {
+          background: color-mix(in srgb, var(--tile-accent) 9%, var(--surface));
+          border-color: color-mix(in srgb, var(--tile-accent) 55%, var(--border-light));
+        }
+        .qr-tab--active::after {
+          content: ''; position: absolute; left: 50%; bottom: -7px; width: 12px; height: 12px;
+          background: color-mix(in srgb, var(--tile-accent) 9%, var(--surface));
+          border-right: 1px solid color-mix(in srgb, var(--tile-accent) 55%, var(--border-light));
+          border-bottom: 1px solid color-mix(in srgb, var(--tile-accent) 55%, var(--border-light));
+          transform: translateX(-50%) rotate(45deg); z-index: 1;
+        }
+        .qr-tab-icon {
+          width: 34px; height: 34px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;
+          background: color-mix(in srgb, var(--tile-accent) 16%, transparent); color: var(--tile-accent); flex-shrink: 0;
+        }
+        .qr-tab-icon svg { width: 18px; height: 18px; }
+        .qr-tab-title { font-weight: 700; font-size: 0.88rem; color: var(--text-main); }
+        .qr-tab-sub { font-size: 0.76rem; color: var(--text-muted); line-height: 1.4; }
+
+        /* Shared content panel beneath the active tab. */
+        .qr-panel { position: relative; z-index: 2; }
+        .qr-panel-head { display: flex; align-items: flex-start; gap: 0.75rem; }
+        .qr-panel-title { margin: 0; font-size: 1.02rem; font-weight: 700; color: var(--text-main); }
+        .qr-panel-sub { margin: 0.2rem 0 0; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+
+        .qr-dropzone {
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem;
+          text-align: center; padding: 2.5rem 1.5rem; border-radius: var(--radius-lg);
+          border: 2px dashed color-mix(in srgb, var(--tile-accent) 35%, var(--border-light));
+          background: color-mix(in srgb, var(--tile-accent) 4%, transparent);
+        }
+        .qr-dropzone-icon {
+          width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+          background: color-mix(in srgb, var(--tile-accent) 14%, transparent); color: var(--tile-accent); margin-bottom: 0.3rem;
+        }
+        .qr-dropzone-title { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main); }
+        .qr-dropzone-sub { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
+        .qr-dropzone-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 0.5rem; }
+
+        .qr-panel-note { display: flex; align-items: flex-start; gap: 0.5rem; margin: 0; font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; }
+        .qr-panel-note svg { flex-shrink: 0; margin-top: 0.15rem; color: var(--tile-accent); }
+
+        /* Voice tab — big mic affordance plus a "type it instead" fallback. */
+        .qr-voice-tap {
+          display: flex; align-items: center; justify-content: center; gap: 1.1rem; flex-wrap: wrap;
+          padding: 1.5rem 1rem; max-width: 620px; margin: 0 auto; align-self: center; text-align: left;
+        }
+        .qr-voice-tap-btn {
+          width: 60px; height: 60px; border-radius: 50%; flex-shrink: 0; border: none; cursor: pointer;
+          background: var(--tile-accent); color: #fff; display: flex; align-items: center; justify-content: center;
+          transition: transform .15s;
+        }
+        .qr-voice-tap-btn:hover { transform: translateY(-1px); }
+        .qr-voice-tap-bars { flex-shrink: 0; color: var(--tile-accent); }
+        .qr-voice-tap-copy { flex: 1 1 260px; max-width: 320px; margin: 0; font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+        .qr-or-divider { display: flex; align-items: center; gap: 0.75rem; color: var(--text-muted); font-size: 0.76rem; }
+        .qr-or-divider::before, .qr-or-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-light); }
+
+        /* Bottom mini-map of the whole reporting flow. */
+        .qr-steps-bar {
+          display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.4rem; padding: 0.9rem 1.1rem;
+          background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-lg);
+          font-size: 0.8rem; color: var(--text-muted);
+        }
+        .qr-steps-bar strong { color: var(--text-main); font-weight: 600; }
+        .qr-steps-check { color: var(--success); flex-shrink: 0; }
+        .qr-steps-arrow { color: var(--text-muted); opacity: 0.6; flex-shrink: 0; }
 
         .qr-tile {
           position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: flex-start;
@@ -972,52 +1022,285 @@ export default function QuickReport() {
 
       {mode === 'landing' && (
         <>
-          {/* Photo/Video is the highest-traffic path, so it gets a featured
-              hero with its three actions exposed directly — no extra click
-              into a chooser screen the way the other tiles still work. */}
-          <div className="qr-hero" style={{ '--tile-accent': TILE_THEME.blue.accent }}>
-            <div className="qr-hero-left">
-              <span className="qr-tile-icon">{TILE_ICONS.camera}</span>
-              <h3 className="qr-hero-title">Photo / Video</h3>
-              <p className="qr-hero-sub">Take or upload a clear photo or video of what you found.</p>
-              <div className="qr-hero-actions">
-                <button type="button" className="qr-btn-primary" onClick={() => cameraInputRef.current?.click()}>
-                  📷 Take a photo
-                </button>
-                <button type="button" className="qr-btn-outline" onClick={() => galleryInputRef.current?.click()}>
-                  🖼 Choose from gallery
-                </button>
-                <button type="button" className="qr-btn-outline" onClick={() => videoInputRef.current?.click()}>
-                  🎥 Add a video
-                </button>
-              </div>
-            </div>
-            <div className="qr-hero-art" aria-hidden="true">
-              <span className="qr-hero-bracket qr-hero-bracket--tl" />
-              <span className="qr-hero-bracket qr-hero-bracket--tr" />
-              <span className="qr-hero-bracket qr-hero-bracket--bl" />
-              <span className="qr-hero-bracket qr-hero-bracket--br" />
-              <svg width="86" height="60" viewBox="0 0 86 60" fill="none" stroke="var(--secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.7">
-                <circle cx="66" cy="14" r="6" />
-                <path d="M2 50l20-24 14 14 12-16 24 26" />
-              </svg>
-              <span className="qr-hero-caption"><Leaf size={13} /> Capture what you found</span>
-            </div>
-          </div>
-
-          <div className="qr-grid">
-            {/* Measurement/Upload are professional-workflow tiles — kept for
+          <div className="qr-tabbar">
+            {/* Measurement/Upload are professional-workflow tabs — kept for
                 contributors (who also have the full detailed form), left out
                 for citizens so their intake stays to the two lightweight
                 capture modes rather than dangling stubs that dead-end into
                 the same heavy form this page exists to avoid (spec §2). */}
-            {!isCitizen && (
+            {LANDING_TABS.filter((t) => !isCitizen || t.key === 'photo' || t.key === 'voice').map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                className={`qr-tab ${activeTab === tab.key ? 'qr-tab--active' : ''}`}
+                style={{ '--tile-accent': TILE_THEME[tab.theme].accent }}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                <span className="qr-tab-icon">{TILE_ICONS[tab.icon]}</span>
+                <span className="qr-tab-title">{tab.title}</span>
+                <span className="qr-tab-sub">{tab.sub}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="qr-card qr-panel" style={{ '--tile-accent': TILE_THEME[LANDING_TABS.find((t) => t.key === activeTab).theme].accent }}>
+            {activeTab === 'photo' && (
               <>
-                <Tile icon="chart" theme="green" title="Measurement" sub="Enter a structured environmental measurement." onClick={openMeasurementForm} />
-                <Tile icon="upload" theme="orange" title="Upload" sub="Upload an existing report, spreadsheet, or dataset." onClick={() => documentInputRef.current?.click()} />
+                <div className="qr-panel-head">
+                  <span className="qr-step-icon">{TILE_ICONS.camera}</span>
+                  <div>
+                    <h3 className="qr-panel-title">Show us what you found</h3>
+                    <p className="qr-panel-sub">A single clear photo is enough. You don't need to describe it — we'll do that and ask you to check.</p>
+                  </div>
+                </div>
+                <div className="qr-dropzone">
+                  <span className="qr-dropzone-icon">{TILE_ICONS.camera}</span>
+                  <p className="qr-dropzone-title">Point at the problem and take one photo</p>
+                  <p className="qr-dropzone-sub">Get the whole thing in frame if you can. Daylight helps.</p>
+                  <div className="qr-dropzone-actions">
+                    <button type="button" className="qr-btn-primary" onClick={() => cameraInputRef.current?.click()}>
+                      📷 Take a photo
+                    </button>
+                    <button type="button" className="qr-btn-outline" onClick={() => galleryInputRef.current?.click()}>
+                      🖼 Choose from gallery
+                    </button>
+                    <button type="button" className="qr-btn-outline" onClick={() => videoInputRef.current?.click()}>
+                      🎥 Add a video
+                    </button>
+                  </div>
+                </div>
+                <p className="qr-panel-note">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" />
+                  </svg>
+                  We read the place and the time straight from the photo, so you never type them. If you pick an older picture from your gallery we'll ask you where it was — and we record that it came from the gallery, not the camera.
+                </p>
               </>
             )}
-            <Tile icon="voice" theme="violet" title="Tell Blue Mind" sub="Speak or type what happened, in your own words." onClick={() => setMode('text-choose')} />
+
+            {activeTab === 'voice' && (
+              <>
+                <div className="qr-panel-head">
+                  <span className="qr-step-icon">{TILE_ICONS.voice}</span>
+                  <div>
+                    <h3 className="qr-panel-title">Just tell us what happened</h3>
+                    <p className="qr-panel-sub">In your own words — no form, no categories. Say as much or as little as you like.</p>
+                  </div>
+                </div>
+
+                {recordError && <div className="qr-warning">{recordError}</div>}
+
+                {recording ? (
+                  <div className="qr-voice-viz">
+                    <div className="qr-voice-stage">
+                      <VoiceBars />
+                      <span className="qr-voice-rings">
+                        <span className="qr-voice-ring-dotted" />
+                        <span className="qr-voice-mic">
+                          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="9" y="2" width="6" height="12" rx="3" />
+                            <path d="M5 11a7 7 0 0014 0" /><line x1="12" y1="18" x2="12" y2="22" /><line x1="8" y1="22" x2="16" y2="22" />
+                          </svg>
+                        </span>
+                      </span>
+                      <VoiceBars reverse />
+                    </div>
+                    <p className="qr-voice-title">Blue Mind is listening…</p>
+                    <p className="qr-voice-sub">Speak clearly and we'll capture the details.</p>
+                    <button type="button" className="qr-voice-stop" onClick={stopRecording}>
+                      <span className="qr-voice-stop-dot" /> Stop recording
+                    </button>
+                  </div>
+                ) : (
+                  <div className="qr-voice-tap">
+                    <button type="button" className="qr-voice-tap-btn" onClick={startRecording} aria-label="Tap and talk">
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="9" y="2" width="6" height="12" rx="3" />
+                        <path d="M5 11a7 7 0 0014 0" /><line x1="12" y1="18" x2="12" y2="22" /><line x1="8" y1="22" x2="16" y2="22" />
+                      </svg>
+                    </button>
+                    <span className="qr-voice-tap-bars"><VoiceBars /></span>
+                    <p className="qr-voice-tap-copy">
+                      Tap and talk. We'll write it down and show you what we heard, so you can fix anything before it goes in.
+                    </p>
+                  </div>
+                )}
+
+                {!recording && (
+                  <>
+                    <div className="qr-or-divider">or type it instead</div>
+                    <textarea
+                      value={rawText}
+                      onChange={(e) => setRawText(e.target.value)}
+                      placeholder="e.g. Found an abandoned fishing net on the north side of the reef, a turtle was tangled in it — we freed it and removed about 40 kg of net."
+                      rows={4}
+                      style={{
+                        padding: '0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                        background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.88rem', resize: 'vertical'
+                      }}
+                    />
+                    <div>
+                      <button type="button" className="qr-btn-primary" onClick={handleTextSubmit} disabled={!rawText.trim()}>
+                        Send this
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {activeTab === 'measurement' && (
+              <>
+                <div className="qr-panel-head">
+                  <span className="qr-step-icon">{TILE_ICONS.chart}</span>
+                  <div>
+                    <h3 className="qr-panel-title">Enter a reading</h3>
+                    <p className="qr-panel-sub">For anything you actually measured. We keep instrument readings separate from estimates by eye.</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="qr-section-label">What did you measure?</label>
+                  {waterSubjects.length === 0 ? (
+                    <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>Loading parameters…</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {waterSubjects.map((s) => {
+                        const picked = Boolean(measurementValues[s.code]);
+                        return (
+                          <button
+                            key={s.subjectId}
+                            type="button"
+                            onClick={() => toggleParam(s.code)}
+                            className={picked ? 'qr-radio-card qr-radio-card--active' : 'qr-radio-card'}
+                            style={{ flex: '0 0 auto', padding: '0.45rem 0.9rem' }}
+                          >
+                            {s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {Object.entries(measurementValues).map(([code, v]) => {
+                  const s = waterSubjects.find((w) => w.code === code);
+                  if (!s) return null;
+                  return (
+                    <div key={code} className="qr-param-row">
+                      <span className="qr-param-label" style={{ flex: '0 0 auto', fontWeight: 600 }}>{s.label}</span>
+                      <input type="number" step="any" placeholder="Value" value={v.value}
+                        onChange={(e) => updateParamField(code, 'value', e.target.value)}
+                        style={{ width: '130px', padding: '0.45rem 0.6rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                          background: 'var(--surface)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.82rem' }} />
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{v.unit}</span>
+                    </div>
+                  );
+                })}
+
+                <div>
+                  <label className="qr-section-label">How did you measure it?</label>
+                  <div className="qr-radio-group">
+                    <label className={`qr-radio-card ${measurementSource === 'instrument' ? 'qr-radio-card--active' : ''}`}>
+                      <input type="radio" name="measurementSource" checked={measurementSource === 'instrument'} onChange={() => setMeasurementSource('instrument')} />
+                      <span>
+                        <strong style={{ display: 'block' }}>With an instrument</strong>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>A probe, meter or scale. We'll ask which one.</span>
+                      </span>
+                    </label>
+                    <label className={`qr-radio-card ${measurementSource === 'informal' ? 'qr-radio-card--active' : ''}`}>
+                      <input type="radio" name="measurementSource" checked={measurementSource === 'informal'} onChange={() => setMeasurementSource('informal')} />
+                      <span>
+                        <strong style={{ display: 'block' }}>By eye</strong>
+                        <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>A careful estimate. Still useful — just recorded as one.</span>
+                      </span>
+                    </label>
+                  </div>
+                  {measurementSource === 'instrument' && (
+                    <>
+                      <label className="qr-section-label" style={{ marginTop: '0.8rem' }}>Which instrument?</label>
+                      <input type="text" value={instrumentName} onChange={(e) => setInstrumentName(e.target.value)}
+                        placeholder="e.g. YSI ProDSS"
+                        style={{ width: '100%', padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                          background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem' }} />
+                    </>
+                  )}
+                </div>
+
+                <div>
+                  <label className="qr-section-label">Location</label>
+                  <MapLocationPicker value={location} lat={lat} lon={lon} onChange={handleLocationChange} />
+                </div>
+
+                <OrgContextLine
+                  organizationId={organizationId} organizations={organizations} orgsLoading={orgsLoading}
+                  addOrganization={addOrganization} onChange={setOrganizationId}
+                />
+
+                <div className="qr-notes-wrap">
+                  <textarea value={measurementNotes} onChange={(e) => setMeasurementNotes(e.target.value.slice(0, 500))}
+                    placeholder="Any additional notes? (optional)" rows={2} maxLength={500}
+                    style={{ width: '100%', padding: '0.65rem 0.7rem 1.3rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                      background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem', resize: 'vertical' }} />
+                  <span className="qr-notes-count">{measurementNotes.length} / 500</span>
+                </div>
+
+                {measurementError && <div className="qr-error">{measurementError}</div>}
+
+                <div>
+                  <button type="button" className="qr-btn-primary" onClick={handleMeasurementSubmit} disabled={!canSubmitMeasurement}>
+                    {measurementSubmitting ? 'Submitting…' : 'Send these readings'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'upload' && (
+              <>
+                <div className="qr-panel-head">
+                  <span className="qr-step-icon">{TILE_ICONS.upload}</span>
+                  <div>
+                    <h3 className="qr-panel-title">Send a report you already have</h3>
+                    <p className="qr-panel-sub">A survey sheet, a cleanup log, a lab result. We read it and pull out what's environmental.</p>
+                  </div>
+                </div>
+
+                {documentError && <div className="qr-warning">{documentError}</div>}
+
+                <div className="qr-dropzone" onDragOver={(e) => e.preventDefault()} onDrop={handleDocumentDrop}>
+                  <span className="qr-dropzone-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" />
+                    </svg>
+                  </span>
+                  <p className="qr-dropzone-title">Drop a file here</p>
+                  <p className="qr-dropzone-sub">PDF, CSV or plain text, up to 8 MB. One file at a time.</p>
+                  <div className="qr-dropzone-actions">
+                    <button type="button" className="qr-btn-primary" onClick={() => documentInputRef.current?.click()}>
+                      Choose a file
+                    </button>
+                  </div>
+                </div>
+
+                <p className="qr-panel-note">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l8 3v6c0 5-3.4 8.7-8 11-4.6-2.3-8-6-8-11V5z" />
+                  </svg>
+                  Your original file is kept exactly as you sent it. What we read out of it is stored separately, so anyone checking later can see both.
+                </p>
+              </>
+            )}
+          </div>
+
+          <div className="qr-steps-bar">
+            <svg className="qr-steps-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <strong>Send it</strong>
+            <span className="qr-steps-arrow">→</span> Blue Mind reads it
+            <span className="qr-steps-arrow">→</span> You check what we got
+            <span className="qr-steps-arrow">→</span> One or two questions, only if they help
+            <span className="qr-steps-arrow">→</span> Done
           </div>
         </>
       )}
@@ -1045,190 +1328,6 @@ export default function QuickReport() {
           />
           <div>
             <button type="button" className="qr-btn-primary" onClick={handleVideoDescribeSubmit} disabled={!rawText.trim()}>
-              Analyze
-            </button>
-          </div>
-        </StepCard>
-      )}
-
-      {mode === 'measurement-form' && (
-        <StepCard accent={FLOW_ACCENT.measurement} icon="chart" title="Measurement" badge="Detailed"
-          sub="Structured environmental readings, not AI-classified — you pick the parameters directly."
-          onBack={() => setMode('landing')}
-          art={(
-            <svg width="80" height="70" viewBox="0 0 80 70" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M32 6h12M35 6v16l-13 26a6 6 0 005.3 8.8h21.4A6 6 0 0061 48L48 22V6" />
-              <line x1="30" y1="42" x2="50" y2="42" />
-              <circle cx="68" cy="14" r="2.4" fill="currentColor" stroke="none" />
-              <circle cx="73" cy="24" r="1.6" fill="currentColor" stroke="none" />
-              <path d="M66 34c0 4-3 5-3 9a3 3 0 006 0c0-4-3-5-3-9z" />
-            </svg>
-          )}
-        >
-          <div>
-            <label className="qr-section-label">Which measurements are you logging?</label>
-            {waterSubjects.length === 0 ? (
-              <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>Loading parameters…</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {pickedWaterSubjects.map((s) => (
-                  <div key={s.subjectId}>
-                    <div className="qr-param-row">
-                      <input type="checkbox" className="qr-param-checkbox" checked
-                        onChange={() => toggleParam(s.code)} id={`param-${s.code}`} />
-                      <label className="qr-param-label" htmlFor={`param-${s.code}`}>{s.label}</label>
-                    </div>
-                    <div className="qr-param-fields">
-                      <input type="number" step="any" placeholder="Value" value={measurementValues[s.code].value}
-                        onChange={(e) => updateParamField(s.code, 'value', e.target.value)}
-                        style={{ width: '130px', padding: '0.45rem 0.6rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
-                          background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.82rem' }} />
-                      <select className="qr-select" style={{ width: '100px' }} value={measurementValues[s.code].unit}
-                        onChange={(e) => updateParamField(s.code, 'unit', e.target.value)}>
-                        <option value={measurementValues[s.code].unit}>{measurementValues[s.code].unit || '—'}</option>
-                      </select>
-                    </div>
-                  </div>
-                ))}
-
-                {unpickedWaterSubjects.length > 0 && (
-                  <div className="qr-param-grid">
-                    {unpickedWaterSubjects.map((s) => (
-                      <div key={s.subjectId} className="qr-param-row">
-                        <input type="checkbox" className="qr-param-checkbox" checked={false}
-                          onChange={() => toggleParam(s.code)} id={`param-${s.code}`} />
-                        <label className="qr-param-label" htmlFor={`param-${s.code}`}>{s.label}</label>
-                        <span className="qr-info-dot" title={`Log a ${s.label.toLowerCase()} reading`}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="9" /><line x1="12" y1="11" x2="12" y2="16" /><circle cx="12" cy="8" r="0.5" fill="currentColor" />
-                          </svg>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="qr-section-label">How was this measured?</label>
-            <div className="qr-radio-group">
-              <label className={`qr-radio-card ${measurementSource === 'instrument' ? 'qr-radio-card--active' : ''}`}>
-                <input type="radio" name="measurementSource" checked={measurementSource === 'instrument'} onChange={() => setMeasurementSource('instrument')} />
-                Instrument reading
-              </label>
-              <label className={`qr-radio-card ${measurementSource === 'informal' ? 'qr-radio-card--active' : ''}`}>
-                <input type="radio" name="measurementSource" checked={measurementSource === 'informal'} onChange={() => setMeasurementSource('informal')} />
-                Informal observation
-              </label>
-            </div>
-            {measurementSource === 'instrument' && (
-              <input type="text" value={instrumentName} onChange={(e) => setInstrumentName(e.target.value)}
-                placeholder="Which instrument? (e.g. YSI multiparameter probe)"
-                style={{ marginTop: '0.6rem', width: '100%', padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
-                  background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem' }} />
-            )}
-          </div>
-
-          <div>
-            <label className="qr-section-label">Location</label>
-            <MapLocationPicker value={location} lat={lat} lon={lon} onChange={handleLocationChange} />
-          </div>
-
-          <OrgContextLine
-            organizationId={organizationId} organizations={organizations} orgsLoading={orgsLoading}
-            addOrganization={addOrganization} onChange={setOrganizationId}
-          />
-
-          <div className="qr-notes-wrap">
-            <textarea value={measurementNotes} onChange={(e) => setMeasurementNotes(e.target.value.slice(0, 500))}
-              placeholder="Any additional notes? (optional)" rows={2} maxLength={500}
-              style={{ width: '100%', padding: '0.65rem 0.7rem 1.3rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
-                background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem', resize: 'vertical' }} />
-            <span className="qr-notes-count">{measurementNotes.length} / 500</span>
-          </div>
-
-          {measurementError && <div className="qr-error">{measurementError}</div>}
-
-          <div className="qr-submit-row">
-            <button type="button" className="qr-btn-primary" onClick={handleMeasurementSubmit} disabled={!canSubmitMeasurement}>
-              {measurementSubmitting ? 'Submitting…' : 'Submit measurement'}
-            </button>
-            <span className="qr-secure-note">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2l8 3v6c0 5-3.4 8.7-8 11-4.6-2.3-8-6-8-11V5z" />
-              </svg>
-              Your data is secure and used to protect our environment.
-            </span>
-          </div>
-        </StepCard>
-      )}
-
-      {mode === 'text-choose' && (
-        <StepCard accent={FLOW_ACCENT.text} icon="voice" title="Tell Blue Mind"
-          sub="Speak or type what happened, in your own words." onBack={() => setMode('landing')} backDisabled={recording}>
-          {recordError && <div className="qr-warning">{recordError}</div>}
-
-          <div style={{ display: 'flex', gap: '0.7rem', flexWrap: 'wrap' }}>
-            {recording ? (
-              <span className="qr-btn-primary qr-recording-pill">
-                <span className="qr-recording-dot" /> Recording… {String(Math.floor(recordSeconds / 60)).padStart(1, '0')}:{String(recordSeconds % 60).padStart(2, '0')}
-              </span>
-            ) : (
-              <button type="button" className="qr-btn-primary" onClick={startRecording}>
-                🎤 Record a voice note
-              </button>
-            )}
-            <button type="button" className="qr-btn-outline" onClick={() => setMode('text')} disabled={recording}>
-              ✍️ Type a note
-            </button>
-          </div>
-
-          {recording && (
-            <>
-              <div className="qr-voice-divider" />
-              <div className="qr-voice-viz">
-                <div className="qr-voice-stage">
-                  <VoiceBars />
-                  <span className="qr-voice-rings">
-                    <span className="qr-voice-ring-dotted" />
-                    <span className="qr-voice-mic">
-                      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="9" y="2" width="6" height="12" rx="3" />
-                        <path d="M5 11a7 7 0 0014 0" /><line x1="12" y1="18" x2="12" y2="22" /><line x1="8" y1="22" x2="16" y2="22" />
-                      </svg>
-                    </span>
-                  </span>
-                  <VoiceBars reverse />
-                </div>
-                <p className="qr-voice-title">Blue Mind is listening…</p>
-                <p className="qr-voice-sub">Speak clearly and we'll capture the details.</p>
-                <button type="button" className="qr-voice-stop" onClick={stopRecording}>
-                  <span className="qr-voice-stop-dot" /> Stop recording
-                </button>
-              </div>
-            </>
-          )}
-        </StepCard>
-      )}
-
-      {mode === 'text' && !draft && (
-        <StepCard accent={FLOW_ACCENT.text} icon="type" title="Type a note"
-          sub="Describe what happened — Blue Mind figures out the rest." onBack={() => setMode('text-choose')}>
-          <textarea
-            autoFocus
-            value={rawText}
-            onChange={(e) => setRawText(e.target.value)}
-            placeholder="e.g. Found an abandoned fishing net on the north side of the reef, a turtle was tangled in it — we freed it and removed about 40kg of net."
-            rows={5}
-            style={{
-              padding: '0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
-              background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.88rem', resize: 'vertical'
-            }}
-          />
-          <div>
-            <button type="button" className="qr-btn-primary" onClick={handleTextSubmit} disabled={!rawText.trim()}>
               Analyze
             </button>
           </div>

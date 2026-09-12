@@ -16,15 +16,9 @@
   --primary-hover: var(--brand-700);
   --secondary: var(--brand-400);
   --dark: var(--brand-50);
-  /* Four corner glows, each a different hue, layered over a static base —
-     paired with `background-attachment: fixed` on body so the glows stay
-     pinned to the viewport corners instead of drifting as the page scrolls. */
-  --bg-gradient:
-    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(53, 185, 214, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(61, 214, 224, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(30, 107, 145, 0.18), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 100%, rgba(11, 45, 74, 0.22), transparent 55%),
-    linear-gradient(135deg, #06121c 0%, #071f33 55%, #0b2d4a 100%);
+  /* Dark-mode counterpart of the light theme's diagonal blue wash — same
+     direction and shape, darkened into the app's own ocean palette. */
+  --bg-gradient: linear-gradient(135deg, #2E86C8 0%, #14669E 55%, #0c2a42 100%);
   --surface: rgba(3, 14, 25, 0.72);
   --surface-solid: #071B2E;
   --surface-hover: rgba(11, 45, 74, 0.78);
@@ -81,12 +75,7 @@
   --primary-hover: var(--brand-700);
   --secondary: var(--brand-400);
   --dark: var(--brand-50);
-  --bg-gradient:
-    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(53, 185, 214, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(61, 214, 224, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(30, 107, 145, 0.18), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 100%, rgba(11, 45, 74, 0.22), transparent 55%),
-    linear-gradient(135deg, #06121c 0%, #071f33 55%, #0b2d4a 100%);
+  --bg-gradient: linear-gradient(135deg, #2E86C8 0%, #14669E 55%, #112f47 100%);
   --surface: rgba(3, 14, 25, 0.72);
   --surface-solid: #071B2E;
   --surface-hover: rgba(11, 45, 74, 0.78);
@@ -133,15 +122,9 @@
   --primary-hover: #04657c;
   --secondary: #1596b5;
   --dark: #ffffff;
-  /* Same teal/blue pairing as the ocean-wave-strip layers, as four corner
-     glows pinned to the viewport (see `background-attachment: fixed` on
-     body) instead of a wash that drifted with scroll position. */
-  --bg-gradient:
-    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(61, 214, 224, 0.22), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 0%, rgba(11, 130, 201, 0.18), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 0% 100%, rgba(11, 130, 201, 0.16), transparent 55%),
-    radial-gradient(ellipse 70% 60% at 100% 100%, rgba(61, 214, 224, 0.2), transparent 55%),
-    linear-gradient(135deg, #ffffff 0%, #f4fbfd 52%, #e4f7fa 100%);
+  /* Solid sky-to-ocean blue diagonal, replacing the previous pale
+     white-based wash — the whole light theme now sits on this. */
+  --bg-gradient: linear-gradient(135deg, #8FD3F2 0%, #4FA6DE 55%, #2E86C8 100%);
   --surface: rgba(255, 255, 255, 0.82);
   --surface-solid: #FFFFFF;
   --surface-hover: rgba(235, 250, 252, 0.96);
@@ -862,12 +845,7 @@ a {
   --border-glow: rgba(127, 195, 232, 0.5);
   --text-main: #f2f7fa;
   --text-muted: rgba(233, 242, 247, 0.68);
-  --bg-gradient:
-    radial-gradient(60% 50% at 4% 4%, #0a3a5c 0%, transparent 58%),
-    radial-gradient(60% 50% at 96% 4%, #17587f 0%, transparent 58%),
-    radial-gradient(65% 55% at 4% 96%, #0a4f83 0%, transparent 62%),
-    radial-gradient(65% 55% at 96% 96%, #123f66 0%, transparent 62%),
-    linear-gradient(172deg, #05192e 0%, #072744 44%, #08395f 100%);
+  --bg-gradient: linear-gradient(135deg, #2E86C8 0%, #14669E 55%, #0f2c44 100%);
   background: var(--bg-gradient);
   background-attachment: fixed;
 }
@@ -906,7 +884,7 @@ a {
   justify-content: space-between;
   align-items: center;
   padding: 0 1rem;
-  height: 4rem;
+  height: 5rem;
   background: var(--surface);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -931,8 +909,8 @@ a {
 .brand-wordmark {
   color: rgba(232, 242, 255, 0.8);
   font-family: var(--font-sans);
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1;
   margin: 0;
@@ -943,8 +921,8 @@ a {
 }
 
 .brand-wordmark__mark {
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 1.5rem;
+  height: 1.5rem;
   flex: 0 0 auto;
 }
 
@@ -965,6 +943,125 @@ a {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+}
+
+/* Contributor/Citizen primary nav, mirrored from the sidebar's top three
+   links so Overview/Submit Activity/My Activities stay reachable from the
+   header too. Hidden below 900px — the hamburger menu covers navigation
+   there and three extra labels would crowd the bell/avatar cluster. */
+.header-center-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.header-center-nav__link {
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s;
+}
+
+.header-center-nav__link:hover {
+  color: var(--text-main);
+  background: var(--surface-hover);
+}
+
+.header-center-nav__link.is-active {
+  color: var(--primary-hover);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+@media (max-width: 900px) {
+  .header-center-nav { display: none; }
+}
+
+/* Mobile fallback for the links hidden above: opened from the hamburger
+   button, dropped below the sticky topbar. */
+.header-mobile-nav {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  gap: 0.25rem;
+  background: var(--surface-solid);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: var(--shadow-lg);
+  z-index: 49;
+}
+
+.header-mobile-nav__link {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.header-mobile-nav__link:hover {
+  color: var(--text-main);
+  background: var(--surface-hover);
+}
+
+.header-mobile-nav__link.is-active {
+  color: var(--primary-hover);
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+@media (min-width: 901px) {
+  .header-mobile-nav { display: none; }
+}
+
+/* Contributor/Citizen "your impact" status — moved here from the sidebar's
+   footer card so it stays visible regardless of scroll position or sidebar
+   collapse state. */
+.header-impact-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--secondary) 16%, transparent) 0%, color-mix(in srgb, var(--primary) 12%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent);
+  cursor: default;
+}
+
+.header-impact-pill__icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.header-impact-pill__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.header-impact-pill__kicker {
+  font-size: 0.56rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.header-impact-pill__value {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary-hover);
+  font-family: var(--font-display);
+}
+
+@media (max-width: 640px) {
+  .header-impact-pill { display: none; }
 }
 
 @media (min-width: 768px) {
@@ -988,6 +1085,7 @@ main {
   flex-direction: column;
   align-items: stretch;
   position: relative;
+  padding-top: 0.5rem;
 }
 
 .main-content {
@@ -1004,10 +1102,25 @@ main {
     flex-direction: row;
     padding: 1.5rem;
     gap: 1.5rem;
+    padding-top: 0.5rem;
   }
 
   .main-content {
     padding: 0;
+  }
+}
+
+.app-footer {
+  flex-shrink: 0;
+  padding: 1.1rem 1rem 1.5rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+@media (min-width: 768px) {
+  .app-footer {
+    padding: 1.1rem 1.5rem 1.75rem;
   }
 }
 
@@ -1098,7 +1211,7 @@ body.sidebar-resizing * {
   display: flex;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 901px) {
   .mobile-menu-btn {
     display: none;
   }
@@ -1552,47 +1665,7 @@ tr:hover td {
   }
 }
 
-/* ── Living reef backdrop (Contributor + Citizen Space) ────────────────────
-   The animated ReefScene held behind the whole space, fixed to the
-   viewport so the water stays still while the page scrolls over it.
-   `contain: strict` keeps the always-running SVG animations from
-   invalidating layout for the rest of the page. Both spaces share the same
-   Blue Mind hero and card system, so both get the reef behind them. */
-.space-reef {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-  contain: strict;
-  opacity: 0.5;
-}
-
-.space-reef svg {
-  width: 100%;
-  height: 100%;
-}
-
-/* No colour wash over the artwork — the reduced visibility comes from
-   `.space-reef`'s opacity alone, so the coral hues stay true just fainter.
-   Contrast for the few bits of type with no card under them is bought
-   per-element instead, so a couple of labels never cost the whole scene its
-   saturation.
-
-   The reef is dark blue wherever page content sits, in both themes, so
-   on-water type goes light with a dark halo either way rather than following
-   the theme's own text colour. Colour travels through --bm-loose-text so it
-   overrides the inline styles those labels carry, without !important. */
-/* Only where the reef is actually behind the page: below 640px .space-reef
-   is dropped, and light-on-dark type there would be light on light. */
-@media (min-width: 641px) {
-  :is(.contributor-space-shell, .citizen-space-shell) .contrib-on-water {
-    --bm-loose-text: #EDF7FD;
-    text-shadow: 0 1px 2px rgba(3, 20, 38, 0.75), 0 1px 12px rgba(3, 20, 38, 0.85);
-  }
-}
-
-/* ── Content cards over the reef ───────────────────────────────────────────
+/* ── Content cards ──────────────────────────────────────────────────────
    Contributor and Citizen Space only — the two spaces with water behind
    them. The reef is ambiance, not the point: every card carrying real data
    (stats, activity rows, forms) gets a near-solid fill so the numbers and
@@ -1611,6 +1684,18 @@ tr:hover td {
      stays glass instead of picking up the solid `--surface` every other
      card just got, and the reef keeps swimming visibly behind it. */
   --bm-hero-surface: rgba(255, 255, 255, 0.42);
+
+  /* Blue Mind brand — teal/marine, not the app-wide cyan `--primary`. Citizen
+     Space already carried its own copy of these scoped to `.co-root`;
+     Contributor Space read the generic cyan theme instead, so its badges,
+     "needs attention" accents and stat rails drifted from Citizen's look.
+     Hoisted here so both spaces (and anything added to either one later)
+     share a single teal/marine source of truth. */
+  --primary: #2E9E9B;
+  --primary-hover: #24827F;
+  --secondary: #14669E;
+  --success: #2E9E9B;
+  --warning: #C6821E;
 }
 
 [data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) {
@@ -1618,6 +1703,12 @@ tr:hover td {
   --surface-hover: rgba(255, 255, 255, 0.08);
   --border-light: rgba(160, 210, 240, 0.24);
   --bm-hero-surface: rgba(4, 20, 38, 0.4);
+
+  --primary: #6FC9C4;
+  --primary-hover: #A9D8F0;
+  --secondary: #0B82C9;
+  --success: #6FC9C4;
+  --warning: #F8B84E;
 }
 
 /* A light blur still softens a card's edge where it isn't fully opaque;
@@ -1640,49 +1731,21 @@ tr:hover td {
   --text-muted: rgba(233, 242, 247, 0.74);
 }
 
-/* The topbar and sidebar are navigation chrome, not business content, so
-   they can stay a shade more translucent than the cards without costing
-   anything readable — but still solid enough that nav labels and the
-   account menu never fight the water behind them. */
-:is(.contributor-space-shell, .citizen-space-shell) > .topbar,
-:is(.contributor-space-shell, .citizen-space-shell) .sidebar-container {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(238, 249, 253, 0.84));
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-color: rgba(255, 255, 255, 0.8);
+/* The topbar and sidebar are navigation chrome — kept fully opaque so no
+   trace of the reef backdrop shows through their corners or edges, unlike
+   the content cards above which stay near-solid on purpose. */
+:is(.contributor-space-shell, .citizen-space-shell, .verifier-space-shell, .admin-space-shell) > .topbar,
+:is(.contributor-space-shell, .citizen-space-shell, .verifier-space-shell, .admin-space-shell) .sidebar-container {
+  background: #FFFFFF;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-color: #E4EDF4;
   box-shadow: 0 20px 44px -32px rgba(6, 45, 80, 0.45);
 }
 
-[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) > .topbar,
-[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell) .sidebar-container {
-  background: linear-gradient(180deg, rgba(4, 22, 40, 0.88), rgba(4, 22, 40, 0.78));
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .verifier-space-shell, .admin-space-shell) > .topbar,
+[data-theme="dark"] :is(.contributor-space-shell, .citizen-space-shell, .verifier-space-shell, .admin-space-shell) .sidebar-container {
+  background: #04121F;
   border-color: rgba(160, 210, 240, 0.24);
 }
 
-/* The backdrop sits behind everything without any extra lifting: .space-reef
-   is `position: fixed`, and the topbar (sticky), the sidebar and the main
-   column (all positioned via .main-layout) already paint after it in DOM
-   order. Earlier this file forced `position: relative` onto the topbar and
-   the chatbot to "lift" them above the reef — that stripped the topbar of
-   its `sticky` (making it scroll away) and the chatbot of its `fixed`
-   (pinning it in the content flow instead of floating). Neither needed it:
-   they already had their own positioning doing the real work. Nothing to
-   declare here now — left as a note so the fix doesn't get re-added. */
-
-/* The reef stays visible on mobile, but its costliest always-on layers
-   (mix-blend-mode rays, plankton motes, bubble columns, the distant school)
-   are dropped there — a card-covered small screen barely shows them anyway,
-   and continuously repainting them behind the cards' backdrop-filter blur
-   was the main source of mobile scroll jank. */
-@media (max-width: 640px) {
-  .space-reef .bm-reef__rays,
-  .space-reef .bm-reef__motes,
-  .space-reef .bm-reef__bubbles,
-  .space-reef .bm-reef__far-school {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .space-reef svg * { animation: none !important; }
-}

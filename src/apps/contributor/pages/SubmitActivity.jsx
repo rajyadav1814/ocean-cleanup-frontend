@@ -41,6 +41,37 @@ const BRAND_PLACEHOLDERS = {
   "Bottles and containers": "e.g. Bisleri"
 };
 
+// Per-step accent color + icon + one-line subtitle, matching the visual
+// language of the QuickReport flow (colored tab, icon-in-circle card head,
+// pill buttons) — kept separate from `labels` since that array is also
+// used for the plain "Step N of M" text above the tabs.
+const STEP_META = {
+  1: {
+    accent: 'var(--secondary)', sub: 'Where and what the shoreline looked like.',
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>)
+  },
+  2: {
+    accent: 'var(--warning)', sub: 'What you found, tallied by item.',
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="13" /><line x1="10" y1="21" x2="10" y2="7" /><line x1="16" y1="21" x2="16" y2="11" /><line x1="22" y1="21" x2="22" y2="3" /></svg>)
+  },
+  3: {
+    accent: '#65a30d', sub: "Anything living, and how it's doing.",
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20c8-1 14-7 15-15-8 1-14 7-15 15z" /><path d="M6.5 17.5C10 14 12.5 11 15 8" /></svg>)
+  },
+  4: {
+    accent: '#ef4444', sub: 'Safety notes, plus your photos.',
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>)
+  },
+  5: {
+    accent: 'var(--primary)', sub: 'Who was there, and for how long.',
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>)
+  },
+  6: {
+    accent: 'var(--success)', sub: 'Where it went, and a last check before sending.',
+    icon: (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>)
+  },
+};
+
 const emptyDebrisLog = () => Object.fromEntries(materials.map((material) => [material, '']));
 const emptyBrandLog = () => Object.fromEntries(materials.map((material) => [material, []]));
 
@@ -449,8 +480,10 @@ export default function SubmitActivity() {
     );
   }
 
+  const activeMeta = STEP_META[step];
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 8rem)' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', minHeight: 'calc(100vh - 8rem)', padding: '1.5rem 0' }}>
       <style>{`
         .cleanup-form input[type="checkbox"] {
           width: 1.15rem;
@@ -478,8 +511,77 @@ export default function SubmitActivity() {
         .cleanup-form .debris-row input[type="number"] {
           width: 80px;
         }
+
+        /* ── Step tabs (mirrors QuickReport's mode-switcher tiles) ── */
+        .sa-tabs { display: grid; grid-template-columns: repeat(${visibleSteps.length}, 1fr); gap: 0.6rem; margin-bottom: 1.25rem; }
+        .sa-tab {
+          position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 0.3rem;
+          padding: 0.7rem 0.85rem; border-radius: var(--radius-md); text-align: left; font-family: inherit;
+          background: color-mix(in srgb, var(--tab-accent) 6%, var(--surface));
+          border: 1px solid color-mix(in srgb, var(--tab-accent) 18%, var(--border-light));
+          transition: border-color .2s, transform .2s;
+        }
+        .sa-tab:not(:disabled):hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--tab-accent) 45%, var(--border-light)); }
+        .sa-tab:disabled { cursor: default; }
+        .sa-tab--active {
+          border-color: color-mix(in srgb, var(--tab-accent) 65%, var(--border-light));
+          background: color-mix(in srgb, var(--tab-accent) 12%, var(--surface));
+        }
+        .sa-tab--active::after {
+          content: ''; position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%) rotate(45deg);
+          width: 10px; height: 10px; background: color-mix(in srgb, var(--tab-accent) 12%, var(--surface));
+          border-right: 1px solid color-mix(in srgb, var(--tab-accent) 65%, var(--border-light));
+          border-bottom: 1px solid color-mix(in srgb, var(--tab-accent) 65%, var(--border-light));
+        }
+        .sa-tab-icon {
+          width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center;
+          background: color-mix(in srgb, var(--tab-accent) 18%, var(--surface)); color: var(--tab-accent);
+        }
+        .sa-tab-label { font-size: 0.82rem; font-weight: 700; color: var(--text-main); }
+        @media (max-width: 720px) {
+          .sa-tabs { grid-template-columns: repeat(3, 1fr); }
+          .sa-tab-label { font-size: 0.72rem; }
+        }
+
+        /* ── Step card frame ── */
+        .sa-card {
+          background: color-mix(in srgb, var(--tile-accent) 5%, var(--surface));
+          border: 1px solid color-mix(in srgb, var(--tile-accent) 22%, var(--border-light));
+          border-radius: var(--radius-lg); padding: 1.5rem 1.6rem;
+        }
+        .sa-card-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+        .sa-card-icon {
+          width: 38px; height: 38px; border-radius: 999px; flex-shrink: 0;
+          display: flex; align-items: center; justify-content: center;
+          background: color-mix(in srgb, var(--tile-accent) 18%, transparent); color: var(--tile-accent);
+        }
+        .sa-card-title { margin: 0; font-size: 1.02rem; font-weight: 700; color: var(--text-main); }
+        .sa-card-sub { margin: 0.15rem 0 0; font-size: 0.8rem; color: var(--text-muted); }
+
+        /* ── Pill buttons ── */
+        .sa-btn-primary {
+          background: var(--tile-accent); border: none; border-radius: 999px; color: #fff; font-weight: 700;
+          padding: 0.7rem 1.5rem; cursor: pointer; font-family: inherit; font-size: 0.85rem; transition: transform .15s, opacity .15s;
+        }
+        .sa-btn-primary:disabled { opacity: 0.55; cursor: default; }
+        .sa-btn-primary:not(:disabled):hover { transform: translateY(-1px); }
+        .sa-btn-secondary {
+          background: transparent; border: 1px solid var(--border-light); border-radius: 999px; color: var(--text-muted);
+          font-weight: 700; padding: 0.7rem 1.5rem; cursor: pointer; font-family: inherit; font-size: 0.85rem; transition: border-color .2s, color .2s;
+        }
+        .sa-btn-secondary:hover { border-color: var(--border-glow); color: var(--text-main); }
+
+        /* ── Bottom flow footer (mirrors QuickReport's step-flow banner) ── */
+        .sa-flow {
+          display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.4rem 0.6rem;
+          margin-top: 1.25rem; padding: 0.9rem 1.25rem; border-radius: var(--radius-lg);
+          background: var(--surface); border: 1px solid var(--border-light);
+          font-size: 0.78rem; color: var(--text-muted); text-align: center;
+        }
+        .sa-flow strong { color: var(--text-main); font-weight: 700; }
       `}</style>
-      <section className="card cleanup-form contributor-form-panel" style={{ maxWidth: '640px', width: '100%', margin: '0 auto', padding: '2rem' }}>
+      <div style={{ maxWidth: '880px', width: '100%', margin: '0 auto', padding: '0 1rem' }}>
+      <section className="card cleanup-form contributor-form-panel" style={{ width: '100%', padding: '2rem', position: 'relative', overflow: 'hidden' }}>
         <OceanWaveStrip />
         {/* Stepper Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -488,6 +590,28 @@ export default function SubmitActivity() {
         <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
           Step {visibleSteps.indexOf(step) + 1} of {visibleSteps.length} - {labels[step - 1]}
         </div>
+
+        <div className="sa-tabs">
+          {visibleSteps.map((s) => {
+            const meta = STEP_META[s];
+            const isActive = s === step;
+            const isPast = visibleSteps.indexOf(s) < visibleSteps.indexOf(step);
+            return (
+              <button
+                key={s}
+                type="button"
+                className={`sa-tab${isActive ? ' sa-tab--active' : ''}`}
+                style={{ '--tab-accent': meta.accent }}
+                disabled={!isPast}
+                onClick={() => isPast && setStep(s)}
+              >
+                <span className="sa-tab-icon">{meta.icon}</span>
+                <span className="sa-tab-label">{labels[s - 1]}</span>
+              </button>
+            );
+          })}
+        </div>
+
         <div style={{ display: 'flex', gap: '6px', marginBottom: '1.5rem' }}>
           {visibleSteps.map((s, i) => (
             <div key={s} style={{ flex: 1, height: '4px', borderRadius: '2px', background: i <= visibleSteps.indexOf(step) ? 'var(--primary)' : 'var(--border-light)', transition: 'background 0.3s' }}></div>
@@ -520,7 +644,16 @@ export default function SubmitActivity() {
         )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          
+
+        <div className="sa-card" style={{ '--tile-accent': activeMeta.accent }}>
+          <div className="sa-card-head">
+            <span className="sa-card-icon">{activeMeta.icon}</span>
+            <div>
+              <h2 className="sa-card-title">{labels[step - 1]}</h2>
+              <p className="sa-card-sub">{activeMeta.sub}</p>
+            </div>
+          </div>
+
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div className="form-group">
@@ -861,19 +994,15 @@ export default function SubmitActivity() {
             </div>
           )}
 
+        </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', marginTop: '1rem' }}>
             {visibleSteps.indexOf(step) > 0 ? (
               <button
                 type="button"
+                className="sa-btn-secondary"
                 onClick={() => setStep(visibleSteps[visibleSteps.indexOf(step) - 1])}
-                style={{
-                  flex: 1,
-                  background: 'transparent',
-                  border: '1px solid var(--border-light)',
-                  color: 'var(--text-main)',
-                  padding: '0.85rem',
-                  borderRadius: 'var(--radius-md)'
-                }}
+                style={{ flex: 1 }}
               >
                 Back
               </button>
@@ -882,32 +1011,19 @@ export default function SubmitActivity() {
             {visibleSteps.indexOf(step) < visibleSteps.length - 1 ? (
               <button
                 type="button"
+                className="sa-btn-primary"
                 onClick={handleNext}
                 disabled={step === 4 && totalImageCount === 0}
-                style={{
-                  flex: 1,
-                  background: 'var(--primary)',
-                  color: 'white',
-                  padding: '0.85rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none',
-                  opacity: (step === 4 && totalImageCount === 0) ? 0.5 : 1,
-                  cursor: (step === 4 && totalImageCount === 0) ? 'not-allowed' : 'pointer'
-                }}
+                style={{ flex: 1, '--tile-accent': activeMeta.accent }}
               >
                 Next
               </button>
             ) : (
               <button
                 type="submit"
+                className="sa-btn-primary"
                 disabled={isSubmitting}
-                style={{
-                  flex: 1,
-                  background: 'var(--primary)',
-                  color: 'white',
-                  padding: '0.85rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: 'none'
+                style={{ flex: 1, '--tile-accent': activeMeta.accent
                 }}
               >
                 {isSubmitting ? 'Saving…' : activityId ? 'Update activity' : 'Submit activity'}
@@ -916,6 +1032,19 @@ export default function SubmitActivity() {
           </div>
         </form>
       </section>
+
+      <div className="sa-flow">
+        <span>Fill it in</span>
+        <span aria-hidden="true">→</span>
+        <span><strong>Data confidence</strong> tracks live</span>
+        <span aria-hidden="true">→</span>
+        <span>Submit</span>
+        <span aria-hidden="true">→</span>
+        <span>A verifier reviews it</span>
+        <span aria-hidden="true">→</span>
+        <span><strong>Approved</strong></span>
+      </div>
+      </div>
     </div>
   );
 }
