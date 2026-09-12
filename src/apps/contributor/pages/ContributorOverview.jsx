@@ -705,7 +705,7 @@ export default function ContributorOverview() {
                 onClick={() => navigate('/contributor/quick-report')}
               >
                 <Send size={16} strokeWidth={2.25} />
-                Submit Activity
+                Contribute
               </button>
               <button
                 id="export-report-btn"

@@ -226,13 +226,11 @@ export default function AppRouter() {
             </MainLayout>
           </ProtectedRoute>
         } />
-        <Route path="/citizen/submit" element={
-          <ProtectedRoute allowedRoles={['citizen']}>
-            <MainLayout>
-              <SubmitActivity />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
+        {/* Legacy fresh-submission route — retired per spec §1/§17 (no
+            category picker before a new contribution). Only the edit route
+            below still renders SubmitActivity, for correcting a record that
+            already exists. */}
+        <Route path="/citizen/submit" element={<Navigate to="/citizen/quick-report" replace />} />
         <Route path="/citizen/quick-report" element={
           <ProtectedRoute allowedRoles={['citizen']}>
             <MainLayout>
@@ -261,13 +259,11 @@ export default function AppRouter() {
             </MainLayout>
           </ProtectedRoute>
         } />
-        <Route path="/contributor/submit" element={
-          <ProtectedRoute allowedRoles={['contributor']}>
-            <MainLayout>
-              <SubmitActivity />
-            </MainLayout>
-          </ProtectedRoute>
-        } />
+        {/* Legacy fresh-submission route — retired per spec §1/§17 (no
+            category picker before a new contribution). Only the edit route
+            below still renders SubmitActivity, for correcting a record that
+            already exists. */}
+        <Route path="/contributor/submit" element={<Navigate to="/contributor/quick-report" replace />} />
         <Route path="/contributor/quick-report" element={
           <ProtectedRoute allowedRoles={['contributor']}>
             <MainLayout>
