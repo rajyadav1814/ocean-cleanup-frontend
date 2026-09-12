@@ -607,11 +607,15 @@ export default function ContributorOverview() {
   // columns on the events list: the acting-organization and verifier joins
   // are only worth paying for on the handful of stories actually rendered.
   const [stories, setStories] = useState([]);
+  const [kpis, setKpis] = useState([]);
   useEffect(() => {
     let cancelled = false;
     contributorApi.getStories(3).then((res) => {
       if (!cancelled && res?.ok && Array.isArray(res.stories)) setStories(res.stories);
     }).catch(() => { /* card falls back to its empty state */ });
+    contributorApi.getKpis().then((res) => {
+      if (!cancelled && res?.ok && Array.isArray(res.kpis)) setKpis(res.kpis);
+    }).catch(() => { /* impact row falls back to the family-derived set */ });
     return () => { cancelled = true; };
   }, []);
 
@@ -783,23 +787,49 @@ export default function ContributorOverview() {
   // cleanup-specific kgRemoved/actionsCompleted pair today, so non-cleanup
   // metrics render without a trend arrow rather than a misleading one.
   const [adaptiveActions, adaptiveFeatured] = adaptiveImpactMetrics(impact);
-  const impactCards = [
-    { key:'contributions', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
-      sub:'Total reports submitted', Icon: ClipboardList, accent:'#2563eb', tint:'rgba(37,99,235,0.12)',
-      trend: trends.contributions ?? null },
-    { key:'verified', label:'Verified', value: nf(impact?.verifiedEvents ?? 0),
-      sub:'Reports verified', Icon: ShieldCheck, accent:'#0d9488', tint:'rgba(13,148,136,0.12)',
-      trend: trends.verifiedEvents ?? null },
-    { key: adaptiveActions.key, label: adaptiveActions.label, value: nf(adaptiveActions.value),
-      sub: adaptiveActions.sub, Icon: CheckCircle2, accent:'#d97706', tint:'rgba(217,119,6,0.12)',
-      trend: adaptiveActions.key === 'actions' ? trends.actionsCompleted ?? null : null },
-    { key: adaptiveFeatured.key, label: adaptiveFeatured.label, value: nf(adaptiveFeatured.value), unit: adaptiveFeatured.unit,
-      sub: adaptiveFeatured.sub, Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true,
-      trend: adaptiveFeatured.key === 'waste' ? trends.kgRemoved ?? null : null },
-    { key:'locations', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
-      sub:'Locations reported', Icon: MapPin, accent:'#7c3aed', tint:'rgba(124,58,237,0.12)',
-      trend: trends.locationsAffected ?? null },
+
+  // Which KPIs this contributor sees is decided server-side per person
+  // (spec §8) — the AI picks from a fixed catalogue once, the choice is
+  // stored, and only the values are recomputed on each load. The card
+  // chrome below is a fixed ring of five styles the chosen metrics slot
+  // into; trend arrows only attach where a real baseline exists, so an
+  // adaptive metric never shows a made-up delta.
+  const KPI_STYLES = [
+    { Icon: ClipboardList, accent:'#2563eb', tint:'rgba(37,99,235,0.12)' },
+    { Icon: ShieldCheck,   accent:'#0d9488', tint:'rgba(13,148,136,0.12)' },
+    { Icon: CheckCircle2,  accent:'#d97706', tint:'rgba(217,119,6,0.12)' },
+    { Icon: Recycle,       accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true },
+    { Icon: MapPin,        accent:'#7c3aed', tint:'rgba(124,58,237,0.12)' },
   ];
+  const TREND_BY_KPI = {
+    contributions_total: trends.contributions,
+    verified_events: trends.verifiedEvents,
+    actions_completed: trends.actionsCompleted,
+    kg_removed: trends.kgRemoved,
+    locations_affected: trends.locationsAffected,
+  };
+
+  const impactCards = kpis.length > 0
+    ? kpis.slice(0, KPI_STYLES.length).map((k, i) => ({
+      key: k.key, label: k.label, value: nf(k.value), unit: k.unit || undefined, sub: k.sub,
+      ...KPI_STYLES[i], trend: TREND_BY_KPI[k.key] ?? null,
+    }))
+    // Until the KPI call resolves (or if it fails), fall back to the
+    // family-derived set so the row is never blank.
+    : [
+      { key:'contributions', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
+        sub:'Total reports submitted', ...KPI_STYLES[0], trend: trends.contributions ?? null },
+      { key:'verified', label:'Verified', value: nf(impact?.verifiedEvents ?? 0),
+        sub:'Reports verified', ...KPI_STYLES[1], trend: trends.verifiedEvents ?? null },
+      { key: adaptiveActions.key, label: adaptiveActions.label, value: nf(adaptiveActions.value),
+        sub: adaptiveActions.sub, ...KPI_STYLES[2],
+        trend: adaptiveActions.key === 'actions' ? trends.actionsCompleted ?? null : null },
+      { key: adaptiveFeatured.key, label: adaptiveFeatured.label, value: nf(adaptiveFeatured.value), unit: adaptiveFeatured.unit,
+        sub: adaptiveFeatured.sub, ...KPI_STYLES[3],
+        trend: adaptiveFeatured.key === 'waste' ? trends.kgRemoved ?? null : null },
+      { key:'locations', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
+        sub:'Locations reported', ...KPI_STYLES[4], trend: trends.locationsAffected ?? null },
+    ];
 
   return (
     <section style={{ display:'flex', flexDirection:'column', gap:'1.25rem', paddingBottom:'2rem', fontFamily:'var(--font-sans)' }}>

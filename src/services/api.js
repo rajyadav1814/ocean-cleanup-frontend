@@ -182,6 +182,9 @@ export const contributorApi = {
   // spec §4: full outcome chains for "What Changed Because of You" — who
   // else saw it, how reports merged, who acted, what changed, who verified.
   getStories: (limit = 3) => apiGet(`/api/contributor/stories?limit=${limit}`),
+  // spec §8: which KPIs this contributor sees is an AI decision made once
+  // and stored server-side; the values come back freshly computed.
+  getKpis: (force = false) => apiGet(`/api/contributor/kpis${force ? '?force=1' : ''}`),
 };
 
 // ─── Environmental event API helpers ────────────────────────────────────────────
