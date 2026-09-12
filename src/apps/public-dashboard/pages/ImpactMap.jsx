@@ -3,7 +3,7 @@ import { useEvents } from '../../../hooks/useEvents';
 import useOrganizations from '../../../hooks/useOrganizations';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { eventStateMeta, verificationStateMeta } from '../../contributor/eventMeta';
-import { MAP_LAYERS } from '../../../utils/eventMapLayers';
+import { MAP_LAYERS, normalizeAnswer } from '../../../utils/eventMapLayers';
 import 'leaflet/dist/leaflet.css';
 
 /* ─── Google-style marker SVG pin ───────────────────────────────────────────── */
@@ -78,6 +78,13 @@ export default function ImpactMap() {
   const layeredEvents = useMemo(
     () => valid.filter((e) => activeLayer.test(e, layerContext)),
     [valid, activeLayer, layerContext]
+  );
+
+  // Same question-answering the contributor map does (spec §9) — the public
+  // map asks the same questions, so it should answer them the same way.
+  const layerAnswer = useMemo(
+    () => normalizeAnswer(activeLayer.answer ? activeLayer.answer(layeredEvents, layerContext) : null),
+    [activeLayer, layeredEvents, layerContext]
   );
 
   /* ── Tile URL helpers ──────────────────────────────────────────────────── */
@@ -241,7 +248,17 @@ export default function ImpactMap() {
     <section style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div className="card mb-6" style={{ flexShrink: 0, padding: '1.25rem 1.75rem' }}>
         <h3 style={{ marginBottom: '0.25rem' }}>Global Impact Map</h3>
-        <p className="text-muted" style={{ margin: '0 0 0.9rem' }}>{activeLayer.question}</p>
+        <p className="text-muted" style={{ margin: '0 0 0.25rem' }}>{activeLayer.question}</p>
+        {layerAnswer?.headline && (
+          <p style={{ margin: '0 0 0.15rem', fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)', lineHeight: 1.45 }}>
+            {layerAnswer.headline}
+          </p>
+        )}
+        {layerAnswer?.detail && (
+          <p style={{ margin: '0 0 0.9rem', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+            {layerAnswer.detail}
+          </p>
+        )}
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {MAP_LAYERS.map((layer) => {

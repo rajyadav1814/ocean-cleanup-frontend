@@ -133,7 +133,7 @@ export default function PendingQueue() {
         <div className="card mb-6" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', padding: '1.25rem 1.75rem' }}>
           <div>
             <h3 style={{ marginBottom: '0.25rem' }}>Review Queue</h3>
-            <p className="text-muted" style={{ margin: 0 }}>Review and verify submitted cleanup activities.</p>
+            <p className="text-muted" style={{ margin: 0 }}>Review and verify submitted contributions.</p>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.8rem', flexWrap: 'wrap' }}>
             <span style={{ background: 'rgba(217,119,6,0.15)', color: '#d97706', padding: '0.2rem 0.6rem', borderRadius: '0.5rem', fontWeight: 600 }}>

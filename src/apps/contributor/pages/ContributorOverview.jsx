@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useRef, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ClipboardList, ShieldCheck, CheckCircle2, Recycle, MapPin, TrendingUp, TrendingDown, Bell, AlertCircle, Calendar, ChevronRight, Maximize, Activity, Clock, XCircle, BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets, Send, FileText, LogOut, ChevronDown, Users, Megaphone, BarChart3, Shield, UserCog } from 'lucide-react';
+import { ClipboardList, ShieldCheck, CheckCircle2, Recycle, MapPin, TrendingUp, TrendingDown, Bell, AlertCircle, Calendar, ChevronRight, Maximize, Activity, Clock, XCircle, BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets, Send, FileText, LogOut, ChevronDown, Users, Megaphone, BarChart3, Shield, UserCog, Sparkles, Zap, Eye } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useActivities } from '../../../hooks/useActivities';
@@ -9,7 +9,8 @@ import { useContributorImpact } from '../../../hooks/useContributorImpact';
 import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { contributorApi } from '../../../services/api';
-import { eventStateMeta, verificationStateMeta } from '../eventMeta';
+import { eventStateMeta, verificationStateMeta, adaptiveImpactMetrics, formatImpactPhrase, primarySubject, primarySubjectLabel } from '../eventMeta';
+import { needsAttention as needsAttentionPredicate } from '../../../utils/eventMapLayers';
 import MyAreasMap from '../components/MyAreasMap';
 
 function fmt(ts) {
@@ -426,14 +427,99 @@ const BlueMindMark = () => (
 // Tints are alpha-blended (not flat hex) so they read as a soft wash over
 // whichever surface sits behind them instead of a flat light patch that
 // would stand out against a dark card.
+// Contributor-facing phrasing for the relationship types the Connected
+// Events card surfaces — plainer than the raw enum ("joined with" reads
+// better than "corroborates" on a dashboard), and only covering the types
+// a contributor's own events realistically carry.
+const CONNECTION_LABEL = {
+  corroborates: 'joined with other reports',
+  duplicate_of: 'same as another report',
+  follow_up_to: 'followed up',
+  responds_to: 'answered by an action',
+  removed: 'removed',
+  rescued: 'rescued',
+  restored: 'restored',
+  verifies: 'verified another report',
+  disputes: 'disputed',
+  supersedes: 'replaced an earlier record',
+  affects: 'affects',
+  affected_by: 'affected by',
+  caused_by: 'caused by',
+  possibly_caused_by: 'possibly caused by',
+  observed_at: 'observed at',
+  predicted_to_affect: 'predicted to affect',
+};
+
+// How the contributor's own first beat reads, by how they sent it in.
+const INTAKE_VERB = {
+  photo_video: 'photographed',
+  tell_blue_mind: 'described',
+  measurement: 'measured',
+  upload: 'uploaded a record of',
+};
+
+/**
+ * Turns one story from /api/contributor/stories into ordered timeline beats
+ * (spec §4). Every beat is backed by recorded data — anything the system
+ * didn't capture is left out rather than filled in with a plausible guess,
+ * so a short chain means a quiet event, never an invented one.
+ */
+function buildStoryTimeline(story) {
+  const beats = [];
+  const subject = primarySubjectLabel(story.subjects, 'an issue');
+  const verb = INTAKE_VERB[story.intakeMethod] || 'reported';
+
+  beats.push({
+    key: 'reported',
+    text: `You ${verb} ${subject.toLowerCase()}`,
+    detail: story.reportedAt ? fmtDateTime(story.reportedAt) : null,
+  });
+
+  if (story.corroboratorCount > 0) {
+    beats.push({
+      key: 'corroborated',
+      text: `${story.corroboratorCount} other ${story.corroboratorCount === 1 ? 'person' : 'people'} reported the same thing`,
+      detail: null,
+    });
+    beats.push({
+      key: 'merged',
+      text: `${story.mergedReportCount} reports merged into one event`,
+      detail: 'Not filed as separate problems',
+    });
+  }
+
+  if (story.action) {
+    const who = story.action.actorOrg || story.action.actorName;
+    beats.push({
+      key: 'action',
+      text: who ? `${who} acted on it` : 'An action was taken in response',
+      detail: [story.action.title, story.action.actedAt ? fmt(story.action.actedAt) : null]
+        .filter(Boolean).join(' · ') || null,
+    });
+  }
+
+  // The outcome gets its own emphasised beat — this is the number the
+  // contributor came back to see.
+  if (story.impact?.length > 0) {
+    beats.push({
+      key: 'impact',
+      text: story.impact.map(formatImpactPhrase).join(' · '),
+      detail: null,
+      outcome: true,
+    });
+  }
+
+  return beats;
+}
+
 const HERO_VALUES = [
-  { key:'awareness', title:'Raise Awareness', text:'Your reports help spread environmental awareness.',
+  { key:'awareness', title:'Raise Awareness', text:'What you contribute helps build a clearer picture of what’s happening out there.',
     Icon: Megaphone, color:'#3B82F6', tint:'rgba(59,130,246,0.14)' },
-  { key:'impact', title:'Drive Impact', text:'Data you share helps drive real-world action.',
+  { key:'impact', title:'Drive Impact', text:'Blue Mind connects what you share to real-world action, not just a database.',
     Icon: BarChart3, color:'#22A06B', tint:'rgba(34,160,107,0.14)' },
-  { key:'trust', title:'Build Trust', text:'Verified reports create tamper-proof records.',
+  { key:'trust', title:'Build Trust', text:'Evidence stays traceable — see what you submitted, what Blue Mind added, and what got verified.',
     Icon: Shield, color:'#7C5CD6', tint:'rgba(124,92,214,0.14)' },
-  { key:'protect', title:'Protect Together', text:'Small actions today for a better tomorrow.',
+  { key:'protect', title:'Protect Together', text:'Cleanup, wildlife, water quality, research — every kind of contribution counts.',
     Icon: Leaf, color:'#CE9A2E', tint:'rgba(206,154,46,0.16)' },
 ];
 
@@ -476,6 +562,12 @@ const SectionLabel = ({ children, hint, style }) => (
 
 /* Formats numbers with thousands separators for readability at scale. */
 const nf = (n) => Number(n || 0).toLocaleString('en-IN');
+
+// How far back the hero will reach for "what changed while you were away"
+// (spec §15). Two weeks: long enough that someone visiting fortnightly still
+// gets their news, short enough that it never reads as stale. Past this the
+// hero falls back to the static welcome rather than dressing up old events.
+const HERO_UPDATE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
 /* "↗ 12% vs last month" pill on an impact card — omitted entirely when
    the backend has no prior-30-day baseline to compare against (null),
@@ -526,9 +618,21 @@ export default function ContributorOverview() {
   const navigate = useNavigate();
 
   const { activities, loading: actsLoading } = useActivities();
-  const { stats, loading: statsLoading } = useContributorStats();
+  const { loading: statsLoading } = useContributorStats();
   const { impact, loading: impactLoading } = useContributorImpact();
   const { events: myEvents, loading: eventsLoading } = useEvents(user?.id);
+
+  // Top 3 outcome chains (spec §4). Its own endpoint rather than more
+  // columns on the events list: the acting-organization and verifier joins
+  // are only worth paying for on the handful of stories actually rendered.
+  const [stories, setStories] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    contributorApi.getStories(3).then((res) => {
+      if (!cancelled && res?.ok && Array.isArray(res.stories)) setStories(res.stories);
+    }).catch(() => { /* card falls back to its empty state */ });
+    return () => { cancelled = true; };
+  }, []);
 
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -570,9 +674,31 @@ export default function ContributorOverview() {
   const myActivities = useMemo(() =>
     activities.filter(a => a.contributorId === user?.id), [activities, user]);
 
-  const recent = useMemo(() =>
-    [...myActivities].sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp)).slice(0,5),
-    [myActivities]);
+  // Recent Activity reads the legacy activities table. A contributor whose
+  // data lives only in the event model (spec §10's migration) has none, and
+  // saw an empty card next to a dashboard full of their events — so fall
+  // back to the event model and render those rows in event vocabulary
+  // rather than forcing them into activity shape (which would print a
+  // meaningless "0 kg · undefined vol." line).
+  const recent = useMemo(() => {
+    if (myActivities.length > 0) {
+      return [...myActivities]
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 5)
+        .map((a) => ({
+          kind: 'activity', id: a.id, title: a.location, at: a.timestamp,
+          status: a.status, quantity: a.quantity, volunteers: a.volunteers, reviewNote: a.reviewNote,
+        }));
+    }
+    return [...myEvents]
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+      .slice(0, 5)
+      .map((e) => ({
+        kind: 'event', id: e.eventId, title: e.locationLabel || e.title || 'Report',
+        at: e.createdAt, eventState: e.eventState, verificationState: e.verificationState,
+        subjects: e.subjects,
+      }));
+  }, [myActivities, myEvents]);
 
   // Needs Attention / Impact Stories read the environmental-event model,
   // not the legacy activity status — event_state and verification_state
@@ -583,18 +709,73 @@ export default function ContributorOverview() {
   // got a fresh independent corroborator (spec §11's "Addressed →
   // Reassessed"), which is exactly a report needing another look, not one
   // that's still resolved.
+  // Uses the shared predicate (eventMapLayers.js) rather than its own
+  // inline rule — this card and the map's "What needs attention?" question
+  // had drifted apart, so the dashboard could list two open issues directly
+  // above a map claiming nothing matched.
   const needsAttention = useMemo(() =>
     [...myEvents]
-      .filter(e => e.eventState !== 'addressed')
+      .filter(needsAttentionPredicate)
       .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)),
     [myEvents]);
 
-  const impactStories = useMemo(() =>
+
+  // Connected Events (spec §16) — the contributor's reports that didn't
+  // stay isolated records: joined to someone else's sighting, answered by
+  // an action, followed up by a later survey. Most-connected first, since
+  // that's the most interesting end of the list.
+  const connectedEvents = useMemo(() =>
     [...myEvents]
-      .filter(e => e.eventState === 'addressed')
-      .sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-      .slice(0, 6),
+      .filter(e => (e.connectionCount ?? 0) > 0)
+      .sort((a,b) => (b.connectionCount ?? 0) - (a.connectionCount ?? 0))
+      .slice(0, 5),
     [myEvents]);
+
+  // Hero "what changed while you were away" (spec §15) — the single most
+  // meaningful *recent* change, in priority order (resolved > verified >
+  // corroborated), rather than a static welcome that never reflects what
+  // actually happened.
+  //
+  // The window is what makes this news rather than a highlight reel. Without
+  // it the hero re-announces the best thing that ever happened on every
+  // visit — a net resolved in March still greeting the contributor in June,
+  // which reads as new but isn't. Recency is applied BEFORE priority, so
+  // yesterday's corroboration wins over a months-old resolution instead of
+  // being permanently buried by it. (A true last-seen timestamp would be
+  // better still, but `user_login` rows are deleted on logout, so the
+  // previous visit's time isn't recoverable — a fixed window is the honest
+  // approximation.)
+  const heroUpdate = useMemo(() => {
+    if (!myEvents.length) return null;
+    const cutoff = Date.now() - HERO_UPDATE_WINDOW_MS;
+    const recent = myEvents
+      .filter((e) => e.updatedAt && new Date(e.updatedAt).getTime() >= cutoff)
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    if (!recent.length) return null;
+
+    const subjectLabelFor = (e) => primarySubjectLabel(e.subjects);
+    const whenFor = (e) => {
+      const days = Math.floor((Date.now() - new Date(e.updatedAt).getTime()) / 86400000);
+      if (days <= 0) return 'today';
+      if (days === 1) return 'yesterday';
+      if (days <= 7) return 'this week';
+      return 'recently';
+    };
+
+    const resolved = recent.find((e) => e.eventState === 'addressed');
+    if (resolved) return `the ${subjectLabelFor(resolved)} you reported was resolved ${whenFor(resolved)}.`;
+
+    const verified = recent.find((e) => e.verificationState === 'verified');
+    if (verified) return `your ${subjectLabelFor(verified)} report was verified ${whenFor(verified)}.`;
+
+    const corroborated = recent.find((e) => e.corroborationCount > 0);
+    if (corroborated) {
+      const n = corroborated.corroborationCount;
+      return `${n} other ${n === 1 ? 'person has' : 'people have'} confirmed what you saw.`;
+    }
+
+    return null;
+  }, [myEvents]);
 
   if (actsLoading || statsLoading || impactLoading || eventsLoading) return <LoadingSpinner />;
 
@@ -602,17 +783,25 @@ export default function ContributorOverview() {
 
   // New user = hasn't logged any activity at all yet. Show a single "get started"
   // card instead of a dashboard full of zero-value KPIs.
-  const isNewUser = myActivities.length === 0;
-
-  const totalTokens = stats?.totalTokens ?? 0;
-  const rank         = stats?.rank        ?? null;
-  const topPercent   = stats?.topPercent  ?? null;
+  // "New" means they haven't contributed anything at all — checked against
+  // BOTH models. Keying this off legacy activities alone hid the entire
+  // dashboard from contributors whose data lives only in the event model
+  // (spec §10's migration): 16 events, no activities row, and the page
+  // still said "log your first cleanup".
+  const isNewUser = myActivities.length === 0 && myEvents.length === 0;
 
   // The five numbers the spec's own "Your Impact" example calls out
   // (spec §22) — sourced from the event model via /api/contributor/impact,
   // not the legacy activities aggregate. `trend` is the % change vs. the
   // prior 30-day window (null when the backend has no baseline yet).
   const trends = impact?.trends || {};
+  // Positions 3 & 4 adapt to whichever subject family dominates this
+  // contributor's events (spec §8) — a wildlife observer sees
+  // "Rescues"/"Wildlife Observations" here instead of "kg removed"
+  // regardless of contribution type. Trend data only exists for the
+  // cleanup-specific kgRemoved/actionsCompleted pair today, so non-cleanup
+  // metrics render without a trend arrow rather than a misleading one.
+  const [adaptiveActions, adaptiveFeatured] = adaptiveImpactMetrics(impact);
   const impactCards = [
     { key:'contributions', art:'/kpi-1.png', label:'Contributions', value: nf(impact?.contributions ?? myActivities.length),
       sub:'Total reports submitted', Icon: ClipboardList, accent:'#2563eb', tint:'rgba(37,99,235,0.12)',
@@ -624,14 +813,14 @@ export default function ContributorOverview() {
       wash:'linear-gradient(135deg, #f2fbf8 0%, #e4f4ee 100%)',
       washDark:'linear-gradient(135deg, rgba(13,148,136,.5) 0%, rgba(8,24,42,.85) 75%)',
       trend: trends.verifiedEvents ?? null },
-    { key:'actions', art:'/kpi-3.png', label:'Actions Completed', value: nf(impact?.actionsCompleted ?? 0),
-      sub:'Cleanup actions completed', Icon: CheckCircle2, accent:'#d97706', tint:'rgba(217,119,6,0.12)',
+    { key: adaptiveActions.key, art:'/kpi-3.png', label: adaptiveActions.label, value: nf(adaptiveActions.value),
+      sub: adaptiveActions.sub, Icon: CheckCircle2, accent:'#d97706', tint:'rgba(217,119,6,0.12)',
       wash:'linear-gradient(135deg, #fffaf2 0%, #fdf0e0 100%)',
       washDark:'linear-gradient(135deg, rgba(217,119,6,.5) 0%, rgba(8,24,42,.85) 75%)',
-      trend: trends.actionsCompleted ?? null },
-    { key:'waste', art:'/kpi-4.png', label:'Waste Removed', value: nf(impact?.kgRemoved ?? 0), unit:'kg',
-      sub:'Total waste removed', Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true,
-      trend: trends.kgRemoved ?? null },
+      trend: adaptiveActions.key === 'actions' ? trends.actionsCompleted ?? null : null },
+    { key: adaptiveFeatured.key, art:'/kpi-4.png', label: adaptiveFeatured.label, value: nf(adaptiveFeatured.value), unit: adaptiveFeatured.unit,
+      sub: adaptiveFeatured.sub, Icon: Recycle, accent:'#2563eb', tint:'rgba(37,99,235,0.12)', featured:true,
+      trend: adaptiveFeatured.key === 'waste' ? trends.kgRemoved ?? null : null },
     { key:'locations', art:'/kpi-5.png', label:'Locations Affected', value: nf(impact?.locationsAffected ?? 0),
       sub:'Locations reported', Icon: MapPin, accent:'#7c3aed', tint:'rgba(124,58,237,0.12)',
       wash:'linear-gradient(135deg, #f8f6ff 0%, #eeeefc 100%)',
@@ -663,11 +852,12 @@ export default function ContributorOverview() {
           <div className="bm-hero__body">
             <h1 className="bm-hero__title">
               Hi {firstName}, <span role="img" aria-label="waving hand">👋</span><br />
-              Thank you for being part of <span>blueMind.</span>
+              {heroUpdate ? <>Here&rsquo;s what changed: <span>{heroUpdate}</span></> : <>Thank you for being part of <span>blueMind.</span></>}
             </h1>
             <p className="bm-hero__sub">
-              Every activity you submit helps us understand pollution patterns,
-              raise awareness, and build a cleaner, healthier planet together.
+              {heroUpdate
+                ? "You contribute, Blue Mind understands it, others confirm or connect it, and you see what changed."
+                : 'Every activity you submit helps us understand pollution patterns, raise awareness, and build a cleaner, healthier planet together.'}
             </p>
             <div className="bm-hero__actions">
               <button
@@ -677,7 +867,7 @@ export default function ContributorOverview() {
                 onClick={() => navigate('/contributor/quick-report')}
               >
                 <Send size={16} strokeWidth={2.25} />
-                Submit Activity
+                Contribute
               </button>
               <button
                 id="export-report-btn"
@@ -706,6 +896,34 @@ export default function ContributorOverview() {
               <p className="contrib-value-text">{text}</p>
             </div>
           </div>
+        ))}
+      </Card>
+
+      {/* ── UNIVERSAL LIFECYCLE STRIP (spec §3) ── same loop for every
+          contributor type, not just cleanup: contribute → understood →
+          connected/verified → outcome → seen. Sits directly under the hero
+          so the model is the first thing a contributor reads. */}
+      <Card style={{ display:'flex', alignItems:'center', justifyContent:'center', flexWrap:'wrap', gap:'0.5rem 1rem', padding:'0.9rem 1.25rem' }}>
+        {[
+          { step: 'You contribute', Icon: Send },
+          { step: 'Blue Mind understands', Icon: Sparkles },
+          { step: 'Others confirm or connect it', Icon: Users },
+          { step: 'Something happens', Icon: Zap },
+          { step: 'You see what changed', Icon: Eye },
+        ].map(({ step, Icon }, i, arr) => (
+          <span key={step} style={{ display:'inline-flex', alignItems:'center', gap:'0.5rem 1rem' }}>
+            <span style={{ display:'inline-flex', alignItems:'center', gap:'0.45rem' }}>
+              <span style={{
+                width:'24px', height:'24px', borderRadius:'50%', flexShrink:0,
+                display:'flex', alignItems:'center', justifyContent:'center',
+                background:'color-mix(in srgb, var(--primary) 14%, transparent)', color:'var(--primary-hover)'
+              }}>
+                <Icon size={13} strokeWidth={2.25} />
+              </span>
+              <span style={{ fontSize:'0.78rem', fontWeight:600, color:'var(--text-main)' }}>{step}</span>
+            </span>
+            {i < arr.length - 1 && <ChevronRight size={14} strokeWidth={2.5} style={{ color:'var(--text-muted)' }} />}
+          </span>
         ))}
       </Card>
 
@@ -767,48 +985,6 @@ export default function ContributorOverview() {
         <NoDataYet onLog={() => navigate('/contributor/quick-report')} />
       ) : (
         <>
-          {/* ── YOUR IMPACT ── */}
-          <div className="contrib-on-water" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'0.4rem' }}>
-            <SectionLabel style={{ marginBottom:0 }}>Your Impact</SectionLabel>
-            {/* {rank && (
-              <span style={{ fontSize:'0.74rem', color:'var(--bm-loose-text, var(--text-muted))' }}>
-                Rank #{rank}{topPercent ? ` · Top ${topPercent}%` : ''} · {nf(totalTokens)} OCEAN tokens
-              </span>
-            )} */}
-          </div>
-          <div className="contrib-stats">
-            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured, wash, washDark, art }) => (
-              <Card key={key} className={`kpi-card${featured ? ' kpi-card--featured' : ''}`}
-                style={{ transition:'border-color .2s,transform .2s,box-shadow .2s', cursor:'default',
-                  ...(!featured && isLight && wash ? { background: wash } : {}),
-                  ...(!featured && !isLight && washDark ? { background: washDark } : {}),
-                  ...(featured ? {
-                    /* Glass like its neighbours, but tinted hard enough to
-                       stay the one card the eye lands on first. */
-                    background:'linear-gradient(150deg, rgba(47,143,214,.86) 0%, rgba(29,111,191,.88) 46%, rgba(20,83,155,.9) 100%)',
-                    border:'1.5px solid rgba(255,255,255,.3)',
-                    boxShadow:'0 18px 36px -22px rgba(20,83,155,.95)',
-                  } : {}) }}
-                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; if(!featured) e.currentTarget.style.borderColor='var(--border-glow)';}}
-                onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; if(!featured) e.currentTarget.style.borderColor='var(--border-light)';}}
-              >
-                <div className="kpi-art" aria-hidden="true">
-                  <img src={art} alt="" loading="lazy" decoding="async" />
-                </div>
-                <div className="kpi-icon" style={featured ? undefined : { background: tint, color: accent }}>
-                  <Icon size={20} strokeWidth={2.25} />
-                </div>
-                <div className="kpi-label">{label}</div>
-                <div className="kpi-value-row">
-                  <span className="kpi-value" style={{ color: featured ? '#FFFFFF' : accent }}>{value}</span>
-                  {unit && <span className="kpi-value-unit">{unit}</span>}
-                </div>
-                <div className="kpi-sub">{sub}</div>
-                <TrendPill value={trend} accent={featured ? null : accent} tint={tint} />
-              </Card>
-            ))}
-          </div>
-
           {/* ── NEEDS ATTENTION ──
               Environmental events tied to this contributor's reports that
               Blue Mind hasn't marked addressed yet (spec §22). */}
@@ -850,6 +1026,13 @@ export default function ContributorOverview() {
                           <Calendar size={12} strokeWidth={2.25} />
                           <span>{fmt(e.occurredAt || e.createdAt)}</span>
                         </div>
+                        {/* Corroboration (spec §5): their reports were joined to
+                            yours, not filed as separate problems. */}
+                        {e.corroborationCount > 0 && (
+                          <div style={{ fontSize:'0.72rem', color:'var(--secondary)', marginTop:'0.25rem', fontWeight:600 }}>
+                            {e.corroborationCount} other {e.corroborationCount === 1 ? 'person' : 'people'} reported this too — joined into one event.
+                          </div>
+                        )}
                       </div>
                       <div className="needs-attn-pills">
                         <span className="needs-attn-pill" style={{ background:`${stateMeta.color}1F`, color:stateMeta.color }}>
@@ -870,34 +1053,152 @@ export default function ContributorOverview() {
             )}
           </Card>
 
+          {/* ── WHAT CHANGED BECAUSE OF YOU (spec §4) ──
+              The full chain, not its endpoint: you reported it → others saw
+              the same thing → the reports were merged → someone acted →
+              this much changed → it was verified. Only the top 3, told
+              properly, rather than a long list that says only "resolved".
+              Beats with no recorded data are omitted by buildStoryTimeline
+              rather than invented. */}
+          <Card>
+            <CardHead title="What Changed Because of You" sub="What happened after you reported it" />
+            {stories.length === 0 ? (
+              <p style={emptyStyle}>No resolved reports yet — check back once one of your reports is addressed.</p>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:'0.9rem' }}>
+                {stories.map((story) => {
+                  const subject = primarySubject(story.subjects);
+                  const meta = wasteCodeMeta[subject?.code] || defaultWasteMeta;
+                  const { Icon } = meta;
+                  const timeline = buildStoryTimeline(story);
+                  const verifiedBy = story.verification?.verifierOrg || story.verification?.verifierName;
+                  return (
+                    <div key={story.eventId} style={{
+                      border:'1px solid var(--border-light)', borderRadius:'var(--radius-md)', padding:'0.95rem 1.1rem',
+                    }}>
+                      {/* Header: what this was, where, and when it closed */}
+                      <div style={{ display:'flex', gap:'0.7rem', alignItems:'flex-start', marginBottom:'0.75rem' }}>
+                        <div style={{ width:'38px', height:'38px', borderRadius:'11px', flexShrink:0,
+                          background:meta.bg, color:meta.color, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                          <Icon size={18} strokeWidth={2} />
+                        </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontSize:'0.9rem', fontWeight:700, color:'var(--text-main)', lineHeight:1.3 }}>
+                            {story.title || `${subject?.label || 'Report'} resolved`}
+                          </div>
+                          <div style={{ fontSize:'0.76rem', color:'var(--text-muted)', marginTop:'0.15rem' }}>
+                            {story.locationLabel || 'Unknown location'}
+                            {story.closedAt && ` · closed ${fmt(story.closedAt)}`}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* The chain itself */}
+                      <div style={{ display:'flex', flexDirection:'column' }}>
+                        {timeline.map((beat, bi) => {
+                          const last = bi === timeline.length - 1;
+                          return (
+                            <div key={beat.key} style={{ display:'flex', gap:'0.65rem', alignItems:'flex-start' }}>
+                              {/* Rail: marker + connector to the next beat */}
+                              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', flexShrink:0 }}>
+                                {beat.outcome ? (
+                                  <CheckCircle2 size={17} strokeWidth={2.5} color="var(--success)" />
+                                ) : (
+                                  <span style={{ width:'13px', height:'13px', borderRadius:'50%', marginTop:'3px',
+                                    border:`2px solid ${bi === 0 ? 'var(--primary)' : 'var(--border-light)'}`,
+                                    background:'var(--surface)' }} />
+                                )}
+                                {!last && <span style={{ width:'2px', flex:1, minHeight:'20px', background:'var(--border-light)' }} />}
+                              </div>
+                              <div style={{ flex:1, minWidth:0, paddingBottom: last ? 0 : '0.55rem' }}>
+                                <div style={{
+                                  fontSize: beat.outcome ? '1.05rem' : '0.82rem',
+                                  fontWeight: beat.outcome ? 700 : 600,
+                                  color: beat.outcome ? 'var(--text-main)' : 'var(--text-main)',
+                                  lineHeight:1.35,
+                                }}>
+                                  {beat.text}
+                                </div>
+                                {beat.detail && (
+                                  <div style={{ fontSize:'0.72rem', color:'var(--text-muted)', marginTop:'0.1rem' }}>
+                                    {beat.detail}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Footer: who stood behind it, and the way in */}
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap',
+                        gap:'0.5rem', marginTop:'0.85rem', paddingTop:'0.7rem', borderTop:'1px solid var(--border-light)' }}>
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem',
+                          fontSize:'0.74rem', color:'var(--text-muted)' }}>
+                          <ShieldCheck size={13} strokeWidth={2.5} style={{ color:verificationStateMeta(story.verificationState).color }} />
+                          {story.verification
+                            ? `Verified${verifiedBy ? ` by ${verifiedBy}` : ''}${story.verification.verifiedAt ? ` · ${fmt(story.verification.verifiedAt)}` : ''}`
+                            : verificationStateMeta(story.verificationState).label}
+                        </span>
+                        <Link to={`/contributor/events/${story.eventId}`}
+                          style={{ display:'inline-flex', alignItems:'center', gap:'0.3rem', textDecoration:'none',
+                            fontSize:'0.74rem', fontWeight:700, color:'var(--primary)',
+                            border:'1px solid var(--border-light)', borderRadius:'999px', padding:'0.35rem 0.8rem' }}>
+                          See the full event <ChevronRight size={13} strokeWidth={2.5} />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+
           {/* ── RECENT ACTIVITY ── */}
           <Card>
             <CardHead icon={Activity} title="Recent Activity" sub="Your latest report updates" />
             <div style={{ display:'flex', flexDirection:'column' }}>
+              {recent.length === 0 && (
+                <p style={emptyStyle}>Nothing yet — your contributions will appear here.</p>
+              )}
               {recent.map((act, i) => {
+                const isEvent = act.kind === 'event';
                 const s = activityStatusMeta[act.status] || activityStatusMeta.pending;
-                const { Icon } = s;
+                const stateMeta = isEvent ? eventStateMeta(act.eventState) : null;
+                const Icon = isEvent ? Activity : s.Icon;
                 return (
                   <div key={act.id} style={{ display:'flex', gap:'0.7rem', padding:'0.9rem 0',
                     borderBottom: i < recent.length-1 ? '1px solid var(--border-light)' : 'none' }}>
                     <div style={{ width:'38px', height:'38px', borderRadius:'11px', flexShrink:0,
-                      background:s.bg, color:s.color,
+                      background: isEvent ? `color-mix(in srgb, ${stateMeta.color} 14%, transparent)` : s.bg,
+                      color: isEvent ? stateMeta.color : s.color,
                       display:'flex', alignItems:'center', justifyContent:'center' }}>
                       <Icon size={18} strokeWidth={2.25} />
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ display:'flex', justifyContent:'space-between', gap:'0.6rem', alignItems:'flex-start', flexWrap:'nowrap' }}>
                         <span style={{ fontWeight:700, fontSize:'0.86rem', flex:1, wordBreak:'break-word', lineHeight: 1.3 }}>
-                          {act.location}
+                          {act.title}
                         </span>
-                        <StatusPill status={act.status} />
+                        {isEvent ? (
+                          <span style={{ flexShrink:0, fontSize:'0.68rem', fontWeight:700, whiteSpace:'nowrap',
+                            color:stateMeta.color, background:`color-mix(in srgb, ${stateMeta.color} 12%, transparent)`,
+                            border:`1px solid color-mix(in srgb, ${stateMeta.color} 30%, transparent)`,
+                            borderRadius:'999px', padding:'0.2rem 0.6rem' }}>
+                            {stateMeta.label}
+                          </span>
+                        ) : (
+                          <StatusPill status={act.status} />
+                        )}
                       </div>
                       <div style={{ display:'flex', alignItems:'center', flexWrap:'wrap', gap:'0.3rem', fontSize:'0.74rem', color:'var(--text-muted)', marginTop:'0.35rem' }}>
                         <Calendar size={12} />
-                        {fmtDateTime(act.timestamp)}
-                        <span>· {act.quantity} kg · {act.volunteers} vol.</span>
+                        {fmtDateTime(act.at)}
+                        {isEvent
+                          ? (act.subjects?.length > 0 && <span>· {act.subjects.map((sub) => sub.label).join(', ')}</span>)
+                          : <span>· {act.quantity} kg · {act.volunteers} vol.</span>}
                       </div>
-                      {act.status==='rejected' && act.reviewNote && (
+                      {!isEvent && act.status==='rejected' && act.reviewNote && (
                         <div style={{ marginTop:'0.4rem', fontSize:'0.72rem', color:'#f87171',
                           background:'rgba(239,68,68,.08)', borderRadius:'6px', padding:'0.28rem 0.5rem' }}>
                           {act.reviewNote}
@@ -908,7 +1209,7 @@ export default function ContributorOverview() {
                 );
               })}
             </div>
-            {myActivities.length > 5 && (
+            {(myActivities.length > 5 || (myActivities.length === 0 && myEvents.length > 5)) && (
               <button id="view-all-btn" onClick={() => navigate('/contributor/my-activities')}
                 style={{ marginTop:'0.9rem', width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:'0.35rem',
                   background:'rgba(59,130,246,.1)', border:'none', borderRadius:'var(--radius-md)',
@@ -948,47 +1249,92 @@ export default function ContributorOverview() {
             <MyAreasMap events={myEvents} isFullscreen={mapFullscreen} onExitFullscreen={() => setMapFullscreen(false)} />
           </Card>
 
-          {/* ── IMPACT STORIES ──
-              "The debris you reported on June 12 was removed on June 16"
-              (spec §22-23) — the closure loop the rest of the dashboard
-              doesn't otherwise show. */}
+          {/* ── CONNECTED EVENTS (spec §8/§16) ──
+              The reports that didn't stay isolated records. Distinct from
+              "What Changed Because of You", which is about outcomes — this
+              is about a contribution being joined to what others saw or to
+              the action that answered it, whether or not it's resolved. */}
           <Card>
-            <CardHead title="Impact Stories" sub="What happened after you reported it" />
-            {impactStories.length === 0 ? (
-              <p style={emptyStyle}>No resolved reports yet — check back once one of your reports is addressed.</p>
+            <CardHead icon={Users} title="Connected Events" sub="Your reports that link to other observations or actions" />
+            {connectedEvents.length === 0 ? (
+              <p style={emptyStyle}>Nothing connected yet — when someone reports the same thing, or an action responds to one of your reports, it shows up here.</p>
             ) : (
-              <>
-                <div style={{ display:'flex', flexDirection:'column' }}>
-                  {impactStories.flatMap((e) => {
-                    const subjects = e.subjects?.length ? e.subjects : [{ label: 'Issue', code: null }];
-                    return subjects.map((s) => ({ event: e, subject: s }));
-                  }).map(({ event: e, subject: s }, i, arr) => {
-                    const meta = wasteCodeMeta[s.code] || defaultWasteMeta;
-                    const { Icon } = meta;
-                    return (
-                      <Link key={`${e.eventId}-${s.eventSubjectId || s.code}`} to={`/contributor/events/${e.eventId}`}
-                        style={{ display:'flex', gap:'0.7rem', alignItems:'center', padding:'0.7rem 0', textDecoration:'none', color:'inherit',
+              <div style={{ display:'flex', flexDirection:'column' }}>
+                {connectedEvents.map((e, i, arr) => {
+                  const label = primarySubjectLabel(e.subjects, 'Report');
+                  // Guarded rather than `|| []`: an older API build returns
+                  // this as a Postgres array literal string, which is truthy
+                  // and has no .map — one stale deploy shouldn't blank the
+                  // whole dashboard.
+                  const types = (Array.isArray(e.connectionTypes) ? e.connectionTypes : [])
+                    .map((t) => CONNECTION_LABEL[t] || String(t).replace(/_/g, ' '));
+                  return (
+                    <Link key={e.eventId} to={`/contributor/events/${e.eventId}`}
+                      style={{ display:'flex', gap:'0.7rem', alignItems:'center', padding:'0.7rem 0', textDecoration:'none', color:'inherit',
                         borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                        <div style={{ width:'38px', height:'38px', borderRadius:'11px', flexShrink:0,
-                          background:meta.bg, color:meta.color, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                          <Icon size={18} strokeWidth={2} />
+                      <div style={{ width:'38px', height:'38px', borderRadius:'11px', flexShrink:0,
+                        background:'rgba(59,130,246,.12)', color:'#3b82f6', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                        <Users size={18} strokeWidth={2} />
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:'0.86rem', fontWeight:700, color:'var(--text-main)', lineHeight:1.3 }}>
+                          {label}
                         </div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:'0.86rem', fontWeight:700, color:'var(--text-main)', lineHeight:1.3 }}>
-                            {s.label} cleared
-                          </div>
-                          <div style={{ fontSize:'0.76rem', color:'var(--text-muted)', marginTop:'0.15rem' }}>
-                            {e.locationLabel || 'Unknown location'}
-                          </div>
+                        <div style={{ fontSize:'0.76rem', color:'var(--text-muted)', marginTop:'0.15rem' }}>
+                          {e.locationLabel || 'Unknown location'}
                         </div>
-                        <CheckCircle2 size={19} strokeWidth={2} color="var(--success)" style={{ flexShrink:0 }} />
-                      </Link>
-                    );
-                  })}
-                </div>
-              </>
+                        <div style={{ fontSize:'0.72rem', color:'var(--secondary)', marginTop:'0.2rem', fontWeight:600 }}>
+                          Connected to {e.connectionCount} other {e.connectionCount === 1 ? 'event' : 'events'}
+                          {types.length > 0 && ` · ${types.join(', ')}`}
+                        </div>
+                      </div>
+                      <ChevronRight size={16} strokeWidth={2.25} style={{ color:'var(--text-muted)', flexShrink:0 }} />
+                    </Link>
+                  );
+                })}
+              </div>
             )}
           </Card>
+
+          {/* ── YOUR IMPACT ──
+              Last on the page, not first (spec §16): the outcome-focused
+              sections above (Needs Attention, What Changed Because of You)
+              are what should draw the eye before raw numbers do. */}
+          <div className="contrib-on-water" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'0.4rem' }}>
+            <SectionLabel style={{ marginBottom:0 }}>Your Impact</SectionLabel>
+          </div>
+          <div className="contrib-stats">
+            {impactCards.map(({ key, label, value, unit, sub, Icon, accent, tint, trend, featured, wash, washDark, art }) => (
+              <Card key={key} className={`kpi-card${featured ? ' kpi-card--featured' : ''}`}
+                style={{ transition:'border-color .2s,transform .2s,box-shadow .2s', cursor:'default',
+                  ...(!featured && isLight && wash ? { background: wash } : {}),
+                  ...(!featured && !isLight && washDark ? { background: washDark } : {}),
+                  ...(featured ? {
+                    /* Glass like its neighbours, but tinted hard enough to
+                       stay the one card the eye lands on first. */
+                    background:'linear-gradient(150deg, rgba(47,143,214,.86) 0%, rgba(29,111,191,.88) 46%, rgba(20,83,155,.9) 100%)',
+                    border:'1.5px solid rgba(255,255,255,.3)',
+                    boxShadow:'0 18px 36px -22px rgba(20,83,155,.95)',
+                  } : {}) }}
+                onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)'; if(!featured) e.currentTarget.style.borderColor='var(--border-glow)';}}
+                onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)'; if(!featured) e.currentTarget.style.borderColor='var(--border-light)';}}
+              >
+                <div className="kpi-art" aria-hidden="true">
+                  <img src={art} alt="" loading="lazy" decoding="async" />
+                </div>
+                <div className="kpi-icon" style={featured ? undefined : { background: tint, color: accent }}>
+                  <Icon size={20} strokeWidth={2.25} />
+                </div>
+                <div className="kpi-label">{label}</div>
+                <div className="kpi-value-row">
+                  <span className="kpi-value" style={{ color: featured ? '#FFFFFF' : accent }}>{value}</span>
+                  {unit && <span className="kpi-value-unit">{unit}</span>}
+                </div>
+                <div className="kpi-sub">{sub}</div>
+                <TrendPill value={trend} accent={featured ? null : accent} tint={tint} />
+              </Card>
+            ))}
+          </div>
         </>
       )}
 

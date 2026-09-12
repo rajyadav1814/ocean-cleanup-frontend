@@ -5,7 +5,7 @@ export default function ActivityReview() {
     <ActivitiesByStatus
       status="approved"
       title="Approved Activities"
-      subtitle="Approved cleanup activities."
+      subtitle="Approved contributions."
       emptyMessage="No approved activities yet."
       badgeLabel="Approved"
       badgeBg="rgba(16,185,129,0.15)"

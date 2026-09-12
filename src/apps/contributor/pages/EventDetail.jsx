@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { eventApi, activityApi } from '../../../services/api';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
-import { eventStateMeta, verificationStateMeta, provenanceMeta } from '../eventMeta';
+import { eventStateMeta, verificationStateMeta, provenanceMeta, formatImpactPhrase } from '../eventMeta';
 import { fileToDataUrl } from '../../../utils/file';
 
 function fmt(ts) {
@@ -111,6 +111,68 @@ const CheckPill = ({ label, color }) => (
   </span>
 );
 
+// Metric-specific phrasing where "12 kg debris removed kg" would read
+// awkwardly; anything not listed still gets a legible generic phrase.
+// formatImpactPhrase now lives in eventMeta.js — the dashboard's "What
+// Changed Because of You" card tells the same story, and one outcome
+// shouldn't get worded two different ways depending on the page.
+
+// The narrative spine of the page (spec §4-5): what changed because of
+// this contribution, told as a short sequence rather than left for the
+// reader to reconstruct from separate Subjects/Relationships/History/
+// Verifications cards. Built entirely from data those other cards already
+// have — this is a synthesis layer, not a new data source.
+function buildStoryBeats(event) {
+  const beats = [];
+
+  beats.push({ text: `Reported ${fmt(event.createdAt)}.`, done: true });
+
+  const corroborators = event.relationships.filter((r) => r.relationshipType === 'corroborates').length;
+  if (corroborators > 0) {
+    beats.push({
+      text: `${corroborators} other ${corroborators === 1 ? 'person' : 'people'} reported the same thing — Blue Mind joined the reports into this one event, not ${corroborators + 1} separate problems.`,
+      done: true,
+    });
+  }
+
+  const actionRelationships = event.relationships.filter((r) => ['removed', 'rescued', 'restored'].includes(r.relationshipType));
+  if (actionRelationships.length > 0) {
+    const impactPhrase = event.impact.length > 0
+      ? event.impact.map(formatImpactPhrase).join(' · ')
+      : null;
+    beats.push({
+      text: impactPhrase
+        ? `Action taken: ${impactPhrase}.`
+        : `Action taken — ${RELATIONSHIP_LABEL[actionRelationships[0].relationshipType] || actionRelationships[0].relationshipType}.`,
+      done: true,
+    });
+  } else if (event.eventState === 'action_planned' || event.eventState === 'action_underway') {
+    beats.push({ text: 'An action is underway in response to this.', done: true });
+  }
+
+  const verifiedEntry = event.verifications.find((v) => v.outcome === 'verified');
+  const disputedEntry = event.verifications.find((v) => v.outcome === 'disputed' || v.outcome === 'unable_to_verify');
+  if (verifiedEntry) {
+    beats.push({ text: `Verified by a reviewer on ${fmt(verifiedEntry.createdAt)}.`, done: true });
+  } else if (disputedEntry) {
+    beats.push({ text: `A verifier flagged this as ${disputedEntry.outcome.replace(/_/g, ' ')} on ${fmt(disputedEntry.createdAt)}.`, done: true });
+  }
+
+  // The forward-looking beat — what hasn't happened yet, so the story
+  // never dead-ends on "reported" with no sense of what comes next.
+  if (event.eventState === 'addressed' && verifiedEntry) {
+    beats.push({ text: 'Resolved and verified — this is what changed because of you.', done: true, final: true });
+  } else if (event.eventState === 'addressed') {
+    beats.push({ text: 'Marked complete — waiting on a verifier to confirm it.', done: false });
+  } else if (corroborators > 0 || actionRelationships.length > 0) {
+    beats.push({ text: 'Blue Mind is still tracking this — check back for what happens next.', done: false });
+  } else {
+    beats.push({ text: 'Still open — Blue Mind is watching for corroboration or action.', done: false });
+  }
+
+  return beats;
+}
+
 const HistoryIcon = ({ field }) => (
   <span style={{
     width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -155,7 +217,7 @@ const ProofBadge = ({ proof }) => {
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="11" width="18" height="10" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
       </svg>
-      {proof.hashMatches ? 'Tamper-proof' : 'Proof recorded'}
+      {proof.hashMatches ? 'Verified on-chain' : 'Proof recorded'}
     </a>
   );
 };
@@ -194,6 +256,15 @@ export default function EventDetail() {
   const [completePhotos, setCompletePhotos] = useState([]); // [{file, dataUrl}]
   const [completing, setCompleting] = useState(false);
   const [completeError, setCompleteError] = useState('');
+
+  // spec §7: re-identifying a subject. `correctingId` is the event_subject
+  // row being corrected, so only that one chip opens a form.
+  const [correctingId, setCorrectingId] = useState(null);
+  const [correctSubjects, setCorrectSubjects] = useState([]);
+  const [correctCode, setCorrectCode] = useState('');
+  const [correctNote, setCorrectNote] = useState('');
+  const [correcting, setCorrecting] = useState(false);
+  const [correctError, setCorrectError] = useState('');
 
   const [verifyOpen, setVerifyOpen] = useState(false);
   const [verifyNotes, setVerifyNotes] = useState('');
@@ -337,6 +408,36 @@ export default function EventDetail() {
     loadEvent();
   }
 
+  // Loads the taxonomy for the family being corrected — a species read wrong
+  // is nearly always wrong *within* its family, so offering that family's
+  // codes keeps the correction focused instead of listing all ~90 subjects.
+  function openCorrection(subject) {
+    setCorrectingId(subject.eventSubjectId);
+    setCorrectCode('');
+    setCorrectNote('');
+    setCorrectError('');
+    setCorrectSubjects([]);
+    eventApi.listSubjects(subject.family).then((res) => { if (res.ok) setCorrectSubjects(res.subjects); });
+  }
+
+  async function handleCorrectSubject(subject) {
+    if (!correctCode) return;
+    setCorrecting(true);
+    setCorrectError('');
+    const res = await eventApi.correctSubject(id, subject.eventSubjectId, {
+      family: subject.family, code: correctCode, note: correctNote.trim() || undefined
+    });
+    setCorrecting(false);
+    if (!res.ok) {
+      setCorrectError(res.error || 'Failed to record the correction.');
+      return;
+    }
+    setCorrectingId(null);
+    setCorrectCode('');
+    setCorrectNote('');
+    loadEvent();
+  }
+
   if (loading) return <LoadingSpinner />;
 
   if (loadError || !event) {
@@ -358,6 +459,7 @@ export default function EventDetail() {
   const canPlanAction = isContributor && !isAction && event.eventState !== 'addressed';
   const primaryFamily = event.subjects[0]?.family;
   const headerIcon = FAMILY_ICONS[primaryFamily] || FAMILY_ICONS.pollution_waste;
+  const storyBeats = buildStoryBeats(event);
 
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingBottom: '2rem', maxWidth: '1320px', fontFamily: 'var(--font-sans)' }}>
@@ -443,6 +545,46 @@ export default function EventDetail() {
         </div>
       </Card>
 
+      {/* ── STORY ── the narrative spine (spec §4-5): what changed because
+          of this contribution, told as a sequence instead of left for the
+          reader to reconstruct from the cards below. */}
+      <Card>
+        <SectionLabel icon={
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+          </svg>
+        }>What changed because of you</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {storyBeats.map((beat, i) => (
+            <div key={i} style={{ display: 'flex', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                <span style={{
+                  width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: beat.done ? 'color-mix(in srgb, #10b981 18%, transparent)' : 'var(--surface-hover)',
+                  border: beat.done ? 'none' : '1px solid var(--border-light)',
+                  color: '#10b981',
+                }}>
+                  {beat.done && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </span>
+                {i < storyBeats.length - 1 && <span style={{ width: '2px', flex: 1, minHeight: '0.6rem', background: 'var(--border-light)', margin: '0.15rem 0' }} />}
+              </div>
+              <p style={{
+                margin: '0 0 1rem', fontSize: '0.85rem', lineHeight: 1.45,
+                color: beat.done ? 'var(--text-main)' : 'var(--text-muted)',
+                fontWeight: beat.final ? 700 : 400,
+              }}>
+                {beat.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       {event.subjects.length > 0 && (
         <Card>
           <SectionLabel icon={
@@ -459,7 +601,7 @@ export default function EventDetail() {
               // which the Impact card already covers once an action closes
               // it out, condition/severity/hazard have nowhere else to
               // appear on this page.
-              const ontologyKeys = ['condition', 'severity', 'hazard'].filter((key) => attributes[key]);
+              const ontologyKeys = ['condition', 'outcome', 'severity', 'hazard'].filter((key) => attributes[key]);
               // The subject-level `source` badge above is the fallback for
               // every other attribute; only give a field its own provenance
               // badge when it actually differs (spec §17's example: a
@@ -469,13 +611,19 @@ export default function EventDetail() {
               const overridden = Object.entries(attributes)
                 .filter(([key]) => !ontologyKeys.includes(key)
                   && s.attributeProvenance?.[key] && s.attributeProvenance[key] !== s.source);
+              // spec §7: a superseded reading stays on the page as history
+              // rather than disappearing — the corrected row names it, so
+              // the original interpretation remains visible next to it.
+              const supersededBy = event.subjects.find((other) => other.correctsEventSubjectId === s.eventSubjectId);
+              const isCorrection = Boolean(s.correctsEventSubjectId);
               return (
                 <div key={s.eventSubjectId} style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.8rem',
-                    borderRadius: '999px', background: 'var(--surface-hover)', border: '1px solid var(--border-light)', fontSize: '0.85rem'
+                    borderRadius: '999px', background: 'var(--surface-hover)', border: '1px solid var(--border-light)', fontSize: '0.85rem',
+                    opacity: supersededBy ? 0.6 : 1
                   }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>{s.label}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-main)', textDecoration: supersededBy ? 'line-through' : 'none' }}>{s.label}</span>
                     {ontologyKeys.length > 0 && (
                       <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                         {ontologyKeys.map((key) => String(attributes[key]).replace(/_/g, ' ')).join(' · ')}
@@ -483,7 +631,49 @@ export default function EventDetail() {
                     )}
                     {s.confidence != null && <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{Math.round(s.confidence * 100)}%</span>}
                     <span style={{ fontSize: '0.64rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.03em', color: 'var(--primary)' }}>{s.source.replace('_', ' ')}</span>
+                    {isCorrection && (
+                      <span style={{ fontSize: '0.64rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.03em', color: '#10b981' }}>corrected</span>
+                    )}
+                    {isVerifier && !supersededBy && correctingId !== s.eventSubjectId && (
+                      <button type="button" onClick={() => openCorrection(s)}
+                        style={{ background: 'none', border: 'none', padding: 0, boxShadow: 'none', cursor: 'pointer',
+                          fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                        Correct
+                      </button>
+                    )}
                   </span>
+                  {supersededBy && (
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', paddingLeft: '0.5rem' }}>
+                      Later identified as {supersededBy.label} — the original reading is kept here.
+                    </span>
+                  )}
+                  {correctingId === s.eventSubjectId && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.6rem 0.7rem', marginTop: '0.15rem',
+                      borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', background: 'var(--surface-hover)' }}>
+                      <select value={correctCode} onChange={(e) => setCorrectCode(e.target.value)}
+                        style={{ padding: '0.4rem 0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                          background: 'var(--surface)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.8rem' }}>
+                        <option value="">Corrected identification…</option>
+                        {correctSubjects.filter((opt) => opt.code !== s.code)
+                          .map((opt) => <option key={opt.subjectId} value={opt.code}>{opt.label}</option>)}
+                      </select>
+                      <input type="text" value={correctNote} onChange={(e) => setCorrectNote(e.target.value)}
+                        placeholder="Why? (optional, kept in the history)"
+                        style={{ padding: '0.4rem 0.5rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                          background: 'var(--surface)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.8rem' }} />
+                      {correctError && <span style={{ fontSize: '0.72rem', color: '#ef4444' }}>{correctError}</span>}
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <button type="button" onClick={() => handleCorrectSubject(s)} disabled={!correctCode || correcting}
+                          style={{ fontSize: '0.75rem', padding: '0.35rem 0.8rem', borderRadius: '999px' }}>
+                          {correcting ? 'Saving…' : 'Save correction'}
+                        </button>
+                        <button type="button" className="secondary" onClick={() => setCorrectingId(null)}
+                          style={{ fontSize: '0.75rem', padding: '0.35rem 0.8rem', borderRadius: '999px' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {overridden.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', paddingLeft: '0.5rem' }}>
                       {overridden.map(([key, value]) => {
@@ -917,7 +1107,7 @@ export default function EventDetail() {
               <div key={h.historyId} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
                 <HistoryIcon field={h.field} />
                 <div style={{ flex: 1, minWidth: 0, fontSize: '0.85rem', color: 'var(--text-main)' }}>
-                  <strong>{h.field === 'event_state' ? 'State' : 'Verification'}</strong>: {h.oldValue || 'new'} → {h.newValue}
+                  <strong>{h.field === 'event_state' ? 'State' : h.field === 'subject_identification' ? 'Identification' : 'Verification'}</strong>: {h.oldValue || 'new'} → {h.newValue}
                   {h.note && <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.2rem' }}>{h.note}</div>}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>{fmt(h.changedAt)}</div>

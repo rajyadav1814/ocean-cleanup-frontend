@@ -121,7 +121,11 @@ export default function SubmitActivity() {
     disposalMethod: 'Recycled',
     followUp: false,
     organizationId: '',
-    category: 'plastic',
+    // '' rather than a hardcoded 'plastic' guess — this form is edit-only
+    // now (reached from MyActivities, never as a fresh-entry path), so an
+    // unedited record should keep reading as "Blue Mind will infer this"
+    // rather than silently claiming a waste category nobody chose.
+    category: '',
     evidenceHash: 'mock-hash',
     notes: ''
   });
@@ -160,7 +164,7 @@ export default function SubmitActivity() {
           teamSize: data.activity.volunteers ?? data.activity.teamSize ?? '',
           quantity: data.activity.quantity || '',
           organizationId: data.activity.organizationId || '',
-          category: data.activity.category || 'plastic',
+          category: data.activity.category || '',
           evidenceHash: data.activity.evidenceHash || 'mock-hash',
           notes: data.activity.notes || '',
           shorelineType: data.activity.shorelineType || 'Sandy beach',
@@ -442,8 +446,11 @@ export default function SubmitActivity() {
   if (activityId && activityStatus === 'approved') {
     return (
       <section className="card" style={{ maxWidth: '640px', margin: '2rem auto', padding: '2rem', textAlign: 'center' }}>
-        <h3>Approved cleanup activity</h3>
-        <p className="text-muted">Approved activities are locked to preserve their verified record.</p>
+        <h3>Approved contribution</h3>
+        {/* "traceable", not "locked" (spec §7) — the point isn't that
+            nobody can touch it, it's that the original evidence stays
+            visible even as the record evolves. */}
+        <p className="text-muted">This has already been verified — its original evidence stays traceable, so it can't be edited here.</p>
         <button type="button" className="secondary" onClick={() => navigate(user?.role === 'citizen' ? '/citizen/my-activities' : '/contributor/my-activities')}>Back to my activities</button>
       </section>
     );
@@ -483,7 +490,7 @@ export default function SubmitActivity() {
         <OceanWaveStrip />
         {/* Stepper Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <span style={{ fontWeight: 600, fontSize: '18px' }}>{activityId ? 'Edit cleanup activity' : 'Log a cleanup'}</span>
+          <span style={{ fontWeight: 600, fontSize: '18px' }}>{activityId ? 'Edit contribution' : 'Log a contribution'}</span>
         </div>
         <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
           Step {visibleSteps.indexOf(step) + 1} of {visibleSteps.length} - {labels[step - 1]}
@@ -561,6 +568,7 @@ export default function SubmitActivity() {
                     value={form.category}
                     onChange={(v) => setForm({...form, category: v})}
                     options={[
+                      { value: '', label: "Not sure — Blue Mind will infer this" },
                       { value: 'plastic', label: 'Plastic' },
                       { value: 'glass', label: 'Glass' },
                       { value: 'metal', label: 'Metal' },

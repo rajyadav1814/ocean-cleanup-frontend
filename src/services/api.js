@@ -179,6 +179,9 @@ export const activityApi = {
 export const contributorApi = {
   exportReport: (from, to) =>
     apiDownloadFile(`/api/contributor/export?from=${from}&to=${to}&format=pdf`, `field-report-${from}-to-${to}.pdf`),
+  // spec §4: full outcome chains for "What Changed Because of You" — who
+  // else saw it, how reports merged, who acted, what changed, who verified.
+  getStories: (limit = 3) => apiGet(`/api/contributor/stories?limit=${limit}`),
 };
 
 // ─── Environmental event API helpers ────────────────────────────────────────────
@@ -195,6 +198,10 @@ export const eventApi = {
   verify:       (id, { outcome, notes }) => apiPost(`/api/events/${id}/verify`, { outcome, notes }),
   relate:       (id, { toEventId, relationshipType }) =>
     apiPost(`/api/events/${id}/relate`, { toEventId, relationshipType }),
+  // spec §7: appends a corrected identification instead of editing the
+  // original — the superseded reading stays in the event's subject list.
+  correctSubject: (id, eventSubjectId, { family, code, attributes, note }) =>
+    apiPost(`/api/events/${id}/subjects/${eventSubjectId}/correct`, { family, code, attributes, note }),
   // spec §21: a verifier's own attestation gets its own tamper-evident
   // proof — the only proof mechanism an action-event (no legacy activity)
   // ever has. Mirrors activityApi.getProof's shape exactly.

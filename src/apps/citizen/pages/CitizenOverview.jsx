@@ -12,7 +12,7 @@ import {
   Bell, AlertCircle, Recycle, MapPin, Calendar, ShieldCheck, CheckCircle2, ChevronRight,
   BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets, FileText, Trophy, Award, Users,
   Weight, Medal, Waves, Shell, Flame, Anchor, Maximize, Send,
-  Megaphone, BarChart3, Shield,
+  Megaphone, BarChart3, Shield, Sparkles, Zap, Eye,
 } from 'lucide-react';
 
 // Classic gold/silver/bronze for the top 3 leaderboard spots; ranks 4+
@@ -694,7 +694,7 @@ const HERO_VALUES = [
     Icon: Megaphone, color:'#3B82F6', tint:'rgba(59,130,246,0.14)' },
   { key:'impact', title:'Drive Impact', text:'Data you share helps drive real-world action.',
     Icon: BarChart3, color:'#22A06B', tint:'rgba(34,160,107,0.14)' },
-  { key:'trust', title:'Build Trust', text:'Verified reports create tamper-proof records.',
+  { key:'trust', title:'Build Trust', text:'Evidence stays traceable — see what you submitted, what Blue Mind added, and what got verified.',
     Icon: Shield, color:'#7C5CD6', tint:'rgba(124,92,214,0.14)' },
   { key:'protect', title:'Protect Together', text:'Small actions today for a better tomorrow.',
     Icon: Leaf, color:'#CE9A2E', tint:'rgba(206,154,46,0.16)' },
@@ -757,6 +757,29 @@ export default function CitizenOverview() {
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
     .slice(0, 6);
 
+  // Hero "what changed since you were last here" (spec §15) — same logic
+  // as ContributorOverview's heroUpdate, so both spaces tell the same kind
+  // of concrete story instead of a static thank-you.
+  const heroUpdate = (() => {
+    if (!myEvents.length) return null;
+    const byRecency = [...myEvents].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    const subjectLabelFor = (e) => e.subjects?.[0]?.label || 'issue';
+
+    const resolved = byRecency.find((e) => e.eventState === 'addressed');
+    if (resolved) return `the ${subjectLabelFor(resolved)} you reported is resolved.`;
+
+    const verified = byRecency.find((e) => e.verificationState === 'verified');
+    if (verified) return `one of your reports was verified.`;
+
+    const corroborated = byRecency.find((e) => e.corroborationCount > 0);
+    if (corroborated) {
+      const n = corroborated.corroborationCount;
+      return `${n} other ${n === 1 ? 'person has' : 'people have'} confirmed what you saw.`;
+    }
+
+    return null;
+  })();
+
   return (
     <div className="co-root">
       <style>{STYLES}</style>
@@ -782,11 +805,12 @@ export default function CitizenOverview() {
           <div className="bm-hero__body">
             <h1 className="bm-hero__title">
               Hi {firstName}, <span role="img" aria-label="waving hand">👋</span><br />
-              Thank you for being part of <span>blueMind.</span>
+              {heroUpdate ? <>Here&rsquo;s what changed: <span>{heroUpdate}</span></> : <>Thank you for being part of <span>blueMind.</span></>}
             </h1>
             <p className="bm-hero__sub">
-              Every activity you submit helps us understand pollution patterns,
-              raise awareness, and build a cleaner, healthier planet together.
+              {heroUpdate
+                ? "You contribute, Blue Mind understands it, others confirm or connect it, and you see what changed."
+                : 'Every activity you submit helps us understand pollution patterns, raise awareness, and build a cleaner, healthier planet together.'}
             </p>
             <div className="bm-hero__actions">
               <button
@@ -796,7 +820,7 @@ export default function CitizenOverview() {
                 onClick={() => navigate('/citizen/quick-report')}
               >
                 <Send size={16} strokeWidth={2.25} />
-                Submit Activity
+                Contribute
               </button>
             </div>
           </div>
@@ -816,6 +840,32 @@ export default function CitizenOverview() {
               <p className="contrib-value-text">{text}</p>
             </div>
           </div>
+        ))}
+      </div>
+
+      {/* ── UNIVERSAL LIFECYCLE STRIP (spec §3) ── same loop as the
+          Contributor Space, so both read as one product and one story. */}
+      <div className="co-panel" style={{ marginBottom: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.5rem 1rem', padding: '0.9rem 1.25rem' }}>
+        {[
+          { step: 'You contribute', Icon: Send },
+          { step: 'Blue Mind understands', Icon: Sparkles },
+          { step: 'Others confirm or connect it', Icon: Users },
+          { step: 'Something happens', Icon: Zap },
+          { step: 'You see what changed', Icon: Eye },
+        ].map(({ step, Icon }, i, arr) => (
+          <span key={step} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem 1rem' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+              <span style={{
+                width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'color-mix(in srgb, var(--primary) 14%, transparent)', color: 'var(--primary-hover)'
+              }}>
+                <Icon size={13} strokeWidth={2.25} />
+              </span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>{step}</span>
+            </span>
+            {i < arr.length - 1 && <ChevronRight size={14} strokeWidth={2.5} style={{ color: 'var(--text-muted)' }} />}
+          </span>
         ))}
       </div>
 
@@ -907,6 +957,13 @@ export default function CitizenOverview() {
                       <Calendar size={12} strokeWidth={2.25} />
                       <span>{fmt(e.occurredAt || e.createdAt)}</span>
                     </div>
+                    {/* Corroboration (spec §5): their reports were joined to
+                        yours, not filed as separate problems. */}
+                    {e.corroborationCount > 0 && (
+                      <div style={{ fontSize: '0.72rem', color: 'var(--secondary)', marginTop: '0.25rem', fontWeight: 600 }}>
+                        {e.corroborationCount} other {e.corroborationCount === 1 ? 'person' : 'people'} reported this too — joined into one event.
+                      </div>
+                    )}
                   </div>
                   <div className="co-needs-attn-pills">
                     <span className="co-needs-attn-pill" style={{ background: `${stateMeta.color}22`, color: stateMeta.color }}>
@@ -927,7 +984,7 @@ export default function CitizenOverview() {
         </div>
 
         <div className="co-panel">
-          <div className="co-panel-title">Impact Stories</div>
+          <div className="co-panel-title">What Changed Because of You</div>
           <div className="co-panel-desc">What happened after you reported it.</div>
           {impactStories.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
@@ -941,6 +998,7 @@ export default function CitizenOverview() {
               }).map(({ event: e, subject: s2 }, i, arr) => {
                 const meta = wasteCodeMeta[s2.code] || defaultWasteMeta;
                 const { Icon } = meta;
+                const verMeta = verificationStateMeta(e.verificationState);
                 return (
                   <Link key={`${e.eventId}-${s2.eventSubjectId || s2.code}`} to={`/citizen/events/${e.eventId}`}
                     className="co-related-row" style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
@@ -948,8 +1006,17 @@ export default function CitizenOverview() {
                       <Icon size={18} strokeWidth={2} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="co-feed-text" style={{ fontWeight: 600 }}>{s2.label} cleared</div>
+                      <div className="co-feed-text" style={{ fontWeight: 600 }}>{s2.label} resolved</div>
                       <div className="co-feed-meta">{e.locationLabel || 'Unknown location'}</div>
+                      {e.corroborationCount > 0 && (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--secondary)', marginTop: '0.2rem', fontWeight: 600 }}>
+                          {e.corroborationCount} other {e.corroborationCount === 1 ? 'report was' : 'reports were'} joined into this one, not filed separately.
+                        </div>
+                      )}
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.3rem',
+                        fontSize: '0.68rem', fontWeight: 700, color: verMeta.color, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                        <ShieldCheck size={11} strokeWidth={2.5} />{verMeta.label}
+                      </div>
                     </div>
                     <CheckCircle2 size={19} strokeWidth={2} color="var(--success)" style={{ flexShrink: 0 }} />
                   </Link>
@@ -1056,7 +1123,9 @@ export default function CitizenOverview() {
             <div className="co-panel">
               <div className="co-panel-kicker">This Week</div>
               <div className="co-panel-title">Leaders</div>
-              <div className="co-panel-desc">Ranked by verified reports.</div>
+              {/* Trust-weighted, not volume (spec §14) — points come from
+                  corroboration/verification, not from submitting more. */}
+              <div className="co-panel-desc">Ranked by trust-weighted points, not report count.</div>
 
               {allRows.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
@@ -1077,7 +1146,7 @@ export default function CitizenOverview() {
                       </div>
                       <div className="co-lb-av">{r.initials || name[0]}</div>
                       <div className="co-lb-name">{name}</div>
-                      <div className="co-lb-count">{r.weekReports} report{r.weekReports !== 1 ? 's' : ''}</div>
+                      <div className="co-lb-count">{r.weekPoints} pt{r.weekPoints !== 1 ? 's' : ''}</div>
                     </div>
                   );
                 })}

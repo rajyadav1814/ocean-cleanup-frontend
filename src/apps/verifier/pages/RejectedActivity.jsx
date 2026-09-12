@@ -5,7 +5,7 @@ export default function RejectedActivity() {
     <ActivitiesByStatus
       status="rejected"
       title="Rejected Activity"
-      subtitle="Rejected cleanup activities."
+      subtitle="Rejected contributions."
       emptyMessage="No rejected activities yet."
       badgeLabel="Rejected"
       badgeBg="rgba(239,68,68,0.15)"

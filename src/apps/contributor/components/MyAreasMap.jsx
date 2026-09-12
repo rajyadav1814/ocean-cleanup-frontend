@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Minimize } from 'lucide-react';
 import { eventStateMeta } from '../eventMeta';
-import { MAP_LAYERS } from '../../../utils/eventMapLayers';
+import {
+  MAP_LAYERS, CONTRIBUTOR_LAYER_IDS, normalizeAnswer, groupIntoPlaces, PLACE_STATUS,
+} from '../../../utils/eventMapLayers';
 import useOrganizations from '../../../hooks/useOrganizations';
 import 'leaflet/dist/leaflet.css';
 
@@ -25,10 +27,18 @@ const createPin = (fillColor) => {
 // just be a pin dump) — same MAP_LAYERS vocabulary as the public Global
 // Impact Map, rendered small enough to fit inside the dashboard card and
 // duplicated into the fullscreen overlay so it stays usable there too.
+// Only the four questions spec §9 leads with — it explicitly warns against
+// overloading the map with every filter at once. The other layers stay
+// available to the public Global Impact Map, which is exploratory rather
+// than "these are my places".
+const CONTRIBUTOR_LAYERS = CONTRIBUTOR_LAYER_IDS
+  .map((id) => MAP_LAYERS.find((l) => l.id === id))
+  .filter(Boolean);
+
 function LayerBar({ activeLayerId, onSelect, counts, compact }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: compact ? '0.6rem' : '0.75rem' }}>
-      {MAP_LAYERS.map((layer) => {
+      {CONTRIBUTOR_LAYERS.map((layer) => {
         const active = layer.id === activeLayerId;
         return (
           <button
@@ -47,7 +57,10 @@ function LayerBar({ activeLayerId, onSelect, counts, compact }) {
               whiteSpace: 'nowrap',
             }}
           >
-            {layer.label}{layer.id !== 'near-me' && layer.id !== 'by-org' ? ` (${counts[layer.id] ?? 0})` : ''}
+            {/* The chip asks the question; the answer sits below the bar,
+                so the control itself reads as a question rather than a
+                filter name with a count bolted on. */}
+            {layer.chip || layer.label}
           </button>
         );
       })}
@@ -75,6 +88,7 @@ function LayerBar({ activeLayerId, onSelect, counts, compact }) {
 export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
   const inlineSlotRef = useRef(null);
   const fullscreenSlotRef = useRef(null);
+  const resizeObserverRef = useRef(null);
   const mapContainerRef = useRef(null);
   const leafletMap = useRef(null);
   const markersLayerRef = useRef(null);
@@ -130,6 +144,31 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
     [valid, activeLayer, layerContext]
   );
 
+  // The actual answer to the layer's question (spec §9) — computed from the
+  // filtered set, so it always describes exactly the pins on screen.
+  const layerAnswer = useMemo(
+    () => normalizeAnswer(activeLayer.answer ? activeLayer.answer(layeredEvents, layerContext) : null),
+    [activeLayer, layeredEvents, layerContext]
+  );
+
+  // Places, not pins (spec §9's "advance beyond a pin dump"): events
+  // collapsed into the locations they happened at, so four reports of one
+  // jetty read as one place that keeps coming back.
+  //
+  // Grouped over ALL the contributor's events, then filtered to the places
+  // the active question touches — deliberately not grouped over the filtered
+  // set. A place's history is a property of the place, not of the current
+  // question: grouping post-filter made "keeps coming back" show only the
+  // single event whose state is 'recurring', so it reported "Updated 2 days
+  // ago" instead of "Reported 4 times in 5 months" — losing the count in the
+  // one view built around it.
+  const places = useMemo(() => {
+    const matching = new Set(layeredEvents);
+    return groupIntoPlaces(valid).filter((p) => p.events.some((e) => matching.has(e)));
+  }, [valid, layeredEvents]);
+  const [placesExpanded, setPlacesExpanded] = useState(false);
+  const visiblePlaces = placesExpanded ? places : places.slice(0, 3);
+
   /* ── Initialize map (once) ─────────────────────────────────────────────── */
   useEffect(() => {
     let cancelled = false;
@@ -142,6 +181,11 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
       container.style.height = '100%';
       container.style.width = '100%';
       mapContainerRef.current = container;
+      // Defensive: a previous run's container can still be sitting here if
+      // its cleanup didn't get to remove it. Appending beside it would leave
+      // a dead, tile-less div covering the live map inside this
+      // fixed-height, overflow-hidden slot.
+      inlineSlotRef.current.replaceChildren();
       inlineSlotRef.current.appendChild(container);
 
       const map = L.map(container, {
@@ -161,6 +205,17 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
       markersLayerRef.current = L.layerGroup().addTo(map);
       leafletMap.current = map;
 
+      // Leaflet requests no tiles while it believes its container is 0×0, and
+      // a one-shot timeout is a race against whatever is still laying out
+      // above the map (the question/answer lines and status line both appear
+      // only once events resolve). Observing the box re-syncs leaflet on every
+      // later resize instead of relying on a guessed delay. invalidateSize
+      // doesn't change the container's own size, so this can't feed back.
+      if (typeof ResizeObserver !== 'undefined') {
+        const observer = new ResizeObserver(() => leafletMap.current?.invalidateSize());
+        observer.observe(container);
+        resizeObserverRef.current = observer;
+      }
       setTimeout(() => map.invalidateSize(), 300);
     };
 
@@ -168,12 +223,18 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
 
     return () => {
       cancelled = true;
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
       if (leafletMap.current) {
         leafletMap.current.remove();
         leafletMap.current = null;
-        mapContainerRef.current = null;
         markersLayerRef.current = null;
       }
+      // map.remove() tears down leaflet but leaves this hand-made node in the
+      // DOM — orphaning it is what left a dead grey container stacked over the
+      // live map on re-mount (StrictMode's double-invoke in dev).
+      mapContainerRef.current?.remove();
+      mapContainerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -292,21 +353,105 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
   return (
     <>
       <LayerBar activeLayerId={activeLayerId} onSelect={handleSelectLayer} counts={layerCounts} compact />
+      {/* The map answers a question, not just shows pins (spec §9/§24) —
+          state it in words, not just as a chip label. */}
+      {/* The answer leads, in the contributor's own terms — the question is
+          already on the active chip above. */}
+      {layerAnswer?.headline && (
+        <p style={{ margin: '0 0 0.15rem', fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main)' }}>
+          {layerAnswer.headline}
+        </p>
+      )}
+      {layerAnswer?.detail && (
+        <p style={{ margin: '0 0 0.6rem', fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+          {layerAnswer.detail}
+        </p>
+      )}
       {orgPicker}
       {statusLine}
       {layeredEvents.length === 0 && activeLayer.id !== 'near-me' && (
         <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginBottom: '0.6rem' }}>
-          No reports currently match "{activeLayer.label}".
+          No reports currently match "{activeLayer.chip || activeLayer.label}".
         </div>
       )}
 
-      <div ref={inlineSlotRef} style={{ height: '260px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden' }} />
+      <div style={{ position: 'relative' }}>
+        <div ref={inlineSlotRef} style={{ height: '260px', width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden' }} />
+        {/* What the pin colours mean, so the map is readable without
+            clicking anything. */}
+        {layeredEvents.length > 0 && (
+          <div style={{
+            position: 'absolute', left: '0.6rem', bottom: '0.6rem', zIndex: 500,
+            display: 'flex', flexWrap: 'wrap', gap: '0.5rem 0.85rem', alignItems: 'center',
+            background: 'var(--surface)', border: '1px solid var(--border-light)',
+            borderRadius: '999px', padding: '0.3rem 0.75rem',
+          }}>
+            {Object.values(PLACE_STATUS).map((s) => (
+              <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color }} />
+                {s.label}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* The places themselves — the list the map is about. */}
+      {visiblePlaces.length > 0 && (
+        <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column' }}>
+          {visiblePlaces.map((place, i) => (
+            <div key={place.key} style={{
+              display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 0',
+              borderBottom: i < visiblePlaces.length - 1 ? '1px solid var(--border-light)' : 'none',
+            }}>
+              <span style={{ width: '9px', height: '9px', borderRadius: '50%', flexShrink: 0,
+                background: place.status?.color || 'var(--text-muted)' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {place.name}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {[place.region, place.reason].filter(Boolean).join(' · ')}
+                </div>
+              </div>
+              {place.status && (
+                <span style={{ flexShrink: 0, fontSize: '0.68rem', fontWeight: 600,
+                  color: place.status.color, background: `color-mix(in srgb, ${place.status.color} 12%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${place.status.color} 30%, transparent)`,
+                  borderRadius: '999px', padding: '0.2rem 0.6rem', whiteSpace: 'nowrap' }}>
+                  {place.status.label}
+                </span>
+              )}
+            </div>
+          ))}
+          {places.length > 3 && (
+            <button type="button" onClick={() => setPlacesExpanded((v) => !v)}
+              style={{ alignSelf: 'flex-start', background: 'none', border: 'none', boxShadow: 'none',
+                padding: '0.5rem 0 0', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 600, color: 'var(--primary)' }}>
+              {placesExpanded ? 'Show less' : `Show ${places.length - 3} more`}
+            </button>
+          )}
+        </div>
+      )}
 
       {isFullscreen && createPortal(
         <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
           <div style={{ position: 'relative', width: '100%', height: '100%', background: 'var(--surface)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '0.9rem 1.1rem 0', flexShrink: 0 }}>
               <LayerBar activeLayerId={activeLayerId} onSelect={handleSelectLayer} counts={layerCounts} />
+              {layerAnswer?.headline && (
+                <p style={{ margin: '0 0 0.15rem', fontSize: '0.98rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                  {layerAnswer.headline}
+                </p>
+              )}
+              {layerAnswer?.detail && (
+                <p style={{ margin: '0 0 0.6rem', fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+                  {layerAnswer.detail}
+                </p>
+              )}
               {orgPicker}
               {statusLine}
             </div>

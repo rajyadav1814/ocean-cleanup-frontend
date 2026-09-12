@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useActivities } from '../../../hooks/useActivities';
+import { useEvents } from '../../../hooks/useEvents';
 import { useAuth } from '../../../context/AuthContext';
+import { eventStateMeta, verificationStateMeta } from '../eventMeta';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { apiDelete } from '../../../services/api';
 import ImageGalleryModal from '../../../components/common/ImageGalleryModal';
@@ -35,11 +37,14 @@ const STATUS_META = {
   rejected: { bg: 'rgba(38,10,10,.82)', color: '#f87171', label: 'Rejected' },
 };
 
+// Event-model buckets, not the legacy approved/pending/rejected — those
+// couldn't express recurring, corroborated or action-underway without
+// flattening them into "pending" (spec §11 keeps the two axes distinct).
 const FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'approved', label: 'Approved' },
-  { key: 'pending', label: 'Pending' },
-  { key: 'rejected', label: 'Rejected' },
+  { key: 'open', label: 'Still open' },
+  { key: 'resolved', label: 'Resolved' },
+  { key: 'disputed', label: 'Disputed' },
 ];
 
 /* ── injected styles — same token system as ContributorOverview / CitizenOverview ── */
@@ -97,6 +102,45 @@ const STYLES = `
   .ma-media__date { position: absolute; top: .6rem; right: .6rem; background: rgba(4,18,31,.72); color: #fff; font-size: .66rem; font-weight: 600; padding: .22rem .6rem; border-radius: 999px; font-family: var(--font-mono); }
 
   .ma-body { padding: 1.1rem 1.2rem 1.25rem; }
+
+  /* ── Event-model cards ──
+     These carry no photo, so they're pure text and need their own rhythm.
+     The grid rows are equal-height and the footer is pinned to the bottom,
+     so the "see the full event" line sits on one baseline across a row
+     instead of wherever each card's text happens to end. */
+  .ma-card--event { display: flex; cursor: pointer; contain-intrinsic-size: 0 220px; }
+  .ma-card--event:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .ma-card--event .ma-body { display: flex; flex-direction: column; flex: 1; }
+
+  .ma-ev-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .55rem; }
+  .ma-ev-state {
+    font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    padding: .2rem .55rem; border-radius: 999px; border: 1px solid transparent; white-space: nowrap;
+  }
+  .ma-ev-verify { font-size: .7rem; font-weight: 600; white-space: nowrap; }
+
+  /* .96rem, matching .ma-loc — the old markup used a bare <h3>, which
+     inherited the global heading size and wrapped a short title over three
+     lines. */
+  .ma-ev-title {
+    margin: 0; font-size: .96rem; font-weight: 700; line-height: 1.35; color: var(--text-main);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .ma-ev-loc {
+    margin: .3rem 0 0; font-size: .78rem; color: var(--text-muted); line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .ma-ev-chips { margin-top: .6rem; }
+  .ma-ev-chips .ma-chip { font-size: .7rem; padding: .22rem .5rem; }
+
+  /* margin-top:auto pins this to the card bottom regardless of title length */
+  .ma-ev-foot {
+    margin-top: auto; padding-top: .9rem; display: flex; align-items: center;
+    justify-content: space-between; gap: .5rem; flex-wrap: wrap;
+  }
+  .ma-ev-joined { font-size: .72rem; font-weight: 600; color: var(--secondary); }
+  .ma-ev-link { font-size: .76rem; font-weight: 700; color: var(--primary); white-space: nowrap; }
+  .ma-card--event:hover .ma-ev-link { text-decoration: underline; }
   .ma-loc { margin: 0; font-size: .96rem; font-weight: 700; color: var(--primary-hover); line-height: 1.35; }
 
   .ma-chips { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .7rem; }
@@ -142,6 +186,8 @@ export default function MyActivities() {
   const dispatch = useDispatch();
   const { activities, loading, refresh } = useActivities();
   const { user, role } = useAuth();
+  // Event-model contributions, for contributors with no legacy activities.
+  const { events: myEvents } = useEvents(user?.id);
   const navigate = useNavigate();
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState('');
@@ -153,19 +199,52 @@ export default function MyActivities() {
     [activities, user]
   );
 
+  /* ── One list for every contributor ───────────────────────────────────
+     Previously this page rendered legacy activities, and only fell back to
+     the event model for contributors who had none — so two people saw two
+     different products depending on which table their data happened to
+     live in. Every activity now has an event (backfilled), so the event
+     model is the single source here and the design is identical for
+     everyone. The legacy activity is still looked up per event, purely to
+     decide whether Edit/Delete can be offered — those endpoints are
+     activity-only. */
+  const activityByLegacyId = useMemo(() => {
+    const map = new Map();
+    for (const a of visibleActivities) map.set(String(a.id), a);
+    return map;
+  }, [visibleActivities]);
+
+  const items = useMemo(() => (
+    [...myEvents]
+      .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+      .map((e) => ({ event: e, activity: e.legacyActivityId ? activityByLegacyId.get(String(e.legacyActivityId)) : null }))
+  ), [myEvents, activityByLegacyId]);
+
+  // Filters speak the event model's own vocabulary (spec §11) instead of
+  // the legacy approved/pending/rejected, which couldn't express states
+  // like recurring or disputed without flattening them.
+  const bucketOf = (e) => {
+    if (e.eventState === 'addressed') return 'resolved';
+    if (e.eventState === 'disputed' || e.eventState === 'unable_to_verify') return 'disputed';
+    return 'open';
+  };
+
   const counts = useMemo(() => ({
-    all: visibleActivities.length,
-    approved: visibleActivities.filter((a) => a.status === 'approved').length,
-    pending: visibleActivities.filter((a) => a.status === 'pending').length,
-    rejected: visibleActivities.filter((a) => a.status === 'rejected').length,
-  }), [visibleActivities]);
+    all: items.length,
+    open: items.filter((i) => bucketOf(i.event) === 'open').length,
+    resolved: items.filter((i) => bucketOf(i.event) === 'resolved').length,
+    disputed: items.filter((i) => bucketOf(i.event) === 'disputed').length,
+  }), [items]);
 
   const filtered = useMemo(
-    () => filter === 'all' ? visibleActivities : visibleActivities.filter((a) => (a.status || 'pending') === filter),
-    [visibleActivities, filter]
+    () => (filter === 'all' ? items : items.filter((i) => bucketOf(i.event) === filter)),
+    [items, filter]
   );
 
-  const canModify = (activity) => (role === 'contributor' || role === 'citizen') && activity.contributorId === user?.id && activity.status !== 'approved';
+  const canModify = (activity) => Boolean(activity)
+    && (role === 'contributor' || role === 'citizen')
+    && activity.contributorId === user?.id
+    && activity.status !== 'approved';
 
   if (loading) return <LoadingSpinner layout="list" />;
 
@@ -208,7 +287,7 @@ export default function MyActivities() {
       <section>
         {/* ── HERO ── */}
         {/* ── FILTER TOOLBAR ── */}
-        {visibleActivities.length > 0 && (
+        {items.length > 0 && (
           <div className="ma-toolbar">
             <div className="ma-filters">
               {FILTERS.map((f) => (
@@ -222,53 +301,65 @@ export default function MyActivities() {
                 </button>
               ))}
             </div>
-            <span className="ma-count">Showing {filtered.length} of {visibleActivities.length}</span>
+            <span className="ma-count">Showing {filtered.length} of {items.length}</span>
           </div>
         )}
 
         {error && <div className="ma-error">{error}</div>}
 
-        {/* ── GRID / EMPTY STATE ── */}
-        {visibleActivities.length === 0 ? (
+        {/* ── GRID / EMPTY STATE ──
+            A contributor whose work lives only in the event model (spec §10)
+            has no legacy activities at all, and used to be told they had
+            contributed nothing. Their events are listed here instead, in
+            event vocabulary — read-only, because edit/delete are
+            activities-only endpoints, and shown with their real event_state
+            rather than squeezed into approved/pending/rejected (§11 keeps
+            those axes separate). */}
+        {items.length === 0 ? (
           <div className="ma-empty">
             <div className="ma-empty__icon">🌊</div>
-            <p>No activities submitted yet. Start cleaning!</p>
-            <button type="button" className="ma-cta" onClick={() => navigate(`/${role}/submit`)}>
-              Log your first cleanup <span aria-hidden="true">→</span>
+            <p>No contributions yet — share what you've seen, measured, or done.</p>
+            <button type="button" className="ma-cta" onClick={() => navigate(`/${role}/quick-report`)}>
+              Make your first contribution <span aria-hidden="true">→</span>
             </button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="ma-empty">
             <div className="ma-empty__icon">🔎</div>
-            <p>No {filter} activities to show.</p>
+            <p>Nothing in this filter right now.</p>
           </div>
         ) : (
           <div className="ma-grid">
-            {filtered.map((activity) => {
-              const isDeleting = deletingId === activity.id;
-              const status = activity.status || 'pending';
-              const meta = STATUS_META[status] || STATUS_META.pending;
-
-              const urls = Array.isArray(activity.imageGatewayUrl)
-                ? activity.imageGatewayUrl
-                : activity.imageGatewayUrl
-                  ? [activity.imageGatewayUrl]
-                  : [];
+            {filtered.map(({ event, activity }) => {
+              const isDeleting = activity && deletingId === activity.id;
+              const stateMeta = eventStateMeta(event.eventState);
+              const verMeta = verificationStateMeta(event.verificationState);
+              const urls = event.evidenceUrls?.length
+                ? event.evidenceUrls
+                : (Array.isArray(activity?.imageGatewayUrl)
+                  ? activity.imageGatewayUrl
+                  : activity?.imageGatewayUrl ? [activity.imageGatewayUrl] : []);
               const firstUrl = urls[0];
+              const kg = event.impact?.find((i) => i.metric === 'debris_removed_kg')?.value
+                ?? (activity?.quantity > 0 ? Number(activity.quantity) : null);
 
               return (
-                <div key={activity.id} className="ma-card" style={{ opacity: isDeleting ? 0.65 : 1 }}>
+                <div key={event.eventId} className="ma-card" style={{ opacity: isDeleting ? 0.65 : 1 }}>
                   <div className="ma-media">
-                    <span className="ma-media__badge" style={{ background: meta.bg, color: meta.color }}>
-                      {meta.label}
+                    {/* Environmental state, not the legacy approval status —
+                        the same badge vocabulary the dashboard and map use. */}
+                    <span className="ma-media__badge" style={{
+                      background: `color-mix(in srgb, ${stateMeta.color} 88%, transparent)`, color: '#fff',
+                    }}>
+                      {stateMeta.label}
                     </span>
-                    <span className="ma-media__date">{formatActivityDate(activity.timestamp || Date.now())}</span>
+                    <span className="ma-media__date">{formatActivityDate(event.occurredAt || event.createdAt || Date.now())}</span>
 
                     {firstUrl ? (
                       <>
                         <img
                           src={firstUrl}
-                          alt="Cleanup evidence"
+                          alt="Contribution evidence"
                           loading="lazy"
                           decoding="async"
                           onClick={() => setGallery({ images: urls, startAt: 0 })}
@@ -291,48 +382,57 @@ export default function MyActivities() {
                   </div>
 
                   <div className="ma-body">
-                    <h4 className="ma-loc">{activity.location}</h4>
+                    <h4 className="ma-loc">{event.locationLabel || event.title || 'Contribution'}</h4>
 
                     <div className="ma-chips">
-                      <span className="ma-chip">
-                        {CAT_ICON[(activity.category || '').toLowerCase()] || '📦'}
-                        <strong style={{ textTransform: 'capitalize' }}>{activity.category || 'Other'}</strong>
-                      </span>
-                      <span className="ma-chip">
-                        ⚖️ <strong>{activity.quantity} kg</strong>
-                      </span>
-                      {activity.volunteers > 0 && (
-                        <span className="ma-chip">
-                          🤝 <strong>{activity.volunteers}</strong> vol.
+                      {/* Subjects, so a wildlife or water report describes
+                          itself instead of being labelled by waste category. */}
+                      {event.subjects?.slice(0, 2).map((s) => (
+                        <span key={s.subjectId || s.code} className="ma-chip">
+                          {CAT_ICON[(s.code || '').toLowerCase()] || '🏷️'}
+                          <strong>{s.label}</strong>
                         </span>
+                      ))}
+                      {event.subjects?.length > 2 && (
+                        <span className="ma-chip">+{event.subjects.length - 2}</span>
                       )}
+                      {kg != null && <span className="ma-chip">⚖️ <strong>{kg} kg</strong></span>}
+                      <span className="ma-chip" style={{ color: verMeta.color }}>
+                        <strong>{verMeta.label}</strong>
+                      </span>
                     </div>
 
-                    {status === 'rejected' && activity.reviewNote && (
+                    {event.corroborationCount > 0 && (
+                      <p className="ma-ev-joined" style={{ margin: '.6rem 0 0' }}>
+                        {event.corroborationCount} other {event.corroborationCount === 1 ? 'report' : 'reports'} joined into this event
+                      </p>
+                    )}
+
+                    {activity?.status === 'rejected' && activity.reviewNote && (
                       <div style={{ marginTop: '.7rem', fontSize: '.74rem', color: '#f87171', background: 'rgba(239,68,68,.08)', borderRadius: '6px', padding: '.4rem .6rem', lineHeight: 1.4 }}>
                         {activity.reviewNote}
                       </div>
                     )}
 
-                    {canModify(activity) && (
-                      <div className="ma-actions">
-                        <button
-                          type="button"
-                          className="ma-btn ma-btn--edit"
-                          onClick={() => navigate(`/${role}/my-activities/edit/${activity.id}`)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="ma-btn ma-btn--delete"
-                          onClick={() => handleDelete(activity.id)}
-                          disabled={isDeleting}
-                        >
+                    <div className="ma-actions">
+                      {/* Edit removed: a contribution is corrected by
+                          appending to it (a verifier re-identifying a
+                          subject, spec §7), not by rewriting the original —
+                          and the edit form was the last thing keeping the
+                          retired legacy submission screen alive. Delete
+                          stays, and still needs a legacy activity because
+                          that endpoint takes an activity id. */}
+                      {canModify(activity) && (
+                        <button type="button" className="ma-btn ma-btn--delete"
+                          onClick={() => handleDelete(activity.id)} disabled={isDeleting}>
                           {isDeleting ? 'Deleting…' : 'Delete'}
                         </button>
-                      </div>
-                    )}
+                      )}
+                      <button type="button" className="ma-btn ma-btn--edit"
+                        onClick={() => navigate(`/${role}/events/${event.eventId}`)}>
+                        See the full event
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
