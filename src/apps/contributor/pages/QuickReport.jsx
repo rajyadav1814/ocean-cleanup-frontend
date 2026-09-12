@@ -217,12 +217,15 @@ const Tile = ({ icon, title, sub, onClick, disabled, theme }) => {
   );
 };
 
-// Surfaces condition/severity/hazard (spec §7.3-7.4 vocabulary) right on
-// the chip so the contributor can see and, via Remove, reject what Blue
-// Mind read on this subject before it's ever submitted — the "Is this
-// correct? Yes | Change" step the spec asks for (§6) would otherwise have
-// nothing to show for these fields at all.
-const ATTRIBUTE_DISPLAY_ORDER = ['condition', 'severity', 'hazard'];
+// Surfaces condition/outcome/severity/hazard (spec §7.3-7.4 vocabulary)
+// right on the chip so the contributor can see and, via Remove, reject
+// what Blue Mind read on this subject before it's ever submitted — the
+// "Is this correct? Yes | Change" step the spec asks for (§6) would
+// otherwise have nothing to show for these fields at all. "outcome" is
+// what makes the client's own worked example legible here — "two turtles
+// trapped, one died" comes back as two life subjects that are otherwise
+// visually identical unless each one's outcome is shown alongside it.
+const ATTRIBUTE_DISPLAY_ORDER = ['condition', 'outcome', 'severity', 'hazard'];
 function attributeSummary(attributes) {
   if (!attributes) return '';
   return ATTRIBUTE_DISPLAY_ORDER.map((key) => attributes[key]).filter(Boolean).join(' · ').replace(/_/g, ' ');
@@ -298,6 +301,11 @@ export default function QuickReport() {
   const [documentFile, setDocumentFile] = useState(null);
   const [documentMediaType, setDocumentMediaType] = useState('document'); // document | dataset
   const [documentError, setDocumentError] = useState('');
+  // The actual recording, kept distinct from `rawText` (spec §17): the
+  // transcript is AI-derived and editable on the confirm screen, but the
+  // original human evidence — what the contributor actually said — has to
+  // survive even if they correct a mis-transcription before submitting.
+  const [audioFile, setAudioFile] = useState(null);
   const [rawText, setRawText] = useState('');
   const [inferring, setInferring] = useState(false);
   const [inferError, setInferError] = useState('');
@@ -570,6 +578,8 @@ export default function QuickReport() {
           reader.readAsDataURL(blob);
         });
         if (!mountedRef.current) return;
+        const extension = (mimeType || 'audio/webm').split('/')[1]?.split(';')[0] || 'webm';
+        setAudioFile(new File([blob], `voice-note.${extension}`, { type: blob.type }));
         setMode('voice');
         runInference({ audioBase64: dataUrl });
       };
@@ -652,8 +662,8 @@ export default function QuickReport() {
     // A video or document attachment travels as multipart (matching the
     // field name the /api/activities route's multer middleware expects)
     // instead of JSON+base64 — see the MAX_VIDEO_BYTES comment above for why.
-    const attachedFile = videoFile || documentFile;
-    const attachedMediaType = videoFile ? 'video' : documentFile ? documentMediaType : null;
+    const attachedFile = videoFile || documentFile || audioFile;
+    const attachedMediaType = videoFile ? 'video' : documentFile ? documentMediaType : audioFile ? 'audio' : null;
 
     try {
       let res;
@@ -822,6 +832,17 @@ export default function QuickReport() {
           display: block; font-size: 0.72rem; font-weight: 700; color: var(--text-muted);
           text-transform: uppercase; letter-spacing: .06em; margin-bottom: 0.6rem;
         }
+
+        /* Confirm screen only: chunks what would otherwise be one flat stack
+           of ~8 identically-styled fields into two legible groups — "what
+           Blue Mind found" vs. "check the details" — so the density of the
+           provenance-aware fields doesn't read as a wall of form inputs. */
+        .qr-confirm-group {
+          display: flex; flex-direction: column; gap: 1rem; padding: 1rem 1.1rem;
+          border-radius: var(--radius-md); background: color-mix(in srgb, var(--tile-accent) 5%, transparent);
+          border: 1px solid color-mix(in srgb, var(--tile-accent) 14%, var(--border-light));
+        }
+        .qr-confirm-group-title { margin: 0; font-size: 0.8rem; font-weight: 700; color: var(--text-main); }
 
         /* Measurement parameter picker — checked rows stay full-width with
            their value/unit fields; everything else collapses into a dense
@@ -1241,126 +1262,131 @@ export default function QuickReport() {
           icon={FLOW_ICON[inputSource] || 'voice'}
           title="Review before you submit"
           sub="Blue Mind's best guess — fix anything that's off before sending it in."
-          onBack={() => { setMode('landing'); setDraft(null); setPhotoDataUrl(null); setVideoFile(null); setVideoPreviewUrl(null); setDocumentFile(null); setRawText(''); setInferError(''); setInputSource(null); setCaptureSource(null); setExtraFields({}); }}
+          onBack={() => { setMode('landing'); setDraft(null); setPhotoDataUrl(null); setVideoFile(null); setVideoPreviewUrl(null); setDocumentFile(null); setAudioFile(null); setRawText(''); setInferError(''); setInputSource(null); setCaptureSource(null); setExtraFields({}); }}
         >
           {photoDataUrl && <img src={photoDataUrl} alt="Submitted evidence" style={{ maxWidth: '260px', borderRadius: 'var(--radius-md)' }} />}
           {videoPreviewUrl && <video src={videoPreviewUrl} controls style={{ maxWidth: '260px', borderRadius: 'var(--radius-md)' }} />}
 
           {inferError && <div className="qr-warning">{inferError}</div>}
 
-          {draft.subjects.length > 0 && (
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.5rem' }}>
-                We think this is
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {draft.subjects.map((s, i) => <SubjectChip key={`${s.family}-${s.code}`} subject={s} onRemove={() => removeSubject(i)} />)}
-              </div>
+          {(draft.subjects.length > 0 || draft.description || rawText) && (
+            <div className="qr-confirm-group">
+              <h4 className="qr-confirm-group-title">What Blue Mind found</h4>
+
+              {draft.subjects.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {draft.subjects.map((s, i) => <SubjectChip key={`${s.family}-${s.code}`} subject={s} onRemove={() => removeSubject(i)} />)}
+                </div>
+              )}
+
+              {draft.description && (
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', fontStyle: 'italic' }}>&ldquo;{draft.description}&rdquo;</p>
+              )}
+
+              {rawText && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
+                    {inputSource === 'voice' ? 'What Blue Mind heard' : inputSource === 'document' ? 'Text extracted from your document' : 'Your report'}
+                  </label>
+                  <textarea
+                    value={rawText}
+                    onChange={(e) => setRawText(e.target.value)}
+                    rows={3}
+                    style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                      background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem', resize: 'vertical' }}
+                  />
+                  {inputSource === 'voice' && (
+                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>Fix anything Blue Mind heard wrong before submitting.</p>
+                  )}
+                  {inputSource === 'document' && (
+                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>This is what Blue Mind read from your file — edit if anything's off.</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {draft.description && (
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-main)', fontStyle: 'italic' }}>&ldquo;{draft.description}&rdquo;</p>
-          )}
+          <div className="qr-confirm-group">
+            <h4 className="qr-confirm-group-title">Check the details</h4>
 
-          {rawText && (
             <div>
               <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
-                {inputSource === 'voice' ? 'What Blue Mind heard' : inputSource === 'document' ? 'Text extracted from your document' : 'Your report'}
+                Location
               </label>
-              <textarea
-                value={rawText}
-                onChange={(e) => setRawText(e.target.value)}
-                rows={3}
-                style={{ width: '100%', padding: '0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
-                  background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem', resize: 'vertical' }}
-              />
-              {inputSource === 'voice' && (
-                <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>Fix anything Blue Mind heard wrong before submitting.</p>
-              )}
-              {inputSource === 'document' && (
-                <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>This is what Blue Mind read from your file — edit if anything's off.</p>
+              <MapLocationPicker value={location} lat={lat} lon={lon} onChange={handleLocationChange} />
+              {/* Surfaces the provenance MapLocationPicker already captures
+                  (device GPS vs. a hand-placed pin) instead of recording it
+                  silently — same "traceable, not just trusted" contract as
+                  the quantity field below (spec §7). */}
+              {locationCaptureMethod && (
+                <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: provenanceMeta(locationCaptureMethod === 'gps' ? 'system_captured' : 'user_provided').color }}>
+                  {locationCaptureMethod === 'gps'
+                    ? `Blue Mind used your device's location${locationAccuracy ? ` (±${Math.round(locationAccuracy)}m)` : ''} — drag the pin if it's off.`
+                    : 'You placed this pin yourself.'}
+                </p>
               )}
             </div>
-          )}
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
-              Location
-            </label>
-            <MapLocationPicker value={location} lat={lat} lon={lon} onChange={handleLocationChange} />
-            {/* Surfaces the provenance MapLocationPicker already captures
-                (device GPS vs. a hand-placed pin) instead of recording it
-                silently — same "traceable, not just trusted" contract as
-                the quantity field below (spec §7). */}
-            {locationCaptureMethod && (
-              <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: provenanceMeta(locationCaptureMethod === 'gps' ? 'system_captured' : 'user_provided').color }}>
-                {locationCaptureMethod === 'gps'
-                  ? `Blue Mind used your device's location${locationAccuracy ? ` (±${Math.round(locationAccuracy)}m)` : ''} — drag the pin if it's off.`
-                  : 'You placed this pin yourself.'}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
-              When did this happen?
-            </label>
-            <input
-              type="datetime-local" value={occurredAt} max={toDatetimeLocal(new Date())}
-              onChange={(e) => { setOccurredAt(e.target.value); setOccurredAtTouched(true); }}
-              style={{ padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
-                background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.88rem' }}
-            />
-            <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: provenanceMeta(occurredAtTouched ? 'user_provided' : 'system_captured').color }}>
-              {occurredAtTouched ? 'You set this time.' : "Set to right now — nudge it if that's not when this happened."}
-            </p>
-          </div>
-
-          {!isCitizen && (
-            <OrgContextLine
-              organizationId={organizationId} organizations={organizations} orgsLoading={orgsLoading}
-              addOrganization={addOrganization} onChange={setOrganizationId}
-            />
-          )}
-
-          <div>
-            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
-              Estimated weight (kg)
-            </label>
-            <input
-              type="number" min="0" step="0.5" value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              placeholder="0"
-              style={{ width: '140px', padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
-                background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.88rem' }}
-            />
-            {/* Shows which provenance this value will be recorded with
-                (spec §17) — matches the ai_inferred/user_provided split
-                handleSubmit actually computes, so it's never a promise
-                the submit doesn't keep. */}
-            {aiEstimatedQuantity != null && (
-              <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                {Number(quantity) === Number(aiEstimatedQuantity)
-                  ? `Blue Mind estimated this from what you shared — tap to correct.`
-                  : `You corrected Blue Mind's ${aiEstimatedQuantity}kg estimate.`}
-              </p>
-            )}
-          </div>
-
-          {draft.missingFields.filter((f) => MISSING_FIELD_META[f]).map((field) => (
-            <div key={field}>
+            <div>
               <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
-                {MISSING_FIELD_META[field].label}
+                When did this happen?
               </label>
               <input
-                type="text" value={extraFields[field] || ''} placeholder={MISSING_FIELD_META[field].placeholder}
-                onChange={(e) => updateExtraField(field, e.target.value)}
-                style={{ width: '100%', padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                type="datetime-local" value={occurredAt} max={toDatetimeLocal(new Date())}
+                onChange={(e) => { setOccurredAt(e.target.value); setOccurredAtTouched(true); }}
+                style={{ padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
                   background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.88rem' }}
               />
+              <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: provenanceMeta(occurredAtTouched ? 'user_provided' : 'system_captured').color }}>
+                {occurredAtTouched ? 'You set this time.' : "Set to right now — nudge it if that's not when this happened."}
+              </p>
             </div>
-          ))}
+
+            {!isCitizen && (
+              <OrgContextLine
+                organizationId={organizationId} organizations={organizations} orgsLoading={orgsLoading}
+                addOrganization={addOrganization} onChange={setOrganizationId}
+              />
+            )}
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
+                Estimated weight (kg)
+              </label>
+              <input
+                type="number" min="0" step="0.5" value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="0"
+                style={{ width: '140px', padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                  background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.88rem' }}
+              />
+              {/* Shows which provenance this value will be recorded with
+                  (spec §17) — matches the ai_inferred/user_provided split
+                  handleSubmit actually computes, so it's never a promise
+                  the submit doesn't keep. */}
+              {aiEstimatedQuantity != null && (
+                <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                  {Number(quantity) === Number(aiEstimatedQuantity)
+                    ? `Blue Mind estimated this from what you shared — tap to correct.`
+                    : `You corrected Blue Mind's ${aiEstimatedQuantity}kg estimate.`}
+                </p>
+              )}
+            </div>
+
+            {draft.missingFields.filter((f) => MISSING_FIELD_META[f]).map((field) => (
+              <div key={field}>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
+                  {MISSING_FIELD_META[field].label}
+                </label>
+                <input
+                  type="text" value={extraFields[field] || ''} placeholder={MISSING_FIELD_META[field].placeholder}
+                  onChange={(e) => updateExtraField(field, e.target.value)}
+                  style={{ width: '100%', padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                    background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.88rem' }}
+                />
+              </div>
+            ))}
+          </div>
 
           {submitError && <div className="qr-error">{submitError}</div>}
 
@@ -1369,7 +1395,7 @@ export default function QuickReport() {
               {submitting ? 'Submitting…' : 'Submit report'}
             </button>
             <button type="button" className="qr-btn-secondary"
-              onClick={() => { setMode('landing'); setDraft(null); setPhotoDataUrl(null); setVideoFile(null); setVideoPreviewUrl(null); setDocumentFile(null); setRawText(''); setInferError(''); setInputSource(null); setCaptureSource(null); setExtraFields({}); }}>
+              onClick={() => { setMode('landing'); setDraft(null); setPhotoDataUrl(null); setVideoFile(null); setVideoPreviewUrl(null); setDocumentFile(null); setAudioFile(null); setRawText(''); setInferError(''); setInputSource(null); setCaptureSource(null); setExtraFields({}); }}>
               Start over
             </button>
           </div>

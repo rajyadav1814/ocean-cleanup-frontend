@@ -60,12 +60,12 @@ function MainLayout({ children }) {
           which read as a slab of midnight ocean under a white UI.
           Contributor and Citizen Space share the same Blue Mind hero and
           card system, so both get the same living backdrop behind them. */}
-      {(isContributorSpace || isCitizenSpace) && (
+      {/* {(isContributorSpace || isCitizenSpace) && (
         <div className="space-reef" aria-hidden="true"><ReefScene variant="ambient" theme={theme} /></div>
-      )}
+      )} */}
       <Header toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       <main className="main-layout">
-        <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
+        {/* <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} /> */}
         <div className="main-content">
           {children}
         </div>

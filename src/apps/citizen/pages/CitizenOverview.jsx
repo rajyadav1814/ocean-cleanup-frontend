@@ -12,7 +12,7 @@ import {
   Bell, AlertCircle, Recycle, MapPin, Calendar, ShieldCheck, CheckCircle2, ChevronRight,
   BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets, FileText, Trophy, Award, Users,
   Weight, Medal, Waves, Shell, Flame, Anchor, Maximize, Send,
-  Megaphone, BarChart3, Shield,
+  Megaphone, BarChart3, Shield, Sparkles, Zap, Eye,
 } from 'lucide-react';
 
 // Classic gold/silver/bronze for the top 3 leaderboard spots; ranks 4+
@@ -845,10 +845,25 @@ export default function CitizenOverview() {
 
       {/* ── UNIVERSAL LIFECYCLE STRIP (spec §3) ── same loop as the
           Contributor Space, so both read as one product and one story. */}
-      <div className="co-panel" style={{ marginBottom: '1.4rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem 1rem', padding: '0.9rem 1.25rem' }}>
-        {['You contribute', 'Blue Mind understands', 'Others confirm or connect it', 'Something happens', 'You see what changed'].map((step, i, arr) => (
+      <div className="co-panel" style={{ marginBottom: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.5rem 1rem', padding: '0.9rem 1.25rem' }}>
+        {[
+          { step: 'You contribute', Icon: Send },
+          { step: 'Blue Mind understands', Icon: Sparkles },
+          { step: 'Others confirm or connect it', Icon: Users },
+          { step: 'Something happens', Icon: Zap },
+          { step: 'You see what changed', Icon: Eye },
+        ].map(({ step, Icon }, i, arr) => (
           <span key={step} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem 1rem' }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>{step}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
+              <span style={{
+                width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'color-mix(in srgb, var(--primary) 14%, transparent)', color: 'var(--primary-hover)'
+              }}>
+                <Icon size={13} strokeWidth={2.25} />
+              </span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>{step}</span>
+            </span>
             {i < arr.length - 1 && <ChevronRight size={14} strokeWidth={2.5} style={{ color: 'var(--text-muted)' }} />}
           </span>
         ))}

@@ -1,9 +1,30 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import NotificationBell from './NotificationBell';
+
+// Same per-role destinations the sidebar used to show — surfaced as header
+// tabs now that the sidebar is commented out.
+const TABS_BY_ROLE = {
+  contributor: [
+    { to: '/contributor/overview', label: 'Overview' },
+    { to: '/contributor/quick-report', label: 'Submit Activity' },
+    { to: '/contributor/my-activities', label: 'My Activities' },
+  ],
+  citizen: [
+    { to: '/citizen/overview', label: 'My Space' },
+    { to: '/citizen/quick-report', label: 'Submit Activity' },
+    { to: '/citizen/my-activities', label: 'My Activities' },
+  ],
+  verifier: [
+    { to: '/verifier/pending', label: 'Pending Activities' },
+    { to: '/verifier/review', label: 'Approved Activities' },
+    { to: '/verifier/rejected', label: 'Rejected Activities' },
+    { to: '/verifier/multisig', label: 'Multisig Status' },
+  ],
+};
 
 function getDisplayName(user) {
   return user?.displayName
@@ -125,6 +146,31 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
           <span>Bluemind</span>
         </Link>
       </div>
+      {!hideActions && !isMobile && role && TABS_BY_ROLE[role] && (
+        <nav className="header-tabs" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          {TABS_BY_ROLE[role].map((tab) => (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              style={({ isActive }) => ({
+                padding: '0.5rem 0.9rem',
+                borderRadius: 'var(--radius-md)',
+                textDecoration: 'none',
+                fontWeight: 500,
+                fontSize: '0.88rem',
+                fontFamily: 'var(--font-sans)',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s',
+                backgroundColor: isActive ? 'color-mix(in srgb, var(--primary) 16%, transparent)' : 'transparent',
+                color: isActive ? 'var(--primary-hover)' : 'var(--text-muted)',
+                border: isActive ? '1px solid color-mix(in srgb, var(--primary) 45%, transparent)' : '1px solid transparent',
+              })}
+            >
+              {tab.label}
+            </NavLink>
+          ))}
+        </nav>
+      )}
       <div className="nav-links">
         {!hideActions && (
           <>
