@@ -48,6 +48,31 @@ export function provenanceMeta(source) {
   return PROVENANCE_META[source] || PROVENANCE_META.user_provided;
 }
 
+// What an event is *about*, for the one-line places that can only show a
+// single subject (the hero, card titles).
+//
+// `subjects[0]` was wrong twice over: the list payload aggregates subjects
+// with json_agg(DISTINCT ...), which orders by the jsonb value rather than
+// insertion, so "first" was effectively arbitrary — and it could land on the
+// human_action subject, producing "the Cleanup / removal you reported was
+// resolved". A cleanup is what people *did* about the event; the ghost net
+// is what the event is. Human action is therefore the last resort, used only
+// when an event has nothing else on it.
+const SUBJECT_PRIORITY = ['pollution_waste', 'life', 'habitat', 'water', 'conditions', 'human_action'];
+
+export function primarySubject(subjects) {
+  if (!Array.isArray(subjects) || subjects.length === 0) return null;
+  for (const family of SUBJECT_PRIORITY) {
+    const match = subjects.find((s) => s?.family === family);
+    if (match) return match;
+  }
+  return subjects[0];
+}
+
+export function primarySubjectLabel(subjects, fallback = 'issue') {
+  return primarySubject(subjects)?.label || fallback;
+}
+
 // Turns an event_impact row into the "86 kg was removed" beat of the story
 // (spec §4). Shared by EventDetail's narrative and the dashboard's "What
 // Changed Because of You" card so the same outcome never gets worded two

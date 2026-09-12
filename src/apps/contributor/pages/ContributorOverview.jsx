@@ -9,7 +9,7 @@ import { useContributorImpact } from '../../../hooks/useContributorImpact';
 import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { contributorApi } from '../../../services/api';
-import { eventStateMeta, verificationStateMeta, adaptiveImpactMetrics, formatImpactPhrase } from '../eventMeta';
+import { eventStateMeta, verificationStateMeta, adaptiveImpactMetrics, formatImpactPhrase, primarySubject, primarySubjectLabel } from '../eventMeta';
 import { needsAttention as needsAttentionPredicate } from '../../../utils/eventMapLayers';
 import MyAreasMap from '../components/MyAreasMap';
 
@@ -466,7 +466,7 @@ const INTAKE_VERB = {
  */
 function buildStoryTimeline(story) {
   const beats = [];
-  const subject = story.subjects?.[0]?.label || 'an issue';
+  const subject = primarySubjectLabel(story.subjects, 'an issue');
   const verb = INTAKE_VERB[story.intakeMethod] || 'reported';
 
   beats.push({
@@ -753,7 +753,7 @@ export default function ContributorOverview() {
       .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     if (!recent.length) return null;
 
-    const subjectLabelFor = (e) => e.subjects?.[0]?.label || 'issue';
+    const subjectLabelFor = (e) => primarySubjectLabel(e.subjects);
     const whenFor = (e) => {
       const days = Math.floor((Date.now() - new Date(e.updatedAt).getTime()) / 86400000);
       if (days <= 0) return 'today';
@@ -1067,7 +1067,7 @@ export default function ContributorOverview() {
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:'0.9rem' }}>
                 {stories.map((story) => {
-                  const subject = story.subjects?.[0];
+                  const subject = primarySubject(story.subjects);
                   const meta = wasteCodeMeta[subject?.code] || defaultWasteMeta;
                   const { Icon } = meta;
                   const timeline = buildStoryTimeline(story);
@@ -1261,7 +1261,7 @@ export default function ContributorOverview() {
             ) : (
               <div style={{ display:'flex', flexDirection:'column' }}>
                 {connectedEvents.map((e, i, arr) => {
-                  const label = e.subjects?.[0]?.label || 'Report';
+                  const label = primarySubjectLabel(e.subjects, 'Report');
                   // Guarded rather than `|| []`: an older API build returns
                   // this as a Postgres array literal string, which is truthy
                   // and has no .map — one stale deploy shouldn't blank the
