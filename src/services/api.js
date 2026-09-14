@@ -226,4 +226,8 @@ export const citizenApi = {
   getLeaderboard: ()              => apiGet('/api/citizen/leaderboard'),
   getFeed:        (limit = 15)    => apiGet(`/api/citizen/feed?limit=${limit}`),
   submitReport:   (formData)      => apiPostForm('/api/activities', formData),
+  // spec §4: same outcome chains the Contributor Space shows, scoped to
+  // the calling citizen — who else saw it, how reports merged, who acted,
+  // what changed, who verified.
+  getStories:     (limit = 3)     => apiGet(`/api/citizen/stories?limit=${limit}`),
 };

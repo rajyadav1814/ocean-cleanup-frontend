@@ -1,12 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useCitizenStats, useCitizenLeaderboard, useCitizenFeed } from '../../../hooks/useCitizen';
+import { citizenApi } from '../../../services/api';
 import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import SubmitActivity from '../../contributor/pages/SubmitActivity';
 import MyAreasMap from '../../contributor/components/MyAreasMap';
-import { eventStateMeta, verificationStateMeta } from '../../contributor/eventMeta';
+import {
+  eventStateMeta, verificationStateMeta, primarySubject, primarySubjectLabel, buildStoryTimeline,
+  fmtEventDate as fmt,
+} from '../../contributor/eventMeta';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Bell, AlertCircle, Recycle, MapPin, Calendar, ShieldCheck, CheckCircle2, ChevronRight,
@@ -54,6 +58,12 @@ const wasteCodeMeta = {
 };
 const defaultWasteMeta = { Icon: Trash2, bg: 'var(--surface-hover)', color: 'var(--text-muted)' };
 
+// How many open reports the Needs Attention card previews before handing
+// off to the full list. The badge beside the title always shows the true
+// total, so this cap and that number must be read together — whenever it
+// clips anything, the card links out to the rest.
+const NEEDS_ATTENTION_PREVIEW = 5;
+
 /* ── helpers ── */
 function timeAgo(ts) {
   const diff = (Date.now() - new Date(ts)) / 1000;
@@ -66,32 +76,6 @@ function memberSince(ts) {
   if (!ts) return 'recently';
   return new Date(ts).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
 }
-function fmt(ts) {
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-}
-function getFeedStatus(item) {
-  const value = String(item.status || item.verificationStatus || item.activityStatus || 'pending')
-    .trim()
-    .toLowerCase();
-
-  if (['approved', 'verified', 'complete', 'completed'].includes(value)) {
-    return { label: 'Verified', variant: 'verified' };
-  }
-  if (['rejected', 'declined', 'failed'].includes(value)) {
-    return { label: 'Rejected', variant: 'rejected' };
-  }
-  if (value === 'pending' || value === 'in_review' || value === 'under_review') {
-    return { label: 'Pending', variant: 'pending' };
-  }
-
-  return {
-    label: value.replace(/[_-]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()),
-    variant: 'pending',
-  };
-}
-
 /* ── injected styles ──
    Bluemind ocean theme: Instrument Sans / Instrument Serif italic, the
    navy → ocean → teal ramp, glass card containers, wave motif. All the
@@ -270,7 +254,8 @@ const STYLES = `
   @keyframes coLivePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
   /* feed */
-  .co-feed-row { display: flex; gap: 0.9rem; padding: 0.9rem 0; border-bottom: 1px solid var(--border-light); align-items: center; }
+  .co-feed-row { display: flex; gap: 0.9rem; padding: 0.9rem 0; border-bottom: 1px solid var(--border-light); align-items: center; text-decoration: none; color: inherit; }
+  .co-feed-row:hover .co-feed-text { color: var(--primary-hover); }
   .co-feed-row:last-child { border-bottom: none; padding-bottom: 0; }
   .co-feed-time { font-size: 0.62rem; color: var(--text-muted); width: 44px; flex-shrink: 0; line-height: 1.4; font-family: var(--font-mono); text-align: right; }
   .co-feed-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--primary); flex-shrink: 0; }
@@ -293,16 +278,6 @@ const STYLES = `
   }
   .co-feed-footer-count { color: var(--text-muted); }
   .co-feed-footer-link { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--primary); font-weight: 700; text-decoration: none; }
-  .co-pill {
-    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em;
-    text-transform: uppercase; padding: 0.15rem 0.55rem;
-    border-radius: 20px; border: none;
-    box-shadow: none !important; transform: none !important; filter: none !important;
-    background: transparent !important; font-family: var(--font-mono);
-  }
-  .co-pill.pending  { background: rgba(198,130,30,0.14) !important; color: var(--warning) !important; }
-  .co-pill.verified { background: rgba(46,158,155,0.14) !important; color: var(--success) !important; }
-  .co-pill.rejected { background: rgba(239,68,68,0.14) !important; color: #EF4444 !important; }
   /* Event-state pills (Needs Attention / Impact Stories) need an
      arbitrary color per state, not just the fixed pending/verified/
      rejected set above — set inline via style, this just keeps the
@@ -311,18 +286,6 @@ const STYLES = `
     font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em;
     text-transform: uppercase; padding: 0.15rem 0.55rem;
     border-radius: 20px; white-space: nowrap; font-family: var(--font-mono);
-  }
-  .co-related-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
-    padding: 0.85rem 0; border-bottom: 1px solid var(--border-light);
-    text-decoration: none; color: inherit;
-  }
-  .co-related-row:last-child { border-bottom: none; padding-bottom: 0; }
-  .co-related-row:hover .co-feed-text { color: var(--primary-hover); }
-  .co-story-icon {
-    width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(46,158,155,0.14); color: var(--primary);
   }
   .co-see-all {
     display: block; margin-top: 0.4rem; padding-top: 0.9rem; border-top: 1px solid var(--border-light);
@@ -677,13 +640,13 @@ const BlueMindMark = () => (
 // whichever surface sits behind them instead of a flat light patch that
 // would stand out against a dark card.
 const HERO_VALUES = [
-  { key:'awareness', title:'Raise Awareness', text:'Your reports help spread environmental awareness.',
+  { key:'awareness', title:'Raise Awareness', text:'What you contribute helps build a clearer picture of what’s happening out there.',
     Icon: Megaphone, color:'#3B82F6', tint:'rgba(59,130,246,0.14)' },
-  { key:'impact', title:'Drive Impact', text:'Data you share helps drive real-world action.',
+  { key:'impact', title:'Drive Impact', text:'Blue Mind connects what you share to real-world action, not just a database.',
     Icon: BarChart3, color:'#22A06B', tint:'rgba(34,160,107,0.14)' },
   { key:'trust', title:'Build Trust', text:'Evidence stays traceable — see what you submitted, what Blue Mind added, and what got verified.',
     Icon: Shield, color:'#7C5CD6', tint:'rgba(124,92,214,0.14)' },
-  { key:'protect', title:'Protect Together', text:'Small actions today for a better tomorrow.',
+  { key:'protect', title:'Protect Together', text:'Cleanup, wildlife, water quality, research — every kind of contribution counts.',
     Icon: Leaf, color:'#CE9A2E', tint:'rgba(206,154,46,0.16)' },
 ];
 
@@ -717,6 +680,19 @@ export default function CitizenOverview() {
   const [toast, setToast] = useState('');
   const [mapFullscreen, setMapFullscreen] = useState(false);
 
+  // Top 3 outcome chains (spec §4), same source and same shape as the
+  // Contributor Space. Its own endpoint rather than more columns on the
+  // events list: the acting-organization and verifier joins are only worth
+  // paying for on the handful of stories actually rendered.
+  const [stories, setStories] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    citizenApi.getStories(3).then((res) => {
+      if (!cancelled && res?.ok && Array.isArray(res.stories)) setStories(res.stories);
+    }).catch(() => { /* card falls back to its empty state */ });
+    return () => { cancelled = true; };
+  }, []);
+
   if (sL || lL || fL || eL) return <LoadingSpinner />;
 
   const s = stats || {};
@@ -739,10 +715,6 @@ export default function CitizenOverview() {
   const needsAttention = [...myEvents]
     .filter((e) => e.eventState !== 'addressed')
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  const impactStories = [...myEvents]
-    .filter((e) => e.eventState === 'addressed')
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-    .slice(0, 6);
 
   // Hero "what changed since you were last here" (spec §15) — same logic
   // as ContributorOverview's heroUpdate, so both spaces tell the same kind
@@ -924,7 +896,7 @@ export default function CitizenOverview() {
               Nothing open right now — everything you've reported has been addressed.
             </div>
           ) : (
-            needsAttention.slice(0, 5).map((e, i, arr) => {
+            needsAttention.slice(0, NEEDS_ATTENTION_PREVIEW).map((e, i, arr) => {
               const stateMeta = eventStateMeta(e.eventState);
               const verMeta = verificationStateMeta(e.verificationState);
               const subjectLabel = e.subjects?.map((s2) => s2.label).join(', ') || 'Unclassified';
@@ -965,48 +937,118 @@ export default function CitizenOverview() {
               );
             })
           )}
+          {/* The count above is every open report; the list shows only the
+              most recent few. Without this the rest were unreachable from
+              here — the badge said 8 over a list of 5. */}
+          {needsAttention.length > NEEDS_ATTENTION_PREVIEW && (
+            <Link to="/citizen/my-activities?filter=open" className="co-see-all">
+              View all {needsAttention.length} open reports
+            </Link>
+          )}
         </div>
 
+        {/* ── WHAT CHANGED BECAUSE OF YOU (spec §4) ──
+            The full chain, not its endpoint: you reported it → others saw
+            the same thing → the reports were merged → someone acted →
+            this much changed → it was verified. Only the top 3, told
+            properly, rather than a long list that says only "resolved".
+            Beats with no recorded data are omitted by buildStoryTimeline
+            rather than invented. Mirrors the Contributor Space exactly —
+            same endpoint shape, same beats, same card. */}
         <div className="co-panel">
           <div className="co-panel-title">What Changed Because of You</div>
           <div className="co-panel-desc">What happened after you reported it.</div>
-          {impactStories.length === 0 ? (
+          {stories.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--text-muted)', fontSize: '0.84rem' }}>
-              No resolved reports yet — check back once one of yours is addressed.
+              No resolved reports yet — check back once one of your reports is addressed.
             </div>
           ) : (
-            <>
-              {impactStories.flatMap((e) => {
-                const subjects = e.subjects?.length ? e.subjects : [{ label: 'Issue', code: null }];
-                return subjects.map((s2) => ({ event: e, subject: s2 }));
-              }).map(({ event: e, subject: s2 }, i, arr) => {
-                const meta = wasteCodeMeta[s2.code] || defaultWasteMeta;
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+              {stories.map((story) => {
+                const subject = primarySubject(story.subjects);
+                const meta = wasteCodeMeta[subject?.code] || defaultWasteMeta;
                 const { Icon } = meta;
-                const verMeta = verificationStateMeta(e.verificationState);
+                const timeline = buildStoryTimeline(story);
+                const verifiedBy = story.verification?.verifierOrg || story.verification?.verifierName;
                 return (
-                  <Link key={`${e.eventId}-${s2.eventSubjectId || s2.code}`} to={`/citizen/events/${e.eventId}`}
-                    className="co-related-row" style={{ borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                    <div className="co-story-icon" style={{ background: meta.bg, color: meta.color }}>
-                      <Icon size={18} strokeWidth={2} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="co-feed-text" style={{ fontWeight: 600 }}>{s2.label} resolved</div>
-                      <div className="co-feed-meta">{e.locationLabel || 'Unknown location'}</div>
-                      {e.corroborationCount > 0 && (
-                        <div style={{ fontSize: '0.72rem', color: 'var(--secondary)', marginTop: '0.2rem', fontWeight: 600 }}>
-                          {e.corroborationCount} other {e.corroborationCount === 1 ? 'report was' : 'reports were'} joined into this one, not filed separately.
+                  <div key={story.eventId} style={{
+                    border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '0.95rem 1.1rem',
+                  }}>
+                    {/* Header: what this was, where, and when it closed */}
+                    <div style={{ display: 'flex', gap: '0.7rem', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                      <div style={{ width: '38px', height: '38px', borderRadius: '11px', flexShrink: 0,
+                        background: meta.bg, color: meta.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon size={18} strokeWidth={2} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)', lineHeight: 1.3 }}>
+                          {story.title || `${subject?.label || 'Report'} resolved`}
                         </div>
-                      )}
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.3rem',
-                        fontSize: '0.68rem', fontWeight: 700, color: verMeta.color, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-                        <ShieldCheck size={11} strokeWidth={2.5} />{verMeta.label}
+                        <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                          {story.locationLabel || 'Unknown location'}
+                          {story.closedAt && ` · closed ${fmt(story.closedAt)}`}
+                        </div>
                       </div>
                     </div>
-                    <CheckCircle2 size={19} strokeWidth={2} color="var(--success)" style={{ flexShrink: 0 }} />
-                  </Link>
+
+                    {/* The chain itself */}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {timeline.map((beat, bi) => {
+                        const last = bi === timeline.length - 1;
+                        return (
+                          <div key={beat.key} style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start' }}>
+                            {/* Rail: marker + connector to the next beat */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                              {beat.outcome ? (
+                                <CheckCircle2 size={17} strokeWidth={2.5} color="var(--success)" />
+                              ) : (
+                                <span style={{ width: '13px', height: '13px', borderRadius: '50%', marginTop: '3px',
+                                  border: `2px solid ${bi === 0 ? 'var(--primary)' : 'var(--border-light)'}`,
+                                  background: 'var(--surface)' }} />
+                              )}
+                              {!last && <span style={{ width: '2px', flex: 1, minHeight: '20px', background: 'var(--border-light)' }} />}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0, paddingBottom: last ? 0 : '0.55rem' }}>
+                              <div style={{
+                                fontSize: beat.outcome ? '1.05rem' : '0.82rem',
+                                fontWeight: beat.outcome ? 700 : 600,
+                                color: 'var(--text-main)',
+                                lineHeight: 1.35,
+                              }}>
+                                {beat.text}
+                              </div>
+                              {beat.detail && (
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.1rem' }}>
+                                  {beat.detail}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Footer: who stood behind it, and the way in */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap',
+                      gap: '0.5rem', marginTop: '0.85rem', paddingTop: '0.7rem', borderTop: '1px solid var(--border-light)' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                        fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                        <ShieldCheck size={13} strokeWidth={2.5} style={{ color: verificationStateMeta(story.verificationState).color }} />
+                        {story.verification
+                          ? `Verified${verifiedBy ? ` by ${verifiedBy}` : ''}${story.verification.verifiedAt ? ` · ${fmt(story.verification.verifiedAt)}` : ''}`
+                          : verificationStateMeta(story.verificationState).label}
+                      </span>
+                      <Link to={`/citizen/events/${story.eventId}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', textDecoration: 'none',
+                          fontSize: '0.74rem', fontWeight: 700, color: 'var(--primary)',
+                          border: '1px solid var(--border-light)', borderRadius: '999px', padding: '0.35rem 0.8rem' }}>
+                        See the full event <ChevronRight size={13} strokeWidth={2.5} />
+                      </Link>
+                    </div>
+                  </div>
                 );
               })}
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -1055,24 +1097,38 @@ export default function CitizenOverview() {
 
             {feed.slice(0, 6).map((item, i) => {
               const name = `${item.firstName || ''} ${item.lastName?.[0] ? item.lastName[0] + '.' : ''}`.trim();
-              const status = getFeedStatus(item);
+              // Every report is an event, and not every event is a cleanup
+              // — a wildlife sighting or a water reading is described by its
+              // own subject rather than as "a cleanup".
+              const subjectLabel = primarySubjectLabel(item.subjects, 'an issue');
+              const stateMeta = eventStateMeta(item.eventState);
+              const verMeta = verificationStateMeta(item.verificationState);
               return (
-                <div key={item.id || i} className="co-feed-row">
+                <Link key={item.eventId || item.id || i} to={`/citizen/events/${item.eventId}`} className="co-feed-row">
                   <div className="co-feed-time">{timeAgo(item.submittedAt)}</div>
                   <div className="co-feed-dot" />
                   <div className="co-feed-av">{(item.firstName?.[0] || '') + (item.lastName?.[0] || '')}</div>
                   <div className="co-feed-body">
                     <div className="co-feed-text">
-                      <b>{name}</b> logged a cleanup at {item.location}
+                      <b>{name}</b> reported {subjectLabel.toLowerCase()}
+                      {item.location ? ` at ${item.location}` : ''}
                     </div>
                     <div className="co-feed-meta">
                       {item.quantity > 0 && <span><Weight size={11} />{item.quantity} kg</span>}
                       {item.volunteers > 0 && <span><Users size={11} />{item.volunteers} vol.</span>}
-                      <span className={`co-pill ${status.variant}`}>{status.label}</span>
+                      {/* The event model's own two axes (spec §12) rather
+                          than one flattened approved/pending/rejected pill:
+                          an event can be addressed and still unverified. */}
+                      <span className="co-state-pill" style={{ background: `${stateMeta.color}22`, color: stateMeta.color }}>
+                        {stateMeta.label}
+                      </span>
+                      <span className="co-state-pill" style={{ background: verMeta.color, color: '#fff' }}>
+                        {verMeta.label}
+                      </span>
                     </div>
                   </div>
                   <ChevronRight size={16} className="co-feed-chevron" />
-                </div>
+                </Link>
               );
             })}
 

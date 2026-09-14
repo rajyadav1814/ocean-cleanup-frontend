@@ -9,23 +9,13 @@ import { useContributorImpact } from '../../../hooks/useContributorImpact';
 import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { contributorApi } from '../../../services/api';
-import { eventStateMeta, verificationStateMeta, adaptiveImpactMetrics, formatImpactPhrase, primarySubject, primarySubjectLabel } from '../eventMeta';
+import {
+  eventStateMeta, verificationStateMeta, adaptiveImpactMetrics, formatImpactPhrase,
+  primarySubject, primarySubjectLabel, buildStoryTimeline,
+  fmtEventDate as fmt, fmtEventDateTime as fmtDateTime,
+} from '../eventMeta';
 import { needsAttention as needsAttentionPredicate } from '../../../utils/eventMapLayers';
 import MyAreasMap from '../components/MyAreasMap';
-
-function fmt(ts) {
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-}
-
-function fmtDateTime(ts) {
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return '—';
-  const date = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-  const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
-  return `${date}, ${time}`;
-}
 
 function toDateInputValue(date) {
   return date.toISOString().slice(0, 10);
@@ -58,6 +48,12 @@ const wasteCodeMeta = {
   mixed_waste:   { Icon: Trash2,      bg:'var(--surface-hover)', color:'var(--text-muted)' },
 };
 const defaultWasteMeta = { Icon: Trash2, bg:'var(--surface-hover)', color:'var(--text-muted)' };
+
+// How many open events the Needs Attention card previews before handing
+// off to the full list. The badge beside the title always shows the true
+// total, so this cap and that number must be read together — whenever it
+// clips anything, the card links out to the rest.
+const NEEDS_ATTENTION_PREVIEW = 6;
 
 const StatusPill = ({ status }) => {
   const s = activityStatusMeta[status] || activityStatusMeta.pending;
@@ -430,68 +426,6 @@ const CONNECTION_LABEL = {
   observed_at: 'observed at',
   predicted_to_affect: 'predicted to affect',
 };
-
-// How the contributor's own first beat reads, by how they sent it in.
-const INTAKE_VERB = {
-  photo_video: 'photographed',
-  tell_blue_mind: 'described',
-  measurement: 'measured',
-  upload: 'uploaded a record of',
-};
-
-/**
- * Turns one story from /api/contributor/stories into ordered timeline beats
- * (spec §4). Every beat is backed by recorded data — anything the system
- * didn't capture is left out rather than filled in with a plausible guess,
- * so a short chain means a quiet event, never an invented one.
- */
-function buildStoryTimeline(story) {
-  const beats = [];
-  const subject = primarySubjectLabel(story.subjects, 'an issue');
-  const verb = INTAKE_VERB[story.intakeMethod] || 'reported';
-
-  beats.push({
-    key: 'reported',
-    text: `You ${verb} ${subject.toLowerCase()}`,
-    detail: story.reportedAt ? fmtDateTime(story.reportedAt) : null,
-  });
-
-  if (story.corroboratorCount > 0) {
-    beats.push({
-      key: 'corroborated',
-      text: `${story.corroboratorCount} other ${story.corroboratorCount === 1 ? 'person' : 'people'} reported the same thing`,
-      detail: null,
-    });
-    beats.push({
-      key: 'merged',
-      text: `${story.mergedReportCount} reports merged into one event`,
-      detail: 'Not filed as separate problems',
-    });
-  }
-
-  if (story.action) {
-    const who = story.action.actorOrg || story.action.actorName;
-    beats.push({
-      key: 'action',
-      text: who ? `${who} acted on it` : 'An action was taken in response',
-      detail: [story.action.title, story.action.actedAt ? fmt(story.action.actedAt) : null]
-        .filter(Boolean).join(' · ') || null,
-    });
-  }
-
-  // The outcome gets its own emphasised beat — this is the number the
-  // contributor came back to see.
-  if (story.impact?.length > 0) {
-    beats.push({
-      key: 'impact',
-      text: story.impact.map(formatImpactPhrase).join(' · '),
-      detail: null,
-      outcome: true,
-    });
-  }
-
-  return beats;
-}
 
 const HERO_VALUES = [
   { key:'awareness', title:'Raise Awareness', text:'What you contribute helps build a clearer picture of what’s happening out there.',
@@ -982,7 +916,7 @@ export default function ContributorOverview() {
               <p style={emptyStyle}>Nothing open right now — everything you've reported has been addressed.</p>
             ) : (
               <div style={{ display:'flex', flexDirection:'column' }}>
-                {needsAttention.slice(0, 6).map((e, i, arr) => {
+                {needsAttention.slice(0, NEEDS_ATTENTION_PREVIEW).map((e, i, arr) => {
                   const stateMeta = eventStateMeta(e.eventState);
                   const verMeta = verificationStateMeta(e.verificationState);
                   const subjectLabel = e.subjects?.map(s => s.label).join(', ') || 'Unclassified';
@@ -1023,6 +957,18 @@ export default function ContributorOverview() {
                   );
                 })}
               </div>
+            )}
+            {/* The count above is every open event; the list shows only the
+                most recent few. Without this the rest were unreachable from
+                here — the badge said 8 over a list of 6. */}
+            {needsAttention.length > NEEDS_ATTENTION_PREVIEW && (
+              <Link to="/contributor/my-activities?filter=open" style={{
+                display:'block', marginTop:'0.9rem', paddingTop:'0.9rem',
+                borderTop:'1px solid var(--border-light)', textAlign:'center',
+                fontSize:'0.82rem', fontWeight:700, color:'var(--primary)', textDecoration:'none',
+              }}>
+                View all {needsAttention.length} open events
+              </Link>
             )}
           </Card>
 

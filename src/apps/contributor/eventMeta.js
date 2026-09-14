@@ -175,3 +175,88 @@ export function adaptiveImpactMetrics(impact) {
   const fn = FAMILY_IMPACT_METRICS[family] || FAMILY_IMPACT_METRICS.pollution_waste;
   return fn(impact || {}, byFamily);
 }
+
+// ─── Story dates ───────────────────────────────────────────────────────────
+// The two date formats an outcome chain reads in: a bare day/month for the
+// "closed 14 Sep" line, and the full stamp for a beat's own detail. Kept
+// here beside buildStoryTimeline so the Citizen and Contributor spaces
+// can't drift into formatting the same story two different ways.
+export function fmtEventDate(ts) {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+export function fmtEventDateTime(ts) {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '—';
+  const date = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${date}, ${time}`;
+}
+
+// How the reporter's own first beat reads, by how they sent it in.
+export const INTAKE_VERB = {
+  photo_video: 'photographed',
+  tell_blue_mind: 'described',
+  measurement: 'measured',
+  upload: 'uploaded a record of',
+};
+
+/**
+ * Turns one story from the /stories endpoint into ordered timeline beats
+ * (spec §4). Every beat is backed by recorded data — anything the system
+ * didn't capture is left out rather than filled in with a plausible guess,
+ * so a short chain means a quiet event, never an invented one.
+ *
+ * Shared by the Contributor and Citizen dashboards: both spaces are
+ * telling the same person the same story about the same event, so the
+ * beats are built once here rather than once per page.
+ */
+export function buildStoryTimeline(story) {
+  const beats = [];
+  const subject = primarySubjectLabel(story.subjects, 'an issue');
+  const verb = INTAKE_VERB[story.intakeMethod] || 'reported';
+
+  beats.push({
+    key: 'reported',
+    text: `You ${verb} ${subject.toLowerCase()}`,
+    detail: story.reportedAt ? fmtEventDateTime(story.reportedAt) : null,
+  });
+
+  if (story.corroboratorCount > 0) {
+    beats.push({
+      key: 'corroborated',
+      text: `${story.corroboratorCount} other ${story.corroboratorCount === 1 ? 'person' : 'people'} reported the same thing`,
+      detail: null,
+    });
+    beats.push({
+      key: 'merged',
+      text: `${story.mergedReportCount} reports merged into one event`,
+      detail: 'Not filed as separate problems',
+    });
+  }
+
+  if (story.action) {
+    const who = story.action.actorOrg || story.action.actorName;
+    beats.push({
+      key: 'action',
+      text: who ? `${who} acted on it` : 'An action was taken in response',
+      detail: [story.action.title, story.action.actedAt ? fmtEventDate(story.action.actedAt) : null]
+        .filter(Boolean).join(' · ') || null,
+    });
+  }
+
+  // The outcome gets its own emphasised beat — this is the number the
+  // reporter came back to see.
+  if (story.impact?.length > 0) {
+    beats.push({
+      key: 'impact',
+      text: story.impact.map(formatImpactPhrase).join(' · '),
+      detail: null,
+      outcome: true,
+    });
+  }
+
+  return beats;
+}

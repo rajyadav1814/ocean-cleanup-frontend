@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useActivities } from '../../../hooks/useActivities';
 import { useEvents } from '../../../hooks/useEvents';
 import { useAuth } from '../../../context/AuthContext';
@@ -192,7 +192,15 @@ export default function MyActivities() {
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState('');
   const [gallery, setGallery] = useState(null);
-  const [filter, setFilter] = useState('all');
+  // Opens on a preselected bucket when linked to with ?filter= (the
+  // dashboards' "Needs Attention" cards link straight to the open ones,
+  // rather than dropping you into the full list to find them again).
+  // Unknown values fall back to 'all' instead of an empty screen.
+  const [searchParams] = useSearchParams();
+  const [filter, setFilter] = useState(() => {
+    const requested = searchParams.get('filter');
+    return FILTERS.some((f) => f.key === requested) ? requested : 'all';
+  });
 
   const visibleActivities = useMemo(
     () => activities.filter((activity) => activity.contributorId === user?.id),
