@@ -254,8 +254,9 @@ const STYLES = `
   @keyframes coLivePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
 
   /* feed */
-  .co-feed-row { display: flex; gap: 0.9rem; padding: 0.9rem 0; border-bottom: 1px solid var(--border-light); align-items: center; text-decoration: none; color: inherit; }
-  .co-feed-row:hover .co-feed-text { color: var(--primary-hover); }
+  /* Informational only — the feed reports what the community is seeing, it
+     is not a way into those events. No link, no hover state, no chevron. */
+  .co-feed-row { display: flex; gap: 0.9rem; padding: 0.9rem 0; border-bottom: 1px solid var(--border-light); align-items: center; }
   .co-feed-row:last-child { border-bottom: none; padding-bottom: 0; }
   .co-feed-time { font-size: 0.62rem; color: var(--text-muted); width: 44px; flex-shrink: 0; line-height: 1.4; font-family: var(--font-mono); text-align: right; }
   .co-feed-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--primary); flex-shrink: 0; }
@@ -270,7 +271,6 @@ const STYLES = `
   .co-feed-text b { font-weight: 600; color: var(--text-main); }
   .co-feed-meta { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.35rem; font-size: 0.65rem; color: var(--text-muted); flex-wrap: wrap; font-family: var(--font-mono); }
   .co-feed-meta span { display: inline-flex; align-items: center; gap: 0.25rem; }
-  .co-feed-chevron { flex-shrink: 0; color: var(--text-muted); }
   .co-feed-footer {
     display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     margin-top: 0.4rem; padding-top: 0.9rem; border-top: 1px solid var(--border-light);
@@ -1104,7 +1104,7 @@ export default function CitizenOverview() {
               const stateMeta = eventStateMeta(item.eventState);
               const verMeta = verificationStateMeta(item.verificationState);
               return (
-                <Link key={item.eventId || item.id || i} to={`/citizen/events/${item.eventId}`} className="co-feed-row">
+                <div key={item.eventId || item.id || i} className="co-feed-row">
                   <div className="co-feed-time">{timeAgo(item.submittedAt)}</div>
                   <div className="co-feed-dot" />
                   <div className="co-feed-av">{(item.firstName?.[0] || '') + (item.lastName?.[0] || '')}</div>
@@ -1127,8 +1127,7 @@ export default function CitizenOverview() {
                       </span>
                     </div>
                   </div>
-                  <ChevronRight size={16} className="co-feed-chevron" />
-                </Link>
+                </div>
               );
             })}
 

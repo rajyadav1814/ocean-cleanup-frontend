@@ -117,6 +117,16 @@ const Leaf = ({ size = 16, style, className }) => (
   </svg>
 );
 
+// The Tell Blue Mind counterpart to Leaf, on the same hand-drawn footing
+// rather than a stock icon set.
+const Mic = ({ size = 16, style, className }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={style} className={className} aria-hidden="true">
+    <rect x="9" y="2" width="6" height="11" rx="3" />
+    <path d="M5 10.5a7 7 0 0014 0" />
+    <line x1="12" y1="17.5" x2="12" y2="21" />
+  </svg>
+);
+
 // Every step past the landing tiles carries the color of the tile it came
 // from, so the flow reads as one continuous colored thread instead of
 // resetting to a neutral default the moment you commit to a path.
@@ -193,28 +203,64 @@ const TILE_DECORATION = {
   ),
 };
 
-const Tile = ({ icon, title, sub, onClick, disabled, theme }) => {
+// `art` gives a tile the same bracketed illustration panel the Photo/Video
+// hero carries, for when a tile stands on its own at full width and would
+// otherwise read as a wide empty card. It replaces the corner decoration
+// rather than sitting alongside it — two pieces of art on one tile is one
+// too many.
+const Tile = ({ icon, title, sub, onClick, disabled, theme, art }) => {
   const accent = TILE_THEME[theme].accent;
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="qr-tile"
+      className={`qr-tile${art ? ' qr-tile--with-art' : ''}`}
       style={{ '--tile-accent': accent, opacity: disabled ? 0.5 : 1, cursor: disabled ? 'default' : 'pointer' }}
     >
-      {TILE_DECORATION[theme] && <span className="qr-tile-deco" aria-hidden="true">{TILE_DECORATION[theme]}</span>}
-      <span className="qr-tile-icon">{TILE_ICONS[icon]}</span>
-      <span className="qr-tile-title">{title}</span>
-      <span className="qr-tile-underline" aria-hidden="true" />
-      <span className="qr-tile-sub">{sub}</span>
-      <span className="qr-tile-arrow" aria-hidden="true">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-        </svg>
+      {!art && TILE_DECORATION[theme] && <span className="qr-tile-deco" aria-hidden="true">{TILE_DECORATION[theme]}</span>}
+      <span className="qr-tile-body">
+        <span className="qr-tile-icon">{TILE_ICONS[icon]}</span>
+        <span className="qr-tile-title">{title}</span>
+        <span className="qr-tile-underline" aria-hidden="true" />
+        <span className="qr-tile-sub">{sub}</span>
+        <span className="qr-tile-arrow" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+          </svg>
+        </span>
       </span>
+      {art && (
+        <span className="qr-tile-art" aria-hidden="true">
+          <span className="qr-hero-bracket qr-hero-bracket--tl" />
+          <span className="qr-hero-bracket qr-hero-bracket--tr" />
+          <span className="qr-hero-bracket qr-hero-bracket--bl" />
+          <span className="qr-hero-bracket qr-hero-bracket--br" />
+          {art.svg}
+          <span className="qr-hero-caption">{art.icon} {art.caption}</span>
+        </span>
+      )}
     </button>
   );
+};
+
+// Someone speaking, with their words carrying out as sound — the Tell Blue
+// Mind counterpart to the hero's "Capture what you found" photograph frame.
+const SPEAK_ART = {
+  caption: 'Say what you saw',
+  icon: <Mic size={13} />,
+  svg: (
+    <svg width="96" height="60" viewBox="0 0 96 60" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.7">
+      {/* head and shoulders */}
+      <circle cx="30" cy="19" r="9" />
+      <path d="M13 51c0-9.4 7.6-17 17-17s17 7.6 17 17" />
+      {/* speech carrying to the right, widening as it goes */}
+      <path d="M57 24c3.4 4.2 3.4 12 0 16" />
+      <path d="M68 18c6 7.4 6 21 0 28" />
+      <path d="M79 12c8.6 10.6 8.6 30 0 40" opacity="0.55" />
+    </svg>
+  ),
 };
 
 // Surfaces condition/outcome/severity/hazard (spec §7.3-7.4 vocabulary)
@@ -748,6 +794,24 @@ export default function QuickReport() {
         .qr-tile-deco {
           position: absolute; right: 0.9rem; bottom: 0.9rem; color: var(--tile-accent); opacity: 0.22; pointer-events: none;
         }
+        /* A tile's content column. Always present, so a tile with no art
+           renders exactly as before — it is the only child, and .qr-tile is
+           still the column that positions it. */
+        .qr-tile-body {
+          display: flex; flex-direction: column; align-items: flex-start;
+          gap: 0.35rem; flex: 1 1 55%; min-width: 0;
+        }
+        /* With art, the tile becomes the same two-column card as the
+           Photo/Video hero, and borrows its bracket and caption rules. */
+        .qr-tile--with-art {
+          flex-direction: row; align-items: stretch; gap: 1.75rem; padding: 1.75rem;
+        }
+        .qr-tile-art {
+          position: relative; flex: 1 1 40%; min-width: 200px; border-radius: var(--radius-md);
+          background: linear-gradient(155deg, color-mix(in srgb, var(--tile-accent) 16%, transparent), color-mix(in srgb, var(--tile-accent) 4%, transparent));
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; padding: 1.5rem;
+          color: var(--tile-accent);
+        }
         .qr-tile-icon {
           position: relative; width: 44px; height: 44px; border-radius: 999px; flex-shrink: 0; margin-bottom: 0.25rem;
           display: flex; align-items: center; justify-content: center;
@@ -787,8 +851,8 @@ export default function QuickReport() {
         @media (max-width: 640px) {
           .qr-header { text-align: left; }
           .qr-grid { grid-template-columns: 1fr; }
-          .qr-hero { flex-direction: column; }
-          .qr-hero-art { min-height: 160px; }
+          .qr-hero, .qr-tile--with-art { flex-direction: column; }
+          .qr-hero-art, .qr-tile-art { min-height: 160px; }
           .qr-banner { justify-content: flex-start; }
           .qr-banner-divider { display: none; }
         }
@@ -1022,13 +1086,29 @@ export default function QuickReport() {
           </div>
 
           <div className="qr-grid">
-            {/* Every contributor type gets all 4 entry methods — a
+            {/* Every CONTRIBUTOR type gets all 4 entry methods — a
                 water-quality tech or citizen scientist needs Measurement
                 and Upload just as much as a cleanup contributor does
-                (universal-contributor spec §1). */}
-            <Tile icon="chart" theme="green" title="Measurement" sub="Enter a structured environmental measurement." onClick={openMeasurementForm} />
-            <Tile icon="upload" theme="orange" title="Upload" sub="Upload an existing report, spreadsheet, or dataset." onClick={() => documentInputRef.current?.click()} />
-            <Tile icon="voice" theme="violet" title="Tell Blue Mind" sub="Speak or type what happened, in your own words." onClick={() => setMode('text-choose')} />
+                (universal-contributor spec §1).
+
+                A citizen gets the two that need nothing but a phone and
+                their own words: the Photo / Video hero above, and Tell Blue
+                Mind. Measurement expects instrument readings and Upload
+                expects an existing dataset — neither is something a citizen
+                reporting what they just saw is carrying. */}
+            {!isCitizen && (
+              <>
+                <Tile icon="chart" theme="green" title="Measurement" sub="Enter a structured environmental measurement." onClick={openMeasurementForm} />
+                <Tile icon="upload" theme="orange" title="Upload" sub="Upload an existing report, spreadsheet, or dataset." onClick={() => documentInputRef.current?.click()} />
+              </>
+            )}
+            {/* The art panel is for the citizen landing, where this tile is
+                the only one in the grid and spans the full row — it mirrors
+                the Photo/Video hero above it. A contributor sees this tile
+                alongside Measurement and Upload at a third of the width,
+                where a side panel would not fit. */}
+            <Tile icon="voice" theme="violet" title="Tell Blue Mind" sub="Speak or type what happened, in your own words."
+              onClick={() => setMode('text-choose')} art={isCitizen ? SPEAK_ART : undefined} />
           </div>
         </>
       )}
