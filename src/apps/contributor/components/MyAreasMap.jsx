@@ -68,6 +68,60 @@ function LayerBar({ activeLayerId, onSelect, counts, compact }) {
   );
 }
 
+// One place in the list, in both the inline card and the fullscreen panel —
+// a button only so it is clickable and keyboard-reachable; it keeps the plain
+// list look, with the left rule marking the current selection.
+function PlaceRow({ place, selected, isLast, onSelect }) {
+  const lat = Number(place.lat);
+  const lon = Number(place.lon);
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
+  const coords = hasCoords ? `${lat.toFixed(5)}, ${lon.toFixed(5)}` : null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(place)}
+      aria-pressed={selected}
+      title={coords ? `Show ${place.name} on the map (${coords})` : place.name}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '0.6rem',
+        width: '100%', textAlign: 'left', font: 'inherit', cursor: 'pointer',
+        background: selected ? 'color-mix(in srgb, var(--primary) 7%, transparent)' : 'none',
+        border: 'none', boxShadow: 'none', borderRadius: 0,
+        borderLeft: `3px solid ${selected ? 'var(--primary)' : 'transparent'}`,
+        borderBottom: isLast ? 'none' : '1px solid var(--border-light)',
+        padding: '0.6rem 0.4rem 0.6rem 0.45rem',
+      }}
+    >
+      <span style={{ width: '9px', height: '9px', borderRadius: '50%', flexShrink: 0,
+        background: place.status?.color || 'var(--text-muted)' }} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {place.name}
+        </div>
+        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {[place.region, place.reason].filter(Boolean).join(' · ')}
+        </div>
+        {selected && coords && (
+          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+            {coords}
+          </div>
+        )}
+      </div>
+      {place.status && (
+        <span style={{ flexShrink: 0, fontSize: '0.68rem', fontWeight: 600,
+          color: place.status.color, background: `color-mix(in srgb, ${place.status.color} 12%, transparent)`,
+          border: `1px solid color-mix(in srgb, ${place.status.color} 30%, transparent)`,
+          borderRadius: '999px', padding: '0.2rem 0.6rem', whiteSpace: 'nowrap' }}>
+          {place.status.label}
+        </span>
+      )}
+    </button>
+  );
+}
+
 /**
  * MyAreasMap — the contributor's own environmental events plotted by
  * location, pin color driven by event_state (not the legacy approval
@@ -92,12 +146,16 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
   const mapContainerRef = useRef(null);
   const leafletMap = useRef(null);
   const markersLayerRef = useRef(null);
+  // event -> its live marker, so clicking a place in the list below can open
+  // the pin that belongs to it without re-deriving it from coordinates.
+  const markersByEventRef = useRef(new Map());
 
   const { organizations } = useOrganizations();
   const [activeLayerId, setActiveLayerId] = useState('all');
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [selectedOrgId, setSelectedOrgId] = useState('');
+  const [selectedPlaceKey, setSelectedPlaceKey] = useState(null);
 
   const activeLayer = MAP_LAYERS.find((l) => l.id === activeLayerId) || MAP_LAYERS[0];
   const layerContext = useMemo(
@@ -108,6 +166,7 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
   const handleSelectLayer = (layer) => {
     setActiveLayerId(layer.id);
     setLocationError(null);
+    setSelectedPlaceKey(null);
     if (layer.needsLocation && !userLocation) {
       if (!navigator.geolocation) {
         setLocationError('Location is not available in this browser.');
@@ -168,6 +227,27 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
   }, [valid, layeredEvents]);
   const [placesExpanded, setPlacesExpanded] = useState(false);
   const visiblePlaces = placesExpanded ? places : places.slice(0, 3);
+
+  // Clicking a place in the list takes the map to its coordinates and opens
+  // the pin there, so the list and the map are two views of one selection
+  // rather than a list sitting under an unrelated map.
+  const focusPlace = (place) => {
+    setSelectedPlaceKey(place.key);
+    const map = leafletMap.current;
+    const lat = Number(place.lat);
+    const lon = Number(place.lon);
+    if (!map || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
+
+    // Inline, the map can easily be scrolled off-screen by the time the user
+    // reaches the list — flying a map nobody can see reads as a dead click.
+    if (!isFullscreen) mapContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    map.flyTo([lat, lon], Math.max(map.getZoom(), 14), { duration: 0.7 });
+    // A place groups every report at that spot, but only the ones matching the
+    // active question have a marker on the map right now.
+    const marker = place.events.map((e) => markersByEventRef.current.get(e)).find(Boolean);
+    marker?.openPopup();
+  };
 
   /* ── Initialize map (once) ─────────────────────────────────────────────── */
   useEffect(() => {
@@ -250,6 +330,7 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
       if (cancelled || !map || !markersLayer) return;
 
       markersLayer.clearLayers();
+      markersByEventRef.current = new Map();
 
       if (layeredEvents.length > 0) {
         const latLngs = layeredEvents.map((e) => [Number(e.lat), Number(e.lon)]);
@@ -266,14 +347,18 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
             popupAnchor: [0, -40],
           });
 
-          L.marker([lat, lng], { icon })
+          const marker = L.marker([lat, lng], { icon })
             .addTo(markersLayer)
             .bindPopup(
               `<div style="font:600 0.8rem sans-serif;">${subjectLabel}</div>
                <div style="font:0.72rem sans-serif;color:#666;margin-top:2px;">${event.locationLabel || ''}</div>
+               <div style="font:0.68rem sans-serif;color:#888;margin-top:2px;">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
                <div style="font:700 0.7rem sans-serif;color:${meta.color};margin-top:4px;text-transform:uppercase;">${meta.label}</div>`,
-              { maxWidth: 220 }
+              // autoPan off: focusPlace flies the map itself, and leaflet's own
+              // pan-into-view would fight that animation mid-flight.
+              { maxWidth: 220, autoPan: false }
             );
+          markersByEventRef.current.set(event, marker);
         });
 
         if (activeLayer.id === 'near-me' && userLocation) {
@@ -401,31 +486,13 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
       {visiblePlaces.length > 0 && (
         <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column' }}>
           {visiblePlaces.map((place, i) => (
-            <div key={place.key} style={{
-              display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.6rem 0',
-              borderBottom: i < visiblePlaces.length - 1 ? '1px solid var(--border-light)' : 'none',
-            }}>
-              <span style={{ width: '9px', height: '9px', borderRadius: '50%', flexShrink: 0,
-                background: place.status?.color || 'var(--text-muted)' }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-main)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {place.name}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {[place.region, place.reason].filter(Boolean).join(' · ')}
-                </div>
-              </div>
-              {place.status && (
-                <span style={{ flexShrink: 0, fontSize: '0.68rem', fontWeight: 600,
-                  color: place.status.color, background: `color-mix(in srgb, ${place.status.color} 12%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${place.status.color} 30%, transparent)`,
-                  borderRadius: '999px', padding: '0.2rem 0.6rem', whiteSpace: 'nowrap' }}>
-                  {place.status.label}
-                </span>
-              )}
-            </div>
+            <PlaceRow
+              key={place.key}
+              place={place}
+              selected={place.key === selectedPlaceKey}
+              isLast={i === visiblePlaces.length - 1}
+              onSelect={focusPlace}
+            />
           ))}
           {places.length > 3 && (
             <button type="button" onClick={() => setPlacesExpanded((v) => !v)}
@@ -455,7 +522,37 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
               {orgPicker}
               {statusLine}
             </div>
-            <div ref={fullscreenSlotRef} style={{ flex: 1, width: '100%' }} />
+            {/* Fullscreen gets the same places list as the card, as a side
+                panel: the extra room means it can show every place at once
+                instead of the card's three-then-expand. It wraps under the
+                map on narrow screens rather than squeezing both. */}
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'stretch' }}>
+              <div ref={fullscreenSlotRef} style={{ flex: '1 1 420px', minWidth: 0, minHeight: '240px' }} />
+              {places.length > 0 && (
+                <div style={{
+                  flex: '0 1 340px', minWidth: 0, overflowY: 'auto',
+                  borderLeft: '1px solid var(--border-light)', padding: '0 0.9rem 0.9rem',
+                  display: 'flex', flexDirection: 'column',
+                }}>
+                  <div style={{
+                    position: 'sticky', top: 0, background: 'var(--surface)', zIndex: 1,
+                    padding: '0.75rem 0 0.5rem', fontSize: '0.7rem', fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)',
+                  }}>
+                    {places.length === 1 ? '1 place' : `${places.length} places`}
+                  </div>
+                  {places.map((place, i) => (
+                    <PlaceRow
+                      key={place.key}
+                      place={place}
+                      selected={place.key === selectedPlaceKey}
+                      isLast={i === places.length - 1}
+                      onSelect={focusPlace}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               type="button"
               onClick={onExitFullscreen}
