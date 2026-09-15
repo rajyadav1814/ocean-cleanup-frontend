@@ -951,6 +951,99 @@ export default function EventDetail() {
         </Card>
       )}
 
+      </div>
+
+      <div className="ed-col">
+
+      {event.confidenceSignals.length > 0 && (
+        <Card>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2l8 3v6c0 5-3.4 8.7-8 11-4.6-2.3-8-6-8-11V5z" /><path d="M9 12l2 2 4-4" />
+            </svg>
+          }>Why this confidence level</SectionLabel>
+          <p style={{ margin: '-0.4rem 0 0.9rem', fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
+            The signals behind &ldquo;{verMeta.label}&rdquo;. These aren&rsquo;t scored or weighted — they&rsquo;re shown so you can weigh them yourself.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+            {event.confidenceSignals.map((s) => {
+              const meta = SIGNAL_STANCE_META[s.stance] || SIGNAL_STANCE_META.neutral;
+              return (
+                <div key={s.signal} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
+                  <span aria-hidden="true" style={{
+                    flexShrink: 0, width: '18px', height: '18px', borderRadius: '50%', marginTop: '0.05rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700,
+                    background: `color-mix(in srgb, ${meta.color} 15%, transparent)`, color: meta.color
+                  }}>{meta.glyph}</span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-main)', lineHeight: 1.45 }}>{s.detail}</div>
+                    <div style={{ fontSize: '0.66rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: meta.color, marginTop: '0.1rem' }}>
+                      {meta.label}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {event.stateHistory.length > 0 && (
+        <Card>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" />
+            </svg>
+          }>History</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {(historyExpanded ? event.stateHistory : event.stateHistory.slice(0, 4)).map((h) => (
+              <div key={h.historyId} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
+                <HistoryIcon field={h.field} />
+                <div style={{ flex: 1, minWidth: 0, fontSize: '0.85rem', color: 'var(--text-main)' }}>
+                  <strong>{h.field === 'event_state' ? 'State' : h.field === 'subject_identification' ? 'Identification' : 'Verification'}</strong>: {h.oldValue || 'new'} → {h.newValue}
+                  {h.note && <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.2rem' }}>{h.note}</div>}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>{fmt(h.changedAt)}</div>
+              </div>
+            ))}
+          </div>
+          {event.stateHistory.length > 4 && (
+            <button type="button" onClick={() => setHistoryExpanded((v) => !v)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', width: '100%',
+                marginTop: '1rem', padding: '0.55rem 0 0', borderTop: '1px solid var(--border-light)', border: 'none', borderTopWidth: '1px',
+                background: 'transparent', color: 'var(--primary)', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', font: 'inherit' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" />
+              </svg>
+              {historyExpanded ? 'Show less' : 'View full history'}
+            </button>
+          )}
+        </Card>
+      )}
+
+      {event.verifications.length > 0 && (
+        <Card>
+          <SectionLabel icon={
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2l8 3v6c0 5-3.4 8.7-8 11-4.6-2.3-8-6-8-11V5z" />
+            </svg>
+          }>Verifications</SectionLabel>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {event.verifications.map((v, i, arr) => (
+              <div key={v.verificationId} style={{ padding: '0.55rem 0',
+                borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 600, textTransform: 'capitalize' }}>{v.outcome.replace(/_/g, ' ')}</div>
+                  <ProofBadge proof={verificationProofs[v.verificationId]} />
+                </div>
+                {v.notes && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{v.notes}</div>}
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{fmt(v.createdAt)}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {event.relationships.length > 0 && (
         <Card>
           <SectionLabel icon={
@@ -1052,99 +1145,6 @@ export default function EventDetail() {
                 <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.03em' }}>
                   {i.metric.replace(/_/g, ' ')} ({i.unit})
                 </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      </div>
-
-      <div className="ed-col">
-
-      {event.confidenceSignals.length > 0 && (
-        <Card>
-          <SectionLabel icon={
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2l8 3v6c0 5-3.4 8.7-8 11-4.6-2.3-8-6-8-11V5z" /><path d="M9 12l2 2 4-4" />
-            </svg>
-          }>Why this confidence level</SectionLabel>
-          <p style={{ margin: '-0.4rem 0 0.9rem', fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
-            The signals behind &ldquo;{verMeta.label}&rdquo;. These aren&rsquo;t scored or weighted — they&rsquo;re shown so you can weigh them yourself.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
-            {event.confidenceSignals.map((s) => {
-              const meta = SIGNAL_STANCE_META[s.stance] || SIGNAL_STANCE_META.neutral;
-              return (
-                <div key={s.signal} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
-                  <span aria-hidden="true" style={{
-                    flexShrink: 0, width: '18px', height: '18px', borderRadius: '50%', marginTop: '0.05rem',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', fontWeight: 700,
-                    background: `color-mix(in srgb, ${meta.color} 15%, transparent)`, color: meta.color
-                  }}>{meta.glyph}</span>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-main)', lineHeight: 1.45 }}>{s.detail}</div>
-                    <div style={{ fontSize: '0.66rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.04em', color: meta.color, marginTop: '0.1rem' }}>
-                      {meta.label}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
-
-      {event.stateHistory.length > 0 && (
-        <Card>
-          <SectionLabel icon={
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" />
-            </svg>
-          }>History</SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {(historyExpanded ? event.stateHistory : event.stateHistory.slice(0, 4)).map((h) => (
-              <div key={h.historyId} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem' }}>
-                <HistoryIcon field={h.field} />
-                <div style={{ flex: 1, minWidth: 0, fontSize: '0.85rem', color: 'var(--text-main)' }}>
-                  <strong>{h.field === 'event_state' ? 'State' : h.field === 'subject_identification' ? 'Identification' : 'Verification'}</strong>: {h.oldValue || 'new'} → {h.newValue}
-                  {h.note && <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '0.2rem' }}>{h.note}</div>}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>{fmt(h.changedAt)}</div>
-              </div>
-            ))}
-          </div>
-          {event.stateHistory.length > 4 && (
-            <button type="button" onClick={() => setHistoryExpanded((v) => !v)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', width: '100%',
-                marginTop: '1rem', padding: '0.55rem 0 0', borderTop: '1px solid var(--border-light)', border: 'none', borderTopWidth: '1px',
-                background: 'transparent', color: 'var(--primary)', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer', font: 'inherit' }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 16 14" />
-              </svg>
-              {historyExpanded ? 'Show less' : 'View full history'}
-            </button>
-          )}
-        </Card>
-      )}
-
-      {event.verifications.length > 0 && (
-        <Card>
-          <SectionLabel icon={
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2l8 3v6c0 5-3.4 8.7-8 11-4.6-2.3-8-6-8-11V5z" />
-            </svg>
-          }>Verifications</SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {event.verifications.map((v, i, arr) => (
-              <div key={v.verificationId} style={{ padding: '0.55rem 0',
-                borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem', flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, textTransform: 'capitalize' }}>{v.outcome.replace(/_/g, ' ')}</div>
-                  <ProofBadge proof={verificationProofs[v.verificationId]} />
-                </div>
-                {v.notes && <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{v.notes}</div>}
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>{fmt(v.createdAt)}</div>
               </div>
             ))}
           </div>
