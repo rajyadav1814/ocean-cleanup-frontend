@@ -1,16 +1,4 @@
-// Map layers derive from the environmental_event model (spec §24) — each
-// answers one of the doc's example questions instead of a map just being a
-// pin dump. Shared between the public Global Impact Map and the
-// contributor's own "Your Areas" map so both read the same vocabulary and
-// stay in sync as the model evolves.
-//
-// "test" runs against an event plus a shared context object
-// ({ userLocation, organizationId }) for the two layers that need input
-// beyond the event's own fields.
 
-// 'reassessed' included — it's a closed report reopened by a fresh
-// corroborator (spec §11), so it belongs on the "unresolved" layer just
-// like 'recurring' does, not on the resolved side with 'addressed'.
 const UNRESOLVED_STATES = new Set([
   'observed', 'corroborated', 'needs_attention', 'action_planned',
   'action_underway', 'recurring', 'disputed', 'unable_to_verify', 'reassessed',
@@ -18,22 +6,10 @@ const UNRESOLVED_STATES = new Set([
 export const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 export const NEAR_ME_RADIUS_KM = 250;
 
-/**
- * The single definition of "needs attention" (spec §9/§16), shared by the
- * dashboard's Needs Attention card and the map's question of the same name.
- *
- * These were written separately and disagreed: the card listed everything
- * not yet addressed, while the map matched only the literal 'needs_attention'
- * state — so a dashboard showing two open issues sat directly above a map
- * insisting nothing needed attention. Anything still being tracked counts;
- * 'addressed' is the only resting state.
- */
 export function needsAttention(event) {
   return event?.eventState !== 'addressed';
 }
 
-// haversine distance in km — used only by the "Near me" layer, no need for
-// a full geo library for a single radius filter.
 export function distanceKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -44,11 +20,6 @@ export function distanceKm(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-/* ── Answer helpers ───────────────────────────────────────────────────────
-   Each layer states a question; these turn its filtered set into an actual
-   answer (spec §9: "the map should answer questions, not just show pins").
-   Every one returns null on an empty set — the caller already renders a
-   "nothing matches" line, and a fabricated answer is worse than none. */
 
 function placeOf(e) {
   if (e.locationLabel) return e.locationLabel;
@@ -97,15 +68,6 @@ function topPlace(events) {
   return best;
 }
 
-/* ── Places, not pins ─────────────────────────────────────────────────────
-   The map's real unit is a place a contributor keeps returning to, not one
-   row per submission. Four reports of the same jetty are one place that
-   "keeps coming back" — which is the whole point of the recurring question
-   and is invisible when every report is just another dot. */
-
-// How a place is labelled: the reverse-geocoded string is long
-// ("Ring Road -2, Munjka, Rajkot Taluka, Rajkot, Gujarat"), so the first
-// couple of parts name the spot and the rest situate it.
 function splitPlaceLabel(label) {
   if (!label) return { name: 'Unknown location', region: null };
   const parts = label.split(',').map((p) => p.trim()).filter(Boolean);
@@ -130,20 +92,12 @@ function relativeDay(value) {
   return null;
 }
 
-// Status precedence when one place carries several: recurrence is the most
-// actionable thing to know about a place, then whether it's waiting on
-// someone, then mere recent movement.
 export const PLACE_STATUS = {
   recurring:      { id: 'recurring',      label: 'Keeps coming back', color: '#c14f2c' },
   needs_attention:{ id: 'needs_attention',label: 'Needs attention',   color: '#f59e0b' },
   recent:         { id: 'recent',         label: 'Changed recently',  color: '#378add' },
 };
 
-/**
- * groupIntoPlaces — collapses a contributor's events into the places they
- * happened, with the recurrence count and the one-line reason each place is
- * worth looking at. Ordered by how much it wants attention.
- */
 export function groupIntoPlaces(events) {
   const buckets = new Map();
   for (const e of events) {
@@ -210,16 +164,8 @@ export function groupIntoPlaces(events) {
   });
 }
 
-// The four questions the contributor map leads with (spec §9 explicitly
-// warns against overloading it with every filter at once). The remaining
-// layers stay available to the public Global Impact Map, which serves a
-// different, exploratory purpose.
 export const CONTRIBUTOR_LAYER_IDS = ['all', 'needs-attention', 'recurring', 'recent'];
 
-// An answer may be a plain sentence or a { headline, detail } pair — the
-// contributor map leads with a bolded headline, while the public map's
-// remaining layers still return one line. Normalizing here means neither
-// renderer has to care which it got.
 export function normalizeAnswer(answer) {
   if (!answer) return null;
   if (typeof answer === 'string') return { headline: answer, detail: null };
@@ -316,10 +262,6 @@ export const MAP_LAYERS = [
     },
   },
   {
-    // The test was always family-agnostic ('recurring' is an event_state,
-    // not a pollution flag) — only the wording assumed cleanup, which meant
-    // a recurring bleaching event or a repeat water anomaly landed on a
-    // layer that claimed to be about pollution.
     id: 'recurring',
     label: 'Keeps coming back',
     chip: 'What keeps coming back?',
@@ -335,11 +277,6 @@ export const MAP_LAYERS = [
     },
   },
   {
-    // The complement of 'unresolved' — the spec lists "What has been
-    // resolved?" as its own question, and without it the map could only
-    // ever show what's still wrong. 'addressed' is the resolved state
-    // whatever the outcome was (removed, rescued, restored, reassessed
-    // away), so this stays universal rather than cleanup-shaped.
     id: 'resolved',
     label: 'Resolved',
     question: 'What has been resolved?',
