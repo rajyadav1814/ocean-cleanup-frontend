@@ -89,21 +89,20 @@ export function AuthProvider({ children }) {
     return true;
   };
 
-  const logout = async () => {
+  const logout = () => {
     const token = localStorage.getItem(TOKEN_KEY);
-    if (token) {
-      try {
-        await authLogout(token);
-      } catch (err) {
-        console.error('Logout request failed', err);
-      }
-    }
 
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     setUser(null);
     setRole(null);
     resetCachedData();
+
+    if (token) {
+      authLogout(token).catch((err) => {
+        console.error('Logout request failed', err);
+      });
+    }
   };
 
   const updateUser = (newUserData) => {
