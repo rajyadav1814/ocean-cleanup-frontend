@@ -764,7 +764,7 @@ export default function CitizenOverview() {
           <div className="bm-hero__body">
             <h1 className="bm-hero__title">
               Hi {firstName}, <span role="img" aria-label="waving hand">👋</span><br />
-              {heroUpdate ? <>Here&rsquo;s what changed: <span>{heroUpdate}</span></> : <>Thank you for being part of <span>blueMind.</span></>}
+              {heroUpdate ? <>Here&rsquo;s what changed: <span>{heroUpdate}</span></> : <>Thank you for being part of <span>Bluemind.</span></>}
             </h1>
             <p className="bm-hero__sub">
               {heroUpdate
