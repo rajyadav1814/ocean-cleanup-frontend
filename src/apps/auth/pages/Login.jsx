@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
-import { authLogin } from "../../../services/api";
+import { authLogin, authResendVerification } from "../../../services/api";
 
 const TOKENS = `
   @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
@@ -147,6 +147,11 @@ const TOKENS = `
     color: #fca5a5; font-size: .85rem; line-height: 1.4;
   }
 
+  .bm-login__resend { margin-top: .6rem; font-size: .82rem; color: var(--on-dark-2); }
+  .bm-login__resend button { all: unset; cursor: pointer; color: var(--sky-2); font-weight: 500; }
+  .bm-login__resend button:hover { color: #fff; }
+  .bm-login__resend button:disabled { opacity: .6; cursor: default; }
+
   .bm-login__divider { display: flex; align-items: center; gap: .85rem; margin: 1.5rem 0; color: var(--on-dark-3); font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; }
   .bm-login__divider::before, .bm-login__divider::after { content: ""; flex: 1; height: 1px; background: var(--line-dark); }
 
@@ -183,6 +188,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendState, setResendState] = useState("idle");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -196,6 +203,8 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setNeedsVerification(false);
+    setResendState("idle");
     setLoading(true);
     try {
       const data = await authLogin(email, password);
@@ -211,11 +220,22 @@ export default function Login() {
         });
       } else {
         setError(data.message || "Invalid credentials");
+        setNeedsVerification(data.code === "EMAIL_NOT_VERIFIED");
       }
     } catch {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendState("sending");
+    try {
+      const data = await authResendVerification(email);
+      setResendState(data.ok ? "sent" : "failed");
+    } catch {
+      setResendState("failed");
     }
   };
 
@@ -236,6 +256,17 @@ export default function Login() {
         <p className="bm-login__sub">Sign in to keep mapping.</p>
 
         {error && <div className="bm-login__error">{error}</div>}
+        {needsVerification && (
+          <div className="bm-login__resend">
+            {resendState === "sent" ? (
+              <span>A new verification link is on its way. Check your inbox (and spam).</span>
+            ) : (
+              <button type="button" onClick={handleResendVerification} disabled={resendState === "sending"}>
+                {resendState === "sending" ? "Sending…" : resendState === "failed" ? "Couldn't send — try again" : "Resend verification email"}
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="bm-field">
           <Mail className="bm-field__icon" size={16} />

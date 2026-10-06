@@ -141,6 +141,15 @@ export async function authRequestPasswordReset(email) {
   return res.json();
 }
 
+export async function authResendVerification(email) {
+  const res = await fetch(`${API_BASE_URL}/api/auth/resend-verification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  return res.json();
+}
+
 export async function authCheckEmail(email) {
   const res = await fetch(`${API_BASE_URL}/api/auth/email-availability?email=${encodeURIComponent(email)}`);
   return res.json();
