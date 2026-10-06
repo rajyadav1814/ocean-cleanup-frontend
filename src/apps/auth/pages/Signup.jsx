@@ -8,7 +8,6 @@ import useOrganizations from '../../../hooks/useOrganizations';
 
 const STEPS = [
   { label: 'Personal details',  title: <>Tell us <span className="serif">about yourself.</span></>,           description: 'Start with the basics.' },
-  { label: 'Access type',       title: <>Choose how you'll <span className="serif">participate.</span></>,    description: 'Select the role that best fits you.' },
   { label: 'Account security',  title: <>Secure <span className="serif">your account.</span></>,              description: "Pick credentials you'll remember." },
   { label: 'Profile details',   title: <>Complete <span className="serif">your profile.</span></>,            description: 'Optional — helps others find you.' },
   { label: 'Review',            title: <>Review <span className="serif">your profile.</span></>,              description: "Everything looks good? Let's go." },
@@ -147,21 +146,6 @@ const TOKENS = `
   /* two-col grid */
   .bm-signup__grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 .85rem; }
 
-  /* role cards */
-  .bm-signup__roles { display: flex; flex-direction: column; gap: .7rem; margin-bottom: 1rem; }
-  button.bm-signup__role {
-    display: flex; flex-direction: column; align-items: flex-start; gap: .3rem;
-    width: 100%; padding: 1rem 1.1rem; border-radius: 12px; cursor: pointer;
-    border: 1.5px solid var(--line-dark);
-    background: rgba(4,18,31,.45);
-    text-align: left; transition: border-color .2s, background .2s;
-    font-family: var(--font-sans);
-  }
-  button.bm-signup__role:hover { border-color: rgba(127,195,232,.4); background: rgba(4,18,31,.6); }
-  button.bm-signup__role.selected { border-color: var(--teal-light); background: rgba(46,158,155,.1); }
-  button.bm-signup__role strong { font-size: .95rem; color: #fff; font-weight: 600; }
-  button.bm-signup__role span { font-size: .82rem; color: var(--on-dark-2); line-height: 1.45; }
-
   /* review */
   .bm-signup__avatar {
     width: 3.25rem; height: 3.25rem; border-radius: 50%; flex-shrink: 0;
@@ -288,7 +272,6 @@ export default function Signup() {
   const { organizations, orgsLoading, addOrganization } = useOrganizations();
   const navigate = useNavigate();
   const currentStep = STEPS[step - 1];
-  const isContributor = form.role === 'contributor';
 
   const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
@@ -318,14 +301,11 @@ export default function Signup() {
         setLoading(false);
       }
     }
-    if (step === 3 && (!form.username.trim() || !form.password || !form.confirmPassword)) {
+    if (step === 2 && (!form.username.trim() || !form.password || !form.confirmPassword)) {
       setError('Please choose a username and confirm your password.'); return;
     }
-    if (step === 3 && form.password !== form.confirmPassword) {
+    if (step === 2 && form.password !== form.confirmPassword) {
       setError('Your passwords do not match.'); return;
-    }
-    if (step === 4 && form.role === 'contributor' && (!form.jobTitle.trim() || !form.experience || !form.organizationId)) {
-      setError('Contributors must complete ocean interest, cleanup experience, and organization.'); return;
     }
     setError('');
     setStep((s) => Math.min(s + 1, STEPS.length));
@@ -412,30 +392,8 @@ export default function Signup() {
             </div>
           )}
 
-          {/* ── Step 2: Role selection ── */}
+          {/* ── Step 2: Security ── */}
           {step === 2 && (
-            <div className="bm-signup__roles">
-              <button
-                type="button"
-                className={`bm-signup__role${form.role === 'citizen' ? ' selected' : ''}`}
-                onClick={() => setForm((p) => ({ ...p, role: 'citizen' }))}
-              >
-                <strong>Citizen</strong>
-                <span>Explore the map and support BlueMind activities in your community.</span>
-              </button>
-              <button
-                type="button"
-                className={`bm-signup__role${form.role === 'contributor' ? ' selected' : ''}`}
-                onClick={() => setForm((p) => ({ ...p, role: 'contributor' }))}
-              >
-                <strong>Contributor</strong>
-                <span>Log activities and help build BlueMind's impact map.</span>
-              </button>
-            </div>
-          )}
-
-          {/* ── Step 3: Security ── */}
-          {step === 3 && (
             <div>
               <div className="bm-signup__field">
                 <label htmlFor="su-username">Username</label>
@@ -467,18 +425,18 @@ export default function Signup() {
             </div>
           )}
 
-          {/* ── Step 4: Profile details ── */}
-          {step === 4 && (
+          {/* ── Step 3: Profile details ── */}
+          {step === 3 && (
             <div>
               <div className="bm-signup__field">
-                <label htmlFor="su-job">Ocean interest <em>{isContributor ? '(required)' : '(optional)'}</em></label>
+                <label htmlFor="su-job">Ocean interest <em>(optional)</em></label>
                 <div style={{ position: 'relative' }}>
                   <Anchor size={15} className="bm-signup__field-icon" />
-                  <input id="su-job" type="text" placeholder="e.g. Marine biologist, Conservation officer" value={form.jobTitle} onChange={set('jobTitle')} required={isContributor} />
+                  <input id="su-job" type="text" placeholder="e.g. Marine biologist, Conservation officer" value={form.jobTitle} onChange={set('jobTitle')} />
                 </div>
               </div>
               <div className="bm-signup__field bm-signup__field--no-icon">
-                <label htmlFor="su-experience">Ocean experience <em>{isContributor ? '(required)' : '(optional)'}</em></label>
+                <label htmlFor="su-experience">Ocean experience <em>(optional)</em></label>
                 <Select
                   id="su-experience"
                   value={form.experience}
@@ -491,7 +449,7 @@ export default function Signup() {
                 />
               </div>
               <div className="bm-signup__field bm-signup__field--no-icon">
-                <label htmlFor="su-org">Organization <em>{isContributor ? '(required)' : '(optional)'}</em></label>
+                <label htmlFor="su-org">Organization <em>(optional)</em></label>
                 <div style={{ position: 'relative' }}>
                   <Building2 size={15} className="bm-signup__field-icon" style={{ bottom: '.85rem' }} />
                   <OrganizationSelect
@@ -511,8 +469,8 @@ export default function Signup() {
             </div>
           )}
 
-          {/* ── Step 5: Review ── */}
-          {step === 5 && (
+          {/* ── Step 4: Review ── */}
+          {step === 4 && (
             <div>
               <div className="bm-signup__preview">
                 <div className="bm-signup__avatar">
@@ -526,7 +484,6 @@ export default function Signup() {
               <div className="bm-signup__review">
                 {[
                   ['Email', form.email],
-                  ['Role', form.role.charAt(0).toUpperCase() + form.role.slice(1)],
                   ['Ocean interest', form.jobTitle || 'Not specified'],
                   ['Ocean experience', form.experience || 'Not specified'],
                   ['Organization', selectedOrganization],
