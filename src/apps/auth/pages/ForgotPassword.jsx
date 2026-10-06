@@ -176,11 +176,11 @@ export default function ForgotPassword() {
         <h1>
           Reset your <span className="serif">password.</span>
         </h1>
-        <p className="bm-forgot__sub">We’ll send a secure reset link if that email exists in our system.</p>
+        <p className="bm-forgot__sub">We’ll send a secure reset link to your registered email.</p>
 
         {sent && (
           <div className="bm-forgot__notice">
-            If that email exists, we sent a reset link. Check your inbox and spam folder.
+            We sent a reset link to your email. Check your inbox and spam folder.
           </div>
         )}
 
