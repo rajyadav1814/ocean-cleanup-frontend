@@ -1529,6 +1529,61 @@ tr:hover td {
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--border-light);
 }
+.profile-danger-zone {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius-md);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+.profile-danger-icon {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+}
+.profile-danger-text {
+  flex: 1;
+  padding-left: 1.5rem;
+  border-left: 1px solid rgba(239, 68, 68, 0.25);
+}
+.profile-danger-text h3 {
+  margin-bottom: 0.25rem;
+  font-size: 1.1rem;
+  color: var(--danger);
+}
+.profile-danger-text p {
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+.profile-danger-text .profile-danger-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+.profile-danger-button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+.profile-danger-button:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
 @media (max-width: 640px) {
   .profile-form-grid {
     grid-template-columns: 1fr;
@@ -1537,6 +1592,15 @@ tr:hover td {
     flex-direction: column;
     align-items: flex-start;
     gap: 1.5rem;
+  }
+  .profile-danger-zone {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .profile-danger-text {
+    padding-left: 0;
+    border-left: none;
   }
 }
 

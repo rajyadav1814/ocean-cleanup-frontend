@@ -1,11 +1,110 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
-import { authUpdateProfile } from '../../../services/api';
+import { authUpdateProfile, authDeleteAccount } from '../../../services/api';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import Select from '../../../components/common/Select';
 
+const DELETE_PHRASE = 'DELETE';
+
+// Attention popup shown before the account is deleted. Typing the phrase is
+// required so a stray click can't remove the account.
+function DeleteAccountModal({ onConfirm, onCancel, loading, error }) {
+  const [phrase, setPhrase] = useState('');
+  const canDelete = phrase.trim().toUpperCase() === DELETE_PHRASE && !loading;
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape' && !loading) onCancel(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [loading, onCancel]);
+
+  return (
+    <div
+      onClick={() => !loading && onCancel()}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+      }}
+    >
+      <div
+        className="card"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-account-title"
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: '460px', padding: '2rem' }}
+      >
+        <div style={{
+          width: '56px', height: '56px', borderRadius: '50%', marginBottom: '1rem',
+          background: 'rgba(239, 68, 68, 0.12)', color: 'var(--danger)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <AlertTriangle size={28} />
+        </div>
+        <h3 id="delete-account-title" style={{ fontSize: '1.25rem', color: 'var(--text-main)', marginBottom: '0.5rem' }}>
+          Delete your account?
+        </h3>
+        <p className="text-muted" style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>
+          This permanently deletes your account and signs you out. You won't be able to recover it.
+        </p>
+        <ul style={{ fontSize: '0.875rem', color: 'var(--text-muted)', paddingLeft: '1.25rem', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+          <li>Your profile, login sessions, points and notifications are deleted.</li>
+          <li>Your organization memberships and verifier profile are removed.</li>
+          <li>Reports you submitted stay on the shared map but are no longer linked to you.</li>
+        </ul>
+
+        {error && (
+          <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', border: '1px solid rgba(239, 68, 68, 0.2)', fontSize: '0.875rem' }}>
+            {error}
+          </div>
+        )}
+
+        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+          <label htmlFor="delete-confirm">
+            Type <strong style={{ color: 'var(--danger)' }}>{DELETE_PHRASE}</strong> to confirm
+          </label>
+          <input
+            id="delete-confirm"
+            type="text"
+            className="input-field"
+            value={phrase}
+            onChange={e => setPhrase(e.target.value)}
+            placeholder={DELETE_PHRASE}
+            autoComplete="off"
+            autoFocus
+            disabled={loading}
+          />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+          <button type="button" className="secondary" onClick={onCancel} disabled={loading}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!canDelete}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              background: 'var(--danger)', color: '#fff', border: 'none',
+              opacity: canDelete ? 1 : 0.5, cursor: canDelete ? 'pointer' : 'not-allowed'
+            }}
+          >
+            <Trash2 size={16} />
+            {loading ? 'Deleting…' : 'Delete permanently'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProfileSettings() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     firstName: user?.firstName || '',
@@ -18,7 +117,29 @@ export default function ProfileSettings() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
   const fileInputRef = useRef(null);
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      const res = await authDeleteAccount();
+      if (!res.ok) {
+        setDeleteError(res.message || 'Failed to delete account');
+        return;
+      }
+      logout();
+      navigate('/', { replace: true, state: { flashMessage: 'Your account has been deleted.', flashDuration: 4000 } });
+    } catch (err) {
+      setDeleteError('An error occurred while deleting your account.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -203,7 +324,38 @@ export default function ProfileSettings() {
           </div>
 
         </form>
+
+        <div className="profile-danger-zone">
+          <div className="profile-danger-icon">
+            <Trash2 size={28} />
+          </div>
+          <div className="profile-danger-text">
+            <h3>Delete Account</h3>
+            <p>Permanently delete your account and all associated data.</p>
+            <p className="profile-danger-warning">
+              <AlertTriangle size={16} />
+              This action cannot be undone.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="profile-danger-button"
+            onClick={() => { setDeleteError(''); setShowDeleteModal(true); }}
+          >
+            <Trash2 size={16} />
+            Delete Account
+          </button>
+        </div>
       </div>
+
+      {showDeleteModal && (
+        <DeleteAccountModal
+          onConfirm={handleDeleteAccount}
+          onCancel={() => setShowDeleteModal(false)}
+          loading={deleting}
+          error={deleteError}
+        />
+      )}
     </div>
   );
 }
