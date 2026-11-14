@@ -166,6 +166,12 @@ export async function authUpdateProfile(payload) {
   return apiPut('/api/auth/profile', payload);
 }
 
+// Removes the account and its personal data; reports stay in the shared
+// dataset but are detached from the user (see userService.deleteUserAccount).
+export async function authDeleteAccount() {
+  return apiDelete('/api/auth/account');
+}
+
 // ─── Notification API helpers ───────────────────────────────────────────────
 // Same endpoints as the admin app's Header bell — the backend now scopes
 // these to the caller's own role/id (see dashboardController.js) instead of
