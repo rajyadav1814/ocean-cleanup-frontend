@@ -326,7 +326,7 @@ export default function Login() {
         <div className="bm-login__divider">or</div>
 
         <p className="bm-login__foot">
-          New here? <Link to="/signup">Create an account</Link>
+          New here? <Link to="/signup">Create an Account</Link>
         </p>
       </form>
     </div>
