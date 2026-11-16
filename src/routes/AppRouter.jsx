@@ -6,8 +6,16 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Chatbot from '../components/common/Chatbot';
 
-// Each page loads as its own chunk the first time it is visited, so the
-// initial download is the app shell rather than every screen at once.
+// The pages a signed-out visitor lands on are part of the main bundle, so
+// opening or reloading them never waits on a chunk (and never flashes the
+// in-app loading skeleton).
+import Login from '../apps/auth/pages/Login';
+import Signup from '../apps/auth/pages/Signup';
+import ForgotPassword from '../apps/auth/pages/ForgotPassword';
+import LandingPage from '../app/page';
+
+// Every in-app page loads as its own chunk the first time it is visited, so
+// the initial download is the app shell rather than every screen at once.
 const SubmitActivity = lazy(() => import('../apps/contributor/pages/SubmitActivity'));
 const QuickReport = lazy(() => import('../apps/contributor/pages/QuickReport'));
 const EventDetail = lazy(() => import('../apps/contributor/pages/EventDetail'));
@@ -18,11 +26,7 @@ const PendingQueue = lazy(() => import('../apps/verifier/pages/PendingQueue'));
 const ActivityReview = lazy(() => import('../apps/verifier/pages/ActivityReview'));
 const RejectedActivity = lazy(() => import('../apps/verifier/pages/RejectedActivity'));
 const MultisigStatus = lazy(() => import('../apps/verifier/pages/MultisigStatus'));
-const Login = lazy(() => import('../apps/auth/pages/Login'));
-const Signup = lazy(() => import('../apps/auth/pages/Signup'));
-const ForgotPassword = lazy(() => import('../apps/auth/pages/ForgotPassword'));
 const CitizenOverview = lazy(() => import('../apps/citizen/pages/CitizenOverview'));
-const LandingPage = lazy(() => import('../app/page'));
 const ProfileSettings = lazy(() => import('../apps/profile/pages/ProfileSettings'));
 const NotFound = lazy(() => import('../components/common/NotFound'));
 
@@ -160,7 +164,9 @@ export default function AppRouter() {
   return (
     <>
       <FlashMessageToast />
-      <Suspense fallback={<LoadingSpinner />}>
+      {/* Only reached by pages outside the app layout (e.g. the signed-out
+          404); a plain backdrop, not the dashboard skeleton. */}
+      <Suspense fallback={<div style={{ minHeight: '100vh', background: '#05192E' }} />}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
