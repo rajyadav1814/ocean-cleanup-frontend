@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { eventApi, activityApi } from '../../../services/api';
+import { eventApi } from '../../../services/api';
+import { useGetEventQuery, useGetActivityProofQuery, useListSubjectsQuery } from '../../../store/apiSlice';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { eventStateMeta, verificationStateMeta, provenanceMeta, formatImpactPhrase } from '../eventMeta';
 import { fileToDataUrl } from '../../../utils/file';
@@ -239,11 +240,17 @@ export default function EventDetail() {
     : user?.role === 'verifier' ? '/verifier/pending'
     : '/contributor/overview';
 
-  const [event, setEvent] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  // Cached per event id: reopening an event within 30s renders from cache,
+  // and after that the cached copy shows while a fresh one loads. Actions
+  // below call loadEvent (refetch) to pick up what they changed.
+  // currentData, not data — data would briefly show the previous event
+  // while navigating to a different id.
+  const { currentData: event = null, isFetching, error: eventError, refetch: loadEvent } =
+    useGetEventQuery(id, { refetchOnMountOrArgChange: 30 });
+  const loading = !event && isFetching;
+  const loadError = !event && !isFetching && eventError ? (eventError.message || 'Event not found') : '';
 
-  const [actionSubjects, setActionSubjects] = useState([]);
+  const { data: actionSubjects = [] } = useListSubjectsQuery('human_action', { skip: !isContributor });
   const [planOpen, setPlanOpen] = useState(false);
   const [planSubjectCode, setPlanSubjectCode] = useState('');
   const [planDescription, setPlanDescription] = useState('');
@@ -279,27 +286,7 @@ export default function EventDetail() {
 
   const [relatedExpanded, setRelatedExpanded] = useState(false);
   const [historyExpanded, setHistoryExpanded] = useState(false);
-  const [proof, setProof] = useState(null);
 
-  const loadEvent = useCallback(async () => {
-    setLoading(true);
-    setLoadError('');
-    const res = await eventApi.getById(id);
-    if (!res.ok) {
-      setLoadError(res.error || 'Event not found');
-      setEvent(null);
-    } else {
-      setEvent(res.event);
-    }
-    setLoading(false);
-  }, [id]);
-
-  useEffect(() => { loadEvent(); }, [loadEvent]);
-
-  useEffect(() => {
-    if (!isContributor) return;
-    eventApi.listSubjects('human_action').then((res) => { if (res.ok) setActionSubjects(res.subjects); });
-  }, [isContributor]);
 
   // spec §21: the only blockchain-facing thing a user ever sees is this
   // tamper-evident proof, fetched quietly and shown only once it exists —
@@ -307,14 +294,10 @@ export default function EventDetail() {
   // proof specifically — not every event has a legacy activity (action
   // events created via Plan Action don't), so it's simply absent for
   // those; they get their own proof per verification below instead.
-  useEffect(() => {
-    if (!event?.legacyActivityId) { setProof(null); return; }
-    let cancelled = false;
-    activityApi.getProof(event.legacyActivityId).then((res) => {
-      if (!cancelled && res.ok) setProof(res.proof);
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [event?.legacyActivityId]);
+  const { currentData: proof = null } = useGetActivityProofQuery(event?.legacyActivityId, {
+    skip: !event?.legacyActivityId,
+    refetchOnMountOrArgChange: 60,
+  });
 
   // Each verifier attestation gets its own on-chain proof (spec §21) —
   // fetched per verification rather than assumed present, since older
@@ -322,15 +305,16 @@ export default function EventDetail() {
   // actually gives an action-event a proof at all: it has no legacy
   // activity, so the effect above never fires for it.
   const [verificationProofs, setVerificationProofs] = useState({});
+  const verificationIds = (event?.verifications || []).map((v) => v.verificationId).join(',');
   useEffect(() => {
-    const ids = (event?.verifications || []).map((v) => v.verificationId);
+    const ids = verificationIds ? verificationIds.split(',') : [];
     if (ids.length === 0) { setVerificationProofs({}); return; }
     let cancelled = false;
     Promise.all(ids.map((id) => eventApi.getVerificationProof(id).then((res) => [id, res.ok ? res.proof : null])))
       .then((entries) => { if (!cancelled) setVerificationProofs(Object.fromEntries(entries)); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [event?.verifications]);
+  }, [verificationIds]);
 
   async function handlePlanAction() {
     if (!planSubjectCode) return;

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useCitizenStats, useCitizenLeaderboard, useCitizenFeed } from '../../../hooks/useCitizen';
-import { citizenApi } from '../../../services/api';
+import { useGetStoriesQuery } from '../../../store/apiSlice';
 import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import SubmitActivity from '../../contributor/pages/SubmitActivity';
@@ -684,14 +684,9 @@ export default function CitizenOverview() {
   // Contributor Space. Its own endpoint rather than more columns on the
   // events list: the acting-organization and verifier joins are only worth
   // paying for on the handful of stories actually rendered.
-  const [stories, setStories] = useState([]);
-  useEffect(() => {
-    let cancelled = false;
-    citizenApi.getStories(3).then((res) => {
-      if (!cancelled && res?.ok && Array.isArray(res.stories)) setStories(res.stories);
-    }).catch(() => { /* card falls back to its empty state */ });
-    return () => { cancelled = true; };
-  }, []);
+  // Cached in the store; revisiting within a minute renders from cache,
+  // and on error the card falls back to its empty state.
+  const { data: stories = [] } = useGetStoriesQuery({ role: 'citizen', limit: 3 }, { refetchOnMountOrArgChange: 60 });
 
   if (sL || lL || fL || eL) return <LoadingSpinner />;
 

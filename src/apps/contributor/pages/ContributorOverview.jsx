@@ -9,6 +9,7 @@ import { useContributorImpact } from '../../../hooks/useContributorImpact';
 import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { contributorApi } from '../../../services/api';
+import { useGetStoriesQuery } from '../../../store/apiSlice';
 import {
   eventStateMeta, verificationStateMeta, adaptiveImpactMetrics, formatImpactPhrase,
   primarySubject, primarySubjectLabel, buildStoryTimeline,
@@ -540,14 +541,9 @@ export default function ContributorOverview() {
   // Top 3 outcome chains (spec §4). Its own endpoint rather than more
   // columns on the events list: the acting-organization and verifier joins
   // are only worth paying for on the handful of stories actually rendered.
-  const [stories, setStories] = useState([]);
-  useEffect(() => {
-    let cancelled = false;
-    contributorApi.getStories(3).then((res) => {
-      if (!cancelled && res?.ok && Array.isArray(res.stories)) setStories(res.stories);
-    }).catch(() => { /* card falls back to its empty state */ });
-    return () => { cancelled = true; };
-  }, []);
+  // Cached in the store; revisiting within a minute renders from cache,
+  // and on error the card falls back to its empty state.
+  const { data: stories = [] } = useGetStoriesQuery({ role: 'contributor', limit: 3 }, { refetchOnMountOrArgChange: 60 });
 
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
