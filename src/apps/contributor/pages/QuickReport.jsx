@@ -51,11 +51,10 @@ const WATER_UNIT_BY_CODE = {
   chlorophyll: 'µg/L', color: '', contaminants: '', water_other: ''
 };
 
-// Videos travel as multipart (see handleSubmit) rather than base64-in-JSON,
-// so they aren't bound by the JSON body limit — this is just a sanity cap
-// so a huge file doesn't get read fully into memory (multer memoryStorage)
-// and silently hang the request.
-const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100MB
+// Videos travel as multipart (see handleSubmit) rather than base64-in-JSON.
+// The backend rejects any uploaded file over 10MB, so check it here first
+// and tell the user instead of letting the request fail.
+const MAX_VIDEO_BYTES = 10 * 1024 * 1024; // 10MB
 
 // Documents/datasets go through text extraction (spec §16), which is
 // cheap enough that base64-in-JSON is fine here, unlike video — a real
