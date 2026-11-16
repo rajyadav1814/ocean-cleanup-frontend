@@ -7,7 +7,7 @@ import ActivityReviewCard from '../../../components/common/ActivityReviewCard';
 import EmptyState from '../../../components/common/EmptyState';
 
 // Reject-note modal
-function RejectModal({ onConfirm, onCancel, loading }) {
+function RejectModal({ onConfirm, onCancel, loading, error }) {
   const [note, setNote] = useState('');
   return (
     <div style={{
@@ -36,6 +36,11 @@ function RejectModal({ onConfirm, onCancel, loading }) {
             style={{ width: '100%', resize: 'vertical' }}
           />
         </div>
+        {error && (
+          <div role="alert" style={{ marginBottom: '1rem', fontSize: '0.82rem', color: '#ef4444' }}>
+            Couldn't reject this report: {error}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button
             onClick={() => onConfirm(note)}
@@ -81,6 +86,10 @@ export default function PendingQueue() {
   const [actionState, setActionState] = useState({});
   // Which activity id has the reject modal open
   const [rejectModal, setRejectModal] = useState(null);
+  // Last failed review, shown above the queue: { verb, error } | null
+  const [reviewError, setReviewError] = useState(null);
+  // A failed reject keeps the modal (and the typed reason) open with this
+  const [rejectError, setRejectError] = useState('');
   // Gallery modal: { images: string[], startAt: number } | null
   const [gallery, setGallery] = useState(null);
 
@@ -88,26 +97,27 @@ export default function PendingQueue() {
 
   async function handleApprove(id) {
     setActionState(s => ({ ...s, [id]: 'approving' }));
-    try {
-      await reviewActivity(id, 'approved');
-    } finally {
-      setActionState(s => ({ ...s, [id]: null }));
-    }
+    setReviewError(null);
+    const result = await reviewActivity(id, 'approved');
+    setActionState(s => ({ ...s, [id]: null }));
+    if (!result.ok) setReviewError({ verb: 'approve', error: result.error });
   }
 
   function openRejectModal(id) {
+    setRejectError('');
     setRejectModal(id);
   }
 
   async function handleRejectConfirm(note) {
     const id = rejectModal;
     setActionState(s => ({ ...s, [id]: 'rejecting' }));
-    try {
-      await reviewActivity(id, 'rejected', note);
-    } finally {
-      setActionState(s => ({ ...s, [id]: null }));
-      setRejectModal(null);
-    }
+    setRejectError('');
+    const result = await reviewActivity(id, 'rejected', note);
+    setActionState(s => ({ ...s, [id]: null }));
+    // Only close on success: on failure the modal stays open with the
+    // reason still typed in, so the verifier can retry without retyping.
+    if (result.ok) setRejectModal(null);
+    else setRejectError(result.error);
   }
 
   return (
@@ -117,6 +127,7 @@ export default function PendingQueue() {
           onConfirm={handleRejectConfirm}
           onCancel={() => setRejectModal(null)}
           loading={actionState[rejectModal] === 'rejecting'}
+          error={rejectError}
         />
       )}
 
@@ -141,6 +152,13 @@ export default function PendingQueue() {
             </span>
           </div>
         </div>
+
+        {reviewError && (
+          <div className="card mb-6" role="alert" style={{ padding: '0.9rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', color: '#ef4444' }}>
+            <span>Couldn't {reviewError.verb} this report: {reviewError.error}</span>
+            <button type="button" className="secondary" onClick={() => setReviewError(null)} aria-label="Dismiss error">Dismiss</button>
+          </div>
+        )}
 
         {loading ? (
           <LoadingSpinner />

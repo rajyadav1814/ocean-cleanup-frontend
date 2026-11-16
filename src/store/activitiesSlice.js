@@ -30,10 +30,10 @@ export const reviewActivityThunk = createAsyncThunk(
   async ({ id, status, reviewNote = '' }, { rejectWithValue }) => {
     try {
       const data = await apiPost(`/api/activities/${id}/review`, { status, reviewNote });
-      if (!data.ok) return rejectWithValue('Review failed');
+      if (!data?.ok) return rejectWithValue(data?.error || data?.message || 'Review failed');
       return data.activity;
     } catch (err) {
-      return rejectWithValue(err.message || 'Network error');
+      return rejectWithValue('Network error. Check your connection and try again.');
     }
   }
 );
