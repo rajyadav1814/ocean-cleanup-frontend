@@ -1,30 +1,30 @@
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 import Header from '../components/layout/Header';
-import Sidebar from '../components/layout/Sidebar';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import SubmitActivity from '../apps/contributor/pages/SubmitActivity';
-import QuickReport from '../apps/contributor/pages/QuickReport';
-import EventDetail from '../apps/contributor/pages/EventDetail';
-import MyActivities from '../apps/contributor/pages/MyActivities';
-import MyImpact from '../apps/contributor/pages/MyImpact';
-import ApprovedActivities from '../apps/contributor/pages/ApprovedActivities';
-import RejectedActivities from '../apps/contributor/pages/RejectedActivities';
-import ContributorOverview from '../apps/contributor/pages/ContributorOverview';
-import PendingQueue from '../apps/verifier/pages/PendingQueue';
-import ActivityReview from '../apps/verifier/pages/ActivityReview';
-import RejectedActivity from '../apps/verifier/pages/RejectedActivity';
-import MultisigStatus from '../apps/verifier/pages/MultisigStatus';
-import Login from '../apps/auth/pages/Login';
-import Signup from '../apps/auth/pages/Signup';
-import ForgotPassword from '../apps/auth/pages/ForgotPassword';
-import CitizenOverview from '../apps/citizen/pages/CitizenOverview';
-import LandingPage from '../app/page';
-import ProfileSettings from '../apps/profile/pages/ProfileSettings';
 import Chatbot from '../components/common/Chatbot';
-import ReefScene from '../components/common/ReefScene';
-import NotFound from '../components/common/NotFound';
+
+// Each page loads as its own chunk the first time it is visited, so the
+// initial download is the app shell rather than every screen at once.
+const SubmitActivity = lazy(() => import('../apps/contributor/pages/SubmitActivity'));
+const QuickReport = lazy(() => import('../apps/contributor/pages/QuickReport'));
+const EventDetail = lazy(() => import('../apps/contributor/pages/EventDetail'));
+const MyActivities = lazy(() => import('../apps/contributor/pages/MyActivities'));
+const MyImpact = lazy(() => import('../apps/contributor/pages/MyImpact'));
+const ContributorOverview = lazy(() => import('../apps/contributor/pages/ContributorOverview'));
+const PendingQueue = lazy(() => import('../apps/verifier/pages/PendingQueue'));
+const ActivityReview = lazy(() => import('../apps/verifier/pages/ActivityReview'));
+const RejectedActivity = lazy(() => import('../apps/verifier/pages/RejectedActivity'));
+const MultisigStatus = lazy(() => import('../apps/verifier/pages/MultisigStatus'));
+const Login = lazy(() => import('../apps/auth/pages/Login'));
+const Signup = lazy(() => import('../apps/auth/pages/Signup'));
+const ForgotPassword = lazy(() => import('../apps/auth/pages/ForgotPassword'));
+const CitizenOverview = lazy(() => import('../apps/citizen/pages/CitizenOverview'));
+const LandingPage = lazy(() => import('../app/page'));
+const ProfileSettings = lazy(() => import('../apps/profile/pages/ProfileSettings'));
+const NotFound = lazy(() => import('../components/common/NotFound'));
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuth();
@@ -65,9 +65,9 @@ function MainLayout({ children }) {
       )} */}
       <Header toggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       <main className="main-layout">
-        {/* <Sidebar isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} /> */}
         <div className="main-content">
-          {children}
+          {/* Header and nav stay on screen while the page's chunk loads. */}
+          <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
         </div>
       </main>
       {(isCitizenSpace || isContributorSpace) && <Chatbot />}
@@ -160,6 +160,7 @@ export default function AppRouter() {
   return (
     <>
       <FlashMessageToast />
+      <Suspense fallback={<LoadingSpinner />}>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
@@ -333,6 +334,7 @@ export default function AppRouter() {
           )
         } />
       </Routes>
+      </Suspense>
     </>
   );
 }

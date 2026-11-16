@@ -213,6 +213,12 @@ export default function Login() {
     setError("");
     setNeedsVerification(false);
     setResendState("idle");
+    // The form is noValidate (custom styling), so check the basics here
+    // rather than sending an empty or malformed request.
+    if (!email.trim() || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
     setLoading(true);
     try {
       const data = await authLogin(email, password);
@@ -263,7 +269,7 @@ export default function Login() {
         </h1>
         <p className="bm-login__sub">Sign in to keep mapping.</p>
 
-        {error && <div className="bm-login__error">{error}</div>}
+        {error && <div className="bm-login__error" role="alert">{error}</div>}
         {needsVerification && (
           <div className="bm-login__resend">
             {resendState === "sent" ? (
@@ -281,6 +287,7 @@ export default function Login() {
           <input
             type="email"
             placeholder="Email"
+            aria-label="Email"
             autoComplete="email"
             required
             value={email}
@@ -293,6 +300,7 @@ export default function Login() {
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Password"
+            aria-label="Password"
             autoComplete="current-password"
             required
             value={password}

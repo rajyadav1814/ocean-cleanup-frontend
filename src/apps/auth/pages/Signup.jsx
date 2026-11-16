@@ -258,6 +258,16 @@ const eyeToggleStyle = (isAbsolute = true) => ({
   lineHeight: 0,
 });
 
+// Same minimum the backend enforces for password resets and invites.
+const PASSWORD_MIN_LENGTH = 8;
+
+// Returns why a new password isn't acceptable, or '' if it is.
+function passwordProblem(password) {
+  if (password.length < PASSWORD_MIN_LENGTH) return `Use at least ${PASSWORD_MIN_LENGTH} characters for your password.`;
+  if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) return 'Your password needs at least one letter and one number.';
+  return '';
+}
+
 export default function Signup() {
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', username: '',
@@ -303,6 +313,9 @@ export default function Signup() {
     }
     if (step === 2 && (!form.username.trim() || !form.password || !form.confirmPassword)) {
       setError('Please choose a username and confirm your password.'); return;
+    }
+    if (step === 2 && passwordProblem(form.password)) {
+      setError(passwordProblem(form.password)); return;
     }
     if (step === 2 && form.password !== form.confirmPassword) {
       setError('Your passwords do not match.'); return;
@@ -406,18 +419,21 @@ export default function Signup() {
                 <label htmlFor="su-password">Password</label>
                 <div style={{ position: 'relative' }}>
                   <Lock size={15} className="bm-signup__field-icon" />
-                  <input id="su-password" type={showPassword ? 'text' : 'password'} placeholder="Create a password" value={form.password} onChange={set('password')} autoComplete="new-password" required />
+                  <input id="su-password" type={showPassword ? 'text' : 'password'} placeholder="Create a password" value={form.password} onChange={set('password')} autoComplete="new-password" required minLength={PASSWORD_MIN_LENGTH} aria-describedby="su-password-hint" />
                   <button type="button" style={eyeToggleStyle()} onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
                     {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
+                <p id="su-password-hint" style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', opacity: 0.75 }}>
+                  At least {PASSWORD_MIN_LENGTH} characters, with a letter and a number.
+                </p>
               </div>
               <div className="bm-signup__field">
                 <label htmlFor="su-confirm">Confirm password</label>
                 <div style={{ position: 'relative' }}>
                   <Lock size={15} className="bm-signup__field-icon" />
                   <input id="su-confirm" type={showConfirmation ? 'text' : 'password'} placeholder="Confirm your password" value={form.confirmPassword || ''} onChange={set('confirmPassword')} autoComplete="new-password" required />
-                  <button type="button" style={eyeToggleStyle()} onClick={() => setShowConfirmation((v) => !v)} aria-label={showConfirmation ? 'Hide confirm' : 'Show confirm'}>
+                  <button type="button" style={eyeToggleStyle()} onClick={() => setShowConfirmation((v) => !v)} aria-label={showConfirmation ? 'Hide password confirmation' : 'Show password confirmation'}>
                     {showConfirmation ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>

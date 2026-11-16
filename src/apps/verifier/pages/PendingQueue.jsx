@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import useFocusTrap from '../../../hooks/useFocusTrap';
 import { useActivities } from '../../../hooks/useActivities';
 import { useEventSignals } from '../../../hooks/useEventSignals';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
@@ -9,15 +11,26 @@ import EmptyState from '../../../components/common/EmptyState';
 // Reject-note modal
 function RejectModal({ onConfirm, onCancel, loading, error }) {
   const [note, setNote] = useState('');
-  return (
-    <div style={{
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape' && !loading) onCancel(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [loading, onCancel]);
+
+  // Portaled to <body> so `position: fixed` covers the viewport even inside
+  // page wrappers that use backdrop-filter.
+  return createPortal(
+    <div onClick={() => !loading && onCancel()} style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
     }}>
       <div className="card" style={{ width: '100%', maxWidth: '420px', padding: '2rem' }}
+        ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="reject-dialog-title"
         onClick={e => e.stopPropagation()}>
-        <h4 style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <h4 id="reject-dialog-title" style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
@@ -27,8 +40,10 @@ function RejectModal({ onConfirm, onCancel, loading, error }) {
           Optionally provide a reason for rejection.
         </p>
         <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-          <label>Rejection Reason (optional)</label>
+          <label htmlFor="reject-reason">Rejection Reason (optional)</label>
           <textarea
+            id="reject-reason"
+            autoFocus
             rows={3}
             placeholder="e.g. Insufficient evidence, photo unclear…"
             value={note}
@@ -56,11 +71,10 @@ function RejectModal({ onConfirm, onCancel, loading, error }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
-
-
 
 export default function PendingQueue() {
   const { activities, loading, error, reviewActivity, refresh } = useActivities();

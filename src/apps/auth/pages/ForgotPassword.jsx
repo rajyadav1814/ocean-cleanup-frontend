@@ -150,6 +150,10 @@ export default function ForgotPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+      setError("Enter the email address for your account.");
+      return;
+    }
     setLoading(true);
     try {
       const data = await authRequestPasswordReset(email.trim());
@@ -179,18 +183,19 @@ export default function ForgotPassword() {
         <p className="bm-forgot__sub">We’ll send a secure reset link to your registered email.</p>
 
         {sent && (
-          <div className="bm-forgot__notice">
+          <div className="bm-forgot__notice" role="status">
             We sent a reset link to your email. Check your inbox and spam folder.
           </div>
         )}
 
-        {error && <div className="bm-forgot__error">{error}</div>}
+        {error && <div className="bm-forgot__error" role="alert">{error}</div>}
 
         <div className="bm-field">
           <Mail className="bm-field__icon" size={16} />
           <input
             type="email"
             placeholder="Email"
+            aria-label="Email"
             autoComplete="email"
             required
             value={email}

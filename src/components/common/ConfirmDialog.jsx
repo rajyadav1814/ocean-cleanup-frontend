@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Trash2, AlertTriangle } from 'lucide-react';
+import useFocusTrap from '../../hooks/useFocusTrap';
 
 // Attention popup for destructive actions (deleting an account, a report).
 // Pass `requirePhrase` to make the user type it before the button unlocks,
@@ -18,6 +19,8 @@ export default function ConfirmDialog({
   error = '',
 }) {
   const [phrase, setPhrase] = useState('');
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
   const phraseOk = !requirePhrase || phrase.trim().toUpperCase() === requirePhrase.toUpperCase();
   const canConfirm = phraseOk && !loading;
 
@@ -39,6 +42,8 @@ export default function ConfirmDialog({
       }}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         className="card"
         role="alertdialog"
         aria-modal="true"

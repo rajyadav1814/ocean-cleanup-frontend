@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { authUpdateProfile, authDeleteAccount } from '../../../services/api';
-import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import Select from '../../../components/common/Select';
 import ConfirmDialog from '../../../components/common/ConfirmDialog';
 

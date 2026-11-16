@@ -4,6 +4,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import NotificationBell from './NotificationBell';
+import useFocusTrap from '../../hooks/useFocusTrap';
 
 // Same per-role destinations the sidebar used to show — surfaced as header
 // tabs now that the sidebar is commented out.
@@ -38,6 +39,87 @@ function getDisplayInitial(user) {
   return (user?.displayInitial || getDisplayName(user) || 'U').trim().charAt(0).toUpperCase();
 }
 
+// Sign-out confirmation. Defined at module level (not inside Header's
+// render) so it isn't remounted on every Header re-render.
+function LogoutModal({ onCancel, onConfirm }) {
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onCancel(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onCancel]);
+
+  return createPortal(
+    <div onClick={onCancel} style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(15, 23, 42, 0.75)',
+      backdropFilter: 'blur(8px)',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      animation: 'fadeIn 0.2s ease',
+      fontFamily: 'var(--font-sans)'
+    }}>
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logout-dialog-title"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--border-light)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '2.5rem',
+        maxWidth: '400px',
+        width: '90%',
+        boxShadow: 'var(--shadow-lg), 0 0 40px var(--border-glow)',
+        textAlign: 'center',
+        animation: 'slideUp 0.3s ease'
+      }}>
+        <div style={{
+          width: '64px', height: '64px', borderRadius: '50%',
+          background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 1.5rem auto'
+        }}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </div>
+        <h3 id="logout-dialog-title" style={{ marginBottom: '1rem', color: 'var(--text-main)', fontSize: '1.5rem', fontWeight: 700 }}>Sign Out</h3>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '2.5rem', fontSize: '1rem', lineHeight: '1.5' }}>
+          Are you sure you want to sign out? You will need to sign back in to access your workspace.
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+          <button
+            onClick={onCancel}
+            autoFocus
+            className="secondary"
+            style={{ flex: 1, padding: '0.875rem', borderRadius: 'var(--radius-md)' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="danger"
+            style={{ flex: 1, padding: '0.875rem', borderRadius: 'var(--radius-md)' }}
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function Header({ toggleMobileMenu, hideActions = false }) {
   const { user, role, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -68,70 +150,6 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
     setShowLogoutConfirm(false);
     logout();
     navigate('/login');
-  };
-
-  const LogoutModal = () => {
-    if (!showLogoutConfirm) return null;
-    return createPortal(
-      <div style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.75)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        animation: 'fadeIn 0.2s ease',
-        fontFamily: 'var(--font-sans)'
-      }}>
-        <div style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border-light)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '2.5rem',
-          maxWidth: '400px',
-          width: '90%',
-          boxShadow: 'var(--shadow-lg), 0 0 40px var(--border-glow)',
-          textAlign: 'center',
-          animation: 'slideUp 0.3s ease'
-        }}>
-          <div style={{
-            width: '64px', height: '64px', borderRadius: '50%',
-            background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 1.5rem auto'
-          }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-          </div>
-          <h3 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontSize: '1.5rem', fontWeight: 700 }}>Sign Out</h3>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '2.5rem', fontSize: '1rem', lineHeight: '1.5' }}>
-            Are you sure you want to sign out? You will need to sign back in to access your workspace.
-          </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <button
-              onClick={() => setShowLogoutConfirm(false)}
-              className="secondary"
-              style={{ flex: 1, padding: '0.875rem', borderRadius: 'var(--radius-md)' }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleLogout}
-              className="danger"
-              style={{ flex: 1, padding: '0.875rem', borderRadius: 'var(--radius-md)' }}
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </div>,
-      document.body
-    );
   };
 
   return (
@@ -275,7 +293,9 @@ export default function Header({ toggleMobileMenu, hideActions = false }) {
           </svg>
         </button>
       </div>
-      <LogoutModal />
+      {showLogoutConfirm && (
+        <LogoutModal onCancel={() => setShowLogoutConfirm(false)} onConfirm={handleLogout} />
+      )}
     </header>
   );
 }

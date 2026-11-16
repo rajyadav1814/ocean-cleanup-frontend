@@ -7,7 +7,6 @@ import MapLocationPicker from '../../../components/common/MapLocationPicker';
 import OrganizationSelect from '../../../components/common/OrganizationSelect';
 import useOrganizations from '../../../hooks/useOrganizations';
 import { invalidateActivities } from '../../../store/activitiesSlice';
-import { invalidateDashboard } from '../../../store/dashboardSlice';
 import { invalidateContributorStats } from '../../../store/contributorSlice';
 import { invalidateCitizenStats } from '../../../store/citizenSlice';
 import { invalidateEvents } from '../../../store/eventsSlice';
@@ -588,7 +587,6 @@ export default function QuickReport() {
         return;
       }
       dispatch(invalidateActivities());
-      dispatch(invalidateDashboard());
       dispatch(isCitizen ? invalidateCitizenStats() : invalidateContributorStats());
       dispatch(invalidateEvents());
       navigate(overviewPath, { replace: true, state: { flashMessage: 'Measurement submitted.' } });
@@ -732,7 +730,6 @@ export default function QuickReport() {
         return;
       }
       dispatch(invalidateActivities());
-      dispatch(invalidateDashboard());
       dispatch(isCitizen ? invalidateCitizenStats() : invalidateContributorStats());
       dispatch(invalidateEvents());
       navigate(overviewPath, { replace: true, state: { flashMessage: 'Report submitted.' } });
