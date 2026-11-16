@@ -24,13 +24,11 @@ const createPin = (fillColor) => {
 };
 
 // Compact layer-chip bar (spec §24: a map should answer questions, not
-// just be a pin dump) — same MAP_LAYERS vocabulary as the public Global
-// Impact Map, rendered small enough to fit inside the dashboard card and
-// duplicated into the fullscreen overlay so it stays usable there too.
+// just be a pin dump) — the shared MAP_LAYERS vocabulary, rendered small
+// enough to fit inside the dashboard card and duplicated into the
+// fullscreen overlay so it stays usable there too.
 // Only the four questions spec §9 leads with — it explicitly warns against
-// overloading the map with every filter at once. The other layers stay
-// available to the public Global Impact Map, which is exploratory rather
-// than "these are my places".
+// overloading the map with every filter at once.
 const CONTRIBUTOR_LAYERS = CONTRIBUTOR_LAYER_IDS
   .map((id) => MAP_LAYERS.find((l) => l.id === id))
   .filter(Boolean);
@@ -125,12 +123,12 @@ function PlaceRow({ place, selected, isLast, onSelect }) {
 /**
  * MyAreasMap — the contributor's own environmental events plotted by
  * location, pin color driven by event_state (not the legacy approval
- * status the public ImpactMap still uses) so a glance at the map shows
+ * status) so a glance at the map shows
  * what's still open vs. addressed, matching the ontology's own state
  * vocabulary instead of a proxy for it.
  *
- * Layers (spec §24) reuse the same MAP_LAYERS definitions as the public
- * Global Impact Map, scoped to this contributor's own events, so "Where
+ * Layers (spec §24) reuse the shared MAP_LAYERS definitions, scoped to
+ * this contributor's own events, so "Where
  * are unresolved problems / What has changed recently / etc." are
  * answerable here too instead of the map just being a pin dump.
  *
