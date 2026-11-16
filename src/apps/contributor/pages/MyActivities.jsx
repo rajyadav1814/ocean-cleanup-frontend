@@ -11,7 +11,6 @@ import { apiDelete } from '../../../services/api';
 import ImageGalleryModal from '../../../components/common/ImageGalleryModal';
 import ConfirmDialog from '../../../components/common/ConfirmDialog';
 import { bluemindApi } from '../../../store/apiSlice';
-import OceanWaveStrip from '../../../components/common/OceanWaveStrip';
 import { invalidateContributorStats } from '../../../store/contributorSlice';
 import { invalidateCitizenStats } from '../../../store/citizenSlice';
 
@@ -33,12 +32,6 @@ function formatActivityDate(timestamp) {
 }
 
 const CAT_ICON = { plastic: '🧴', glass: '🍾', metal: '🥫', organic: '🍂', mixed: '🗑️', other: '📦' };
-
-const STATUS_META = {
-  approved: { bg: 'rgba(6,32,26,.82)', color: '#34d399', label: 'Approved' },
-  pending:  { bg: 'rgba(38,26,4,.82)', color: '#fbbf24', label: 'Pending' },
-  rejected: { bg: 'rgba(38,10,10,.82)', color: '#f87171', label: 'Rejected' },
-};
 
 // Event-model buckets, not the legacy approved/pending/rejected — those
 // couldn't express recurring, corroborated or action-underway without

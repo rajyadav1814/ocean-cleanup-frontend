@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
@@ -10,7 +10,6 @@ import OrganizationSelect from '../../../components/common/OrganizationSelect';
 import Select from '../../../components/common/Select';
 import useOrganizations from '../../../hooks/useOrganizations';
 import { invalidateActivities } from '../../../store/activitiesSlice';
-import { invalidateDashboard } from '../../../store/dashboardSlice';
 import { invalidateContributorStats } from '../../../store/contributorSlice';
 import { invalidateCitizenStats } from '../../../store/citizenSlice';
 import { imageFileToDataUrl } from '../../../utils/file';
@@ -127,13 +126,21 @@ export default function SubmitActivity() {
     // unedited record should keep reading as "Bluemind will infer this"
     // rather than silently claiming a waste category nobody chose.
     category: '',
-    evidenceHash: 'mock-hash',
+    evidenceHash: '',
     notes: ''
   });
 
   const { organizations, orgsLoading, addOrganization } = useOrganizations();
   const [status, setStatus] = useState('');
   const [images, setImages] = useState([]);
+  // Preview object URLs hold the picked files in memory until revoked.
+  // Removing a photo revokes its own; this releases the rest when the page
+  // closes (after submit, cancel or navigation).
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
+  useEffect(() => () => {
+    imagesRef.current.forEach((img) => URL.revokeObjectURL(img.objectUrl));
+  }, []);
   const [existingUrls, setExistingUrls] = useState([]);
   const [loadingActivity, setLoadingActivity] = useState(Boolean(activityId));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -166,7 +173,7 @@ export default function SubmitActivity() {
           quantity: data.activity.quantity || '',
           organizationId: data.activity.organizationId || '',
           category: data.activity.category || '',
-          evidenceHash: data.activity.evidenceHash || 'mock-hash',
+          evidenceHash: data.activity.evidenceHash || '',
           notes: data.activity.notes || '',
           shorelineType: data.activity.shorelineType || 'Sandy beach',
           tideState: data.activity.tideState || 'Low tide',
@@ -241,7 +248,8 @@ export default function SubmitActivity() {
       location: form.location,
       quantity: form.quantity,
       volunteers,
-      evidenceHash: form.evidenceHash,
+      // Only send a real hash; never overwrite one with a placeholder.
+      evidenceHash: form.evidenceHash || undefined,
       notes: form.notes,
       lat: form.lat,
       lon: form.lon,
@@ -300,7 +308,6 @@ export default function SubmitActivity() {
       }
 
       dispatch(invalidateActivities());
-      dispatch(invalidateDashboard());
       dispatch(isCitizen ? invalidateCitizenStats() : invalidateContributorStats());
       const dest = user?.role === 'citizen' ? '/citizen/overview' : '/contributor/my-activities';
       navigate(dest, {

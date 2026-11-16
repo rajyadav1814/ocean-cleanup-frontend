@@ -5,7 +5,6 @@ import { eventApi } from '../../../services/api';
 import { useDispatch } from 'react-redux';
 import { bluemindApi, useGetEventQuery, useGetActivityProofQuery, useListSubjectsQuery } from '../../../store/apiSlice';
 import { invalidateActivities } from '../../../store/activitiesSlice';
-import { invalidateDashboard } from '../../../store/dashboardSlice';
 import { invalidateContributorStats } from '../../../store/contributorSlice';
 import { invalidateCitizenStats } from '../../../store/citizenSlice';
 import { invalidateEvents } from '../../../store/eventsSlice';
@@ -252,7 +251,7 @@ export default function EventDetail() {
   // below call loadEvent (refetch) to pick up what they changed.
   // currentData, not data — data would briefly show the previous event
   // while navigating to a different id.
-  const { currentData: event = null, isFetching, error: eventError, refetch: loadEvent } =
+  const { currentData: event = null, isFetching, error: eventError } =
     useGetEventQuery(id, { refetchOnMountOrArgChange: 30 });
   const loading = !event && isFetching;
   const loadError = !event && !isFetching && eventError ? (eventError.message || 'Event not found') : '';
@@ -352,7 +351,6 @@ export default function EventDetail() {
   function refreshAfterChange() {
     dispatch(invalidateEvents());
     dispatch(invalidateActivities());
-    dispatch(invalidateDashboard());
     dispatch(invalidateContributorStats());
     dispatch(invalidateCitizenStats());
     dispatch(bluemindApi.util.invalidateTags(['Story', { type: 'Event', id }]));

@@ -3,7 +3,6 @@ import { useDispatch } from 'react-redux';
 import { TOKEN_KEY, USER_KEY, AUTH_EXPIRED_EVENT, authVerify, authLogout } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { invalidateActivities } from '../store/activitiesSlice';
-import { invalidateDashboard } from '../store/dashboardSlice';
 import { invalidateContributorStats } from '../store/contributorSlice';
 import { invalidateCitizenStats } from '../store/citizenSlice';
 import { invalidateEvents } from '../store/eventsSlice';
@@ -60,7 +59,6 @@ export function AuthProvider({ children }) {
   // user's cached stats/activities until a hard refresh.
   const resetCachedData = () => {
     dispatch(invalidateActivities());
-    dispatch(invalidateDashboard());
     dispatch(invalidateContributorStats());
     dispatch(invalidateCitizenStats());
     dispatch(invalidateEvents());

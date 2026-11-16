@@ -1,11 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useCitizenStats, useCitizenLeaderboard, useCitizenFeed } from '../../../hooks/useCitizen';
 import { useGetStoriesQuery } from '../../../store/apiSlice';
 import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
-import SubmitActivity from '../../contributor/pages/SubmitActivity';
 import MyAreasMap from '../../contributor/components/MyAreasMap';
 import {
   eventStateMeta, verificationStateMeta, primarySubject, primarySubjectLabel, buildStoryTimeline,
@@ -628,14 +627,6 @@ const STYLES = `
 
 /* Brand mark shown in the hero's community bar — mirrors the one on the
    Contributor Space so both spaces read as the same product. */
-const BluemindMark = () => (
-  <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-    <path d="M16 3.6 27 9.6v12.8L16 28.4 5 22.4V9.6z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" opacity=".38" />
-    <path d="M9.5 14.4c1.7-1.9 3.4-1.9 5.1 0s3.4 1.9 5.1 0 3.4-1.9 5.1 0" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" fill="none" transform="translate(-3.6 0)" />
-    <path d="M9.5 19c1.7-1.9 3.4-1.9 5.1 0s3.4 1.9 5.1 0 3.4-1.9 5.1 0" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" fill="none" transform="translate(-3.6 0)" opacity=".55" />
-  </svg>
-);
-
 // Tints are alpha-blended (not flat hex) so they read as a soft wash over
 // whichever surface sits behind them instead of a flat light patch that
 // would stand out against a dark card.
@@ -676,8 +667,6 @@ export default function CitizenOverview() {
   const { leaderboard, myRow, loading: lL } = useCitizenLeaderboard();
   const { feed, loading: fL } = useCitizenFeed(24);
   const { events: myEvents, loading: eL } = useEvents(user?.id);
-  const [tab, setTab] = useState('overview');
-  const [toast, setToast] = useState('');
   const [mapFullscreen, setMapFullscreen] = useState(false);
 
   // Top 3 outcome chains (spec §4), same source and same shape as the
@@ -738,7 +727,6 @@ export default function CitizenOverview() {
     <div className="co-root">
       <style>{STYLES}</style>
 
-      {toast && <div className="co-toast">{toast}</div>}
 
       {/* ── Hero ── same Bluemind hero used on the Contributor Space, so
           both spaces read as one product. Citizen has no export/report
@@ -1064,8 +1052,8 @@ export default function CitizenOverview() {
         <MyAreasMap events={myEvents} isFullscreen={mapFullscreen} onExitFullscreen={() => setMapFullscreen(false)} />
       </div>
 
-      {/* ══ Overview tab ══ */}
-      {tab === 'overview' && (
+      {/* ══ Overview ══ */}
+      {(
         <div className="co-grid">
 
           {/* ── Feed (left) ── */}

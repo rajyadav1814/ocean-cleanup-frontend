@@ -1,17 +1,16 @@
-import { useMemo, useEffect, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ClipboardList, ShieldCheck, CheckCircle2, Recycle, MapPin, TrendingUp, TrendingDown, Bell, AlertCircle, Calendar, ChevronRight, Maximize, Activity, Clock, XCircle, BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets, Send, FileText, LogOut, ChevronDown, Users, Megaphone, BarChart3, Shield, UserCog, Sparkles, Zap, Eye } from 'lucide-react';
+import { ClipboardList, ShieldCheck, CheckCircle2, Recycle, MapPin, TrendingUp, TrendingDown, Bell, AlertCircle, Calendar, ChevronRight, Maximize, Activity, Clock, XCircle, BottleWine, Wrench, Trash2, GlassWater, Leaf, Droplets, Send, FileText, Users, Megaphone, BarChart3, Shield, Sparkles, Zap, Eye } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useActivities } from '../../../hooks/useActivities';
-import { useContributorStats } from '../../../hooks/useContributorStats';
 import { useContributorImpact } from '../../../hooks/useContributorImpact';
 import { useEvents } from '../../../hooks/useEvents';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { contributorApi } from '../../../services/api';
 import { useGetStoriesQuery } from '../../../store/apiSlice';
 import {
-  eventStateMeta, verificationStateMeta, adaptiveImpactMetrics, formatImpactPhrase,
+  eventStateMeta, verificationStateMeta, adaptiveImpactMetrics,
   primarySubject, primarySubjectLabel, buildStoryTimeline,
   fmtEventDate as fmt, fmtEventDateTime as fmtDateTime,
 } from '../eventMeta';
@@ -392,14 +391,6 @@ const STYLES = `
 `;
 
 /* Brand mark shown in the hero's community bar. */
-const BluemindMark = () => (
-  <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-    <path d="M16 3.6 27 9.6v12.8L16 28.4 5 22.4V9.6z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" opacity=".38" />
-    <path d="M9.5 14.4c1.7-1.9 3.4-1.9 5.1 0s3.4 1.9 5.1 0 3.4-1.9 5.1 0" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" fill="none" transform="translate(-3.6 0)" />
-    <path d="M9.5 19c1.7-1.9 3.4-1.9 5.1 0s3.4 1.9 5.1 0 3.4-1.9 5.1 0" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" fill="none" transform="translate(-3.6 0)" opacity=".55" />
-  </svg>
-);
-
 /* The four reasons a contributor's report matters, shown as a strip along
    the foot of the hero card. */
 // Tints are alpha-blended (not flat hex) so they read as a soft wash over
@@ -528,13 +519,12 @@ const NoDataYet = ({ onLog }) => (
 );
 
 export default function ContributorOverview() {
-  const { user, role, logout } = useAuth();
+  const { user } = useAuth();
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const navigate = useNavigate();
 
   const { activities, loading: actsLoading } = useActivities();
-  const { loading: statsLoading } = useContributorStats();
   const { impact, loading: impactLoading } = useContributorImpact();
   const { events: myEvents, loading: eventsLoading } = useEvents(user?.id);
 
@@ -546,28 +536,10 @@ export default function ContributorOverview() {
   const { data: stories = [] } = useGetStoriesQuery({ role: 'contributor', limit: 3 }, { refetchOnMountOrArgChange: 60 });
 
   const [mapFullscreen, setMapFullscreen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const accountRef = useRef(null);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportRange, setExportRange] = useState(defaultExportRange);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
-
-  // Close the hero's account menu on any click outside it.
-  useEffect(() => {
-    if (!accountOpen) return undefined;
-    function onDocClick(e) {
-      if (accountRef.current && !accountRef.current.contains(e.target)) setAccountOpen(false);
-    }
-    document.addEventListener('mousedown', onDocClick);
-    return () => document.removeEventListener('mousedown', onDocClick);
-  }, [accountOpen]);
-
-  function handleLogout() {
-    setAccountOpen(false);
-    logout();
-    navigate('/login');
-  }
 
   async function handleExport() {
     setExporting(true);
@@ -688,7 +660,7 @@ export default function ContributorOverview() {
     return null;
   }, [myEvents]);
 
-  if (actsLoading || statsLoading || impactLoading || eventsLoading) return <LoadingSpinner />;
+  if (actsLoading || impactLoading || eventsLoading) return <LoadingSpinner />;
 
   const firstName = user?.firstName || user?.displayName?.split(' ')[0] || 'there';
 

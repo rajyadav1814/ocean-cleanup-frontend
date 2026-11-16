@@ -203,27 +203,14 @@ export const notificationApi = {
   markRead: (id)  => apiPatch(`/api/dashboard/notifications/${id}/read`, {}),
 };
 
-// ─── Activity API helpers ────────────────────────────────────────────────────
-// spec §21: blockchain is infrastructure, not UX — the only thing a user
-// ever needs from it is this tamper-evident proof, never a wallet/gas/tx
-// flow. Backed by a real Cardano transaction (onchainProofService.js),
-// not a placeholder.
-export const activityApi = {
-  getProof: (id) => apiGet(`/api/activities/${id}/proof`),
-};
-
 // ─── Contributor API helpers ──────────────────────────────────────────────────
 export const contributorApi = {
   exportReport: (from, to) =>
     apiDownloadFile(`/api/contributor/export?from=${from}&to=${to}&format=pdf`, `field-report-${from}-to-${to}.pdf`),
-  // spec §4: full outcome chains for "What Changed Because of You" — who
-  // else saw it, how reports merged, who acted, what changed, who verified.
-  getStories: (limit = 3) => apiGet(`/api/contributor/stories?limit=${limit}`),
 };
 
 // ─── Environmental event API helpers ────────────────────────────────────────────
 export const eventApi = {
-  getById:      (id)                        => apiGet(`/api/events/${id}`),
   listSubjects: (family)                    => apiGet(`/api/events/subjects${family ? `?family=${family}` : ''}`),
   // spec §20: verifier queue signals — summaries (incl. corroborationCount,
   // sanityFlags) for an exact, already-known set of events in one request.
@@ -241,7 +228,7 @@ export const eventApi = {
     apiPost(`/api/events/${id}/subjects/${eventSubjectId}/correct`, { family, code, attributes, note }),
   // spec §21: a verifier's own attestation gets its own tamper-evident
   // proof — the only proof mechanism an action-event (no legacy activity)
-  // ever has. Mirrors activityApi.getProof's shape exactly.
+  // ever has. Same response shape as GET /api/activities/:id/proof.
   getVerificationProof: (verificationId) => apiGet(`/api/events/verifications/${verificationId}/proof`),
 };
 
@@ -262,9 +249,4 @@ export const citizenApi = {
   getStats:       ()              => apiGet('/api/citizen/stats'),
   getLeaderboard: ()              => apiGet('/api/citizen/leaderboard'),
   getFeed:        (limit = 15)    => apiGet(`/api/citizen/feed?limit=${limit}`),
-  submitReport:   (formData)      => apiPostForm('/api/activities', formData),
-  // spec §4: same outcome chains the Contributor Space shows, scoped to
-  // the calling citizen — who else saw it, how reports merged, who acted,
-  // what changed, who verified.
-  getStories:     (limit = 3)     => apiGet(`/api/citizen/stories?limit=${limit}`),
 };

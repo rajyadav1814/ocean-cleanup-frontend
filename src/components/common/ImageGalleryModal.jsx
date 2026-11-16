@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../../context/ThemeContext';
+import useFocusTrap from '../../hooks/useFocusTrap';
 
 /**
  * ImageGalleryModal — theme-aware full-screen gallery
@@ -16,6 +17,8 @@ export default function ImageGalleryModal({ images = [], startAt = 0, alt = 'Ima
   const isLight = theme === 'light';
 
   const [current, setCurrent] = useState(startAt);
+  const dialogRef = useRef(null);
+  useFocusTrap(dialogRef, images.length > 0);
   const total = images.length;
 
   const prev = useCallback(() => setCurrent((c) => (c - 1 + total) % total), [total]);
@@ -94,6 +97,8 @@ export default function ImageGalleryModal({ images = [], startAt = 0, alt = 'Ima
     >
       {/* Dialog box */}
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label="Image gallery"
