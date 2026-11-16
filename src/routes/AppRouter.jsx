@@ -16,7 +16,6 @@ import PendingQueue from '../apps/verifier/pages/PendingQueue';
 import ActivityReview from '../apps/verifier/pages/ActivityReview';
 import RejectedActivity from '../apps/verifier/pages/RejectedActivity';
 import MultisigStatus from '../apps/verifier/pages/MultisigStatus';
-import ImpactMap from '../apps/public-dashboard/pages/ImpactMap';
 import Login from '../apps/auth/pages/Login';
 import Signup from '../apps/auth/pages/Signup';
 import ForgotPassword from '../apps/auth/pages/ForgotPassword';
@@ -71,19 +70,6 @@ function MainLayout({ children }) {
         </div>
       </main>
       {(isCitizenSpace || isContributorSpace) && <Chatbot />}
-    </div>
-  );
-}
-
-function PublicLayout({ children }) {
-  return (
-    <div className="app-shell force-dark" style={{ background: 'var(--bg-gradient)', color: 'var(--text-main)', minHeight: '100vh' }}>
-      <Header toggleMobileMenu={() => { }} hideActions={true} />
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 0 }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--surface)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', padding: '2rem' }}>
-          {children}
-        </div>
-      </main>
     </div>
   );
 }
@@ -177,6 +163,8 @@ export default function AppRouter() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        {/* The public impact map page was removed; send old links home. */}
+        <Route path="/map" element={<Navigate to="/" replace />} />
 
         <Route path="/" element={
           user ? (
@@ -194,12 +182,6 @@ export default function AppRouter() {
               <LandingPage />
             </LandingLayout>
           )
-        } />
-
-        <Route path="/map" element={
-          <PublicLayout>
-            <ImpactMap />
-          </PublicLayout>
         } />
 
         <Route path="/contributor/overview" element={
