@@ -31,11 +31,24 @@ function normalizeUser(userData) {
   };
 }
 
+// The user saved at the last login/verify, so a returning visitor can see
+// the app immediately while the token is re-checked in the background.
+function readStoredUser() {
+  if (!localStorage.getItem(TOKEN_KEY)) return null;
+  try {
+    const stored = normalizeUser(JSON.parse(localStorage.getItem(USER_KEY)));
+    return stored && stored.role && stored.role !== 'admin' ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
   const dispatch = useDispatch();
-  const [user, setUser] = useState(null);
-  const [role, setRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(readStoredUser);
+  const [role, setRole] = useState(() => readStoredUser()?.role ?? null);
+  // Only block rendering when there's a token but no saved user to show.
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem(TOKEN_KEY)) && !readStoredUser());
 
   // These slices cache per-session, keyed only by fetch status — not by user.
   // Without clearing them, switching accounts in the same tab (logout, then
@@ -49,7 +62,18 @@ export function AuthProvider({ children }) {
     dispatch(invalidateEvents());
   };
 
+  // Re-check the token with the server. The saved user is already on screen,
+  // so this runs alongside the page's own requests instead of before them;
+  // the backend still checks the token on every request regardless.
   useEffect(() => {
+    const clearSession = () => {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      setUser(null);
+      setRole(null);
+      resetCachedData();
+    };
+
     const checkAuth = async () => {
       const token = localStorage.getItem(TOKEN_KEY);
       if (token) {
@@ -61,13 +85,13 @@ export function AuthProvider({ children }) {
             setRole(normalizedUser.role);
             localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
           } else {
-            localStorage.removeItem(TOKEN_KEY);
-            localStorage.removeItem(USER_KEY);
+            clearSession();
           }
         } catch (err) {
+          // Server unreachable, not a rejected token: keep a saved session
+          // (its requests will fail on their own) rather than sign out.
           console.error('Auth verification failed', err);
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
+          if (!readStoredUser()) clearSession();
         }
       }
       setLoading(false);

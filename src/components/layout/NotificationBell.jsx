@@ -27,8 +27,11 @@ export default function NotificationBell() {
     : '/contributor/overview';
   const eventPath = user?.role === 'citizen' ? '/citizen/events' : '/contributor/events';
 
+  // Keyed on the id, not the user object: verify and profile saves replace
+  // the object without changing who is signed in.
+  const userId = user?.id;
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
     let cancelled = false;
     notificationApi.list().then((data) => {
       if (!cancelled && data.ok) {
@@ -37,7 +40,7 @@ export default function NotificationBell() {
       }
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     function handleClick(e) {
