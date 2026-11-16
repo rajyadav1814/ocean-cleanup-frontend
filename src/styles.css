@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap');
 
 :root {
-  /* BlueMind — dark ocean */
+  /* Bluemind — dark ocean */
   --brand-50: #071f33;
   --brand-100: #0b2d4a;
   --brand-200: #16476b;
@@ -65,7 +65,7 @@
 
 [data-theme="dark"],
 .force-dark {
-  /* BlueMind — dark ocean */
+  /* Bluemind — dark ocean */
   color-scheme: dark;
   --brand-50: #071f33;
   --brand-100: #0b2d4a;
@@ -126,7 +126,7 @@
 }
 
 [data-theme="light"] {
-  /* BlueMind — white */
+  /* Bluemind — white */
   color-scheme: light;
   --bg: #f7fcff;
   --primary: #087f9c;
@@ -174,7 +174,7 @@ html {
   font-family: var(--font-sans);
 }
 
-/* Shared BlueMind primitives for new screens and component overrides. */
+/* Shared Bluemind primitives for new screens and component overrides. */
 .bm-button {
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
@@ -416,7 +416,7 @@ a {
   flex-direction: column;
 }
 
-/* Contributor, Citizen, Verifier, and Admin Spaces share the BlueMind ocean system used
+/* Contributor, Citizen, Verifier, and Admin Spaces share the Bluemind ocean system used
    by the authentication screens, including the surrounding navigation chrome. */
 .contributor-space-shell,
 .citizen-space-shell,
@@ -1621,7 +1621,7 @@ tr:hover td {
    viewport so the water stays still while the page scrolls over it.
    `contain: strict` keeps the always-running SVG animations from
    invalidating layout for the rest of the page. Both spaces share the same
-   Blue Mind hero and card system, so both get the reef behind them. */
+   Bluemind hero and card system, so both get the reef behind them. */
 .space-reef {
   position: fixed;
   inset: 0;

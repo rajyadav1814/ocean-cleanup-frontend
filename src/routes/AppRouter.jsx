@@ -58,7 +58,7 @@ function MainLayout({ children }) {
           follows the theme — a deep-water dive at night, sunlit shallows in
           the day — rather than reusing one dark image under a light wash,
           which read as a slab of midnight ocean under a white UI.
-          Contributor and Citizen Space share the same Blue Mind hero and
+          Contributor and Citizen Space share the same Bluemind hero and
           card system, so both get the same living backdrop behind them. */}
       {/* {(isContributorSpace || isCitizenSpace) && (
         <div className="space-reef" aria-hidden="true"><ReefScene variant="ambient" theme={theme} /></div>

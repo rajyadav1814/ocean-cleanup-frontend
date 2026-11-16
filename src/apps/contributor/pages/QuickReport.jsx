@@ -67,7 +67,7 @@ const SUPPORTED_DOCUMENT_MIME_TYPES = new Set(['application/pdf', 'text/plain', 
 // palette: secondary/success/warning are the same tokens the rest of the
 // contributor/citizen shell already draws from, and the violet is the exact
 // "action_planned" hue from eventMeta.js (spec state-color vocabulary),
-// borrowed here since Tell Blue Mind has no natural home in that trio.
+// borrowed here since Tell Bluemind has no natural home in that trio.
 const TILE_THEME = {
   blue:   { accent: 'var(--secondary)' },
   green:  { accent: 'var(--success)' },
@@ -117,7 +117,7 @@ const Leaf = ({ size = 16, style, className }) => (
   </svg>
 );
 
-// The Tell Blue Mind counterpart to Leaf, on the same hand-drawn footing
+// The Tell Bluemind counterpart to Leaf, on the same hand-drawn footing
 // rather than a stock icon set.
 const Mic = ({ size = 16, style, className }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={style} className={className} aria-hidden="true">
@@ -178,7 +178,7 @@ const VoiceBars = ({ reverse }) => (
 );
 
 // Faint per-theme motif in the tile's bottom-right corner — a sparkline for
-// Measurement, stacked files for Upload, a soundwave for Tell Blue Mind —
+// Measurement, stacked files for Upload, a soundwave for Tell Bluemind —
 // purely decorative (pointer-events none) so it never competes with the
 // button's own click target.
 const TILE_DECORATION = {
@@ -265,7 +265,7 @@ const SPEAK_ART = {
 
 // Surfaces condition/outcome/severity/hazard (spec §7.3-7.4 vocabulary)
 // right on the chip so the contributor can see and, via Remove, reject
-// what Blue Mind read on this subject before it's ever submitted — the
+// what Bluemind read on this subject before it's ever submitted — the
 // "Is this correct? Yes | Change" step the spec asks for (§6) would
 // otherwise have nothing to show for these fields at all. "outcome" is
 // what makes the client's own worked example legible here — "two turtles
@@ -357,7 +357,7 @@ export default function QuickReport() {
   const [inferError, setInferError] = useState('');
   const [draft, setDraft] = useState(null);
   const [quantity, setQuantity] = useState('');
-  // What Blue Mind actually estimated (spec §17) — kept separate from the
+  // What Bluemind actually estimated (spec §17) — kept separate from the
   // editable `quantity` field so submit-time can tell "contributor typed
   // exactly what the AI guessed" (ai_inferred) apart from "contributor
   // corrected it" (user_provided), instead of always crediting the AI
@@ -434,14 +434,14 @@ export default function QuickReport() {
     try {
       const res = await aiApi.infer({ imageBase64, audioBase64, documentBase64, text });
       if (!res.ok) {
-        setInferError(res.error || "Blue Mind couldn't classify this automatically — you can still describe it manually below.");
+        setInferError(res.error || "Bluemind couldn't classify this automatically — you can still describe it manually below.");
         setDraft({ subjects: [], description: '', quantityEstimateKg: null, missingFields: [] });
         setAiEstimatedQuantity(null);
       } else {
         setDraft(res.inference);
         setAiEstimatedQuantity(res.inference.quantityEstimateKg ?? null);
         if (res.inference.quantityEstimateKg != null) setQuantity(String(res.inference.quantityEstimateKg));
-        // Voice notes and documents come back with the text Blue Mind
+        // Voice notes and documents come back with the text Bluemind
         // actually classified (a transcript, or extracted document text)
         // instead of the contributor having typed rawText directly —
         // surface it the same way so it's reviewable/editable and gets
@@ -450,7 +450,7 @@ export default function QuickReport() {
         if (documentBase64 && typeof res.inference.extractedText === 'string') setRawText(res.inference.extractedText);
       }
     } catch {
-      setInferError("Couldn't reach Blue Mind's classifier — check your connection. You can still describe it manually below.");
+      setInferError("Couldn't reach Bluemind's classifier — check your connection. You can still describe it manually below.");
       setDraft({ subjects: [], description: '', quantityEstimateKg: null, missingFields: [] });
       setAiEstimatedQuantity(null);
     } finally {
@@ -674,7 +674,7 @@ export default function QuickReport() {
     const intakeMethod = (inputSource === 'photo' || inputSource === 'video') ? 'photo_video'
       : inputSource === 'document' ? 'upload' : 'tell_blue_mind';
 
-    // Field-level provenance (spec §17): if Blue Mind estimated a quantity
+    // Field-level provenance (spec §17): if Bluemind estimated a quantity
     // and the contributor left it exactly as estimated, that value is
     // still AI's — only mark it user_provided when they actually changed
     // it (or when there was no AI estimate for this quantity at all).
@@ -899,7 +899,7 @@ export default function QuickReport() {
 
         /* Confirm screen only: chunks what would otherwise be one flat stack
            of ~8 identically-styled fields into two legible groups — "what
-           Blue Mind found" vs. "check the details" — so the density of the
+           Bluemind found" vs. "check the details" — so the density of the
            provenance-aware fields doesn't read as a wall of form inputs. */
         .qr-confirm-group {
           display: flex; flex-direction: column; gap: 1rem; padding: 1rem 1.1rem;
@@ -1107,7 +1107,7 @@ export default function QuickReport() {
                 the Photo/Video hero above it. A contributor sees this tile
                 alongside Measurement and Upload at a third of the width,
                 where a side panel would not fit. */}
-            <Tile icon="voice" theme="violet" title="Tell Blue Mind" sub="Speak or type what happened, in your own words."
+            <Tile icon="voice" theme="violet" title="Tell Bluemind" sub="Speak or type what happened, in your own words."
               onClick={() => setMode('text-choose')} art={isCitizen ? SPEAK_ART : undefined} />
           </div>
         </>
@@ -1115,7 +1115,7 @@ export default function QuickReport() {
 
       {mode === 'video-describe' && (
         <StepCard accent={FLOW_ACCENT.video} icon="camera" title="Describe this video"
-          sub="Blue Mind classifies your description — the clip travels along as evidence."
+          sub="Bluemind classifies your description — the clip travels along as evidence."
           onBack={() => { setMode('landing'); setVideoFile(null); setVideoPreviewUrl(null); setRawText(''); }}>
           {videoPreviewUrl && (
             <video src={videoPreviewUrl} controls style={{ maxWidth: '260px', borderRadius: 'var(--radius-md)' }} />
@@ -1257,7 +1257,7 @@ export default function QuickReport() {
       )}
 
       {mode === 'text-choose' && (
-        <StepCard accent={FLOW_ACCENT.text} icon="voice" title="Tell Blue Mind"
+        <StepCard accent={FLOW_ACCENT.text} icon="voice" title="Tell Bluemind"
           sub="Speak or type what happened, in your own words." onBack={() => setMode('landing')} backDisabled={recording}>
           {recordError && <div className="qr-warning">{recordError}</div>}
 
@@ -1293,7 +1293,7 @@ export default function QuickReport() {
                   </span>
                   <VoiceBars reverse />
                 </div>
-                <p className="qr-voice-title">Blue Mind is listening…</p>
+                <p className="qr-voice-title">Bluemind is listening…</p>
                 <p className="qr-voice-sub">Speak clearly and we'll capture the details.</p>
                 <button type="button" className="qr-voice-stop" onClick={stopRecording}>
                   <span className="qr-voice-stop-dot" /> Stop recording
@@ -1306,7 +1306,7 @@ export default function QuickReport() {
 
       {mode === 'text' && !draft && (
         <StepCard accent={FLOW_ACCENT.text} icon="type" title="Type a note"
-          sub="Describe what happened — Blue Mind figures out the rest." onBack={() => setMode('text-choose')}>
+          sub="Describe what happened — Bluemind figures out the rest." onBack={() => setMode('text-choose')}>
           <textarea
             autoFocus
             value={rawText}
@@ -1331,7 +1331,7 @@ export default function QuickReport() {
           {photoDataUrl && <img src={photoDataUrl} alt="Submitted evidence" style={{ maxWidth: '200px', borderRadius: 'var(--radius-md)' }} />}
           <span className="qr-spinner" aria-hidden="true" />
           <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            {mode === 'voice' ? 'Blue Mind is analyzing…' : mode === 'document' ? 'Blue Mind is reading this…' : 'Blue Mind is looking at this…'}
+            {mode === 'voice' ? 'Bluemind is analyzing…' : mode === 'document' ? 'Bluemind is reading this…' : 'Bluemind is looking at this…'}
           </span>
         </div>
       )}
@@ -1341,7 +1341,7 @@ export default function QuickReport() {
           accent={FLOW_ACCENT[inputSource] || 'var(--primary)'}
           icon={FLOW_ICON[inputSource] || 'voice'}
           title="Review before you submit"
-          sub="Blue Mind's best guess — fix anything that's off before sending it in."
+          sub="Bluemind's best guess — fix anything that's off before sending it in."
           onBack={() => { setMode('landing'); setDraft(null); setPhotoDataUrl(null); setVideoFile(null); setVideoPreviewUrl(null); setDocumentFile(null); setAudioFile(null); setRawText(''); setInferError(''); setInputSource(null); setCaptureSource(null); setExtraFields({}); }}
         >
           {photoDataUrl && <img src={photoDataUrl} alt="Submitted evidence" style={{ maxWidth: '260px', borderRadius: 'var(--radius-md)' }} />}
@@ -1351,7 +1351,7 @@ export default function QuickReport() {
 
           {(draft.subjects.length > 0 || draft.description || rawText) && (
             <div className="qr-confirm-group">
-              <h4 className="qr-confirm-group-title">What Blue Mind found</h4>
+              <h4 className="qr-confirm-group-title">What Bluemind found</h4>
 
               {draft.subjects.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -1366,7 +1366,7 @@ export default function QuickReport() {
               {rawText && (
                 <div>
                   <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '0.4rem' }}>
-                    {inputSource === 'voice' ? 'What Blue Mind heard' : inputSource === 'document' ? 'Text extracted from your document' : 'Your report'}
+                    {inputSource === 'voice' ? 'What Bluemind heard' : inputSource === 'document' ? 'Text extracted from your document' : 'Your report'}
                   </label>
                   <textarea
                     value={rawText}
@@ -1376,10 +1376,10 @@ export default function QuickReport() {
                       background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.85rem', resize: 'vertical' }}
                   />
                   {inputSource === 'voice' && (
-                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>Fix anything Blue Mind heard wrong before submitting.</p>
+                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>Fix anything Bluemind heard wrong before submitting.</p>
                   )}
                   {inputSource === 'document' && (
-                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>This is what Blue Mind read from your file — edit if anything's off.</p>
+                    <p style={{ margin: '0.35rem 0 0', fontSize: '0.72rem', color: 'var(--text-muted)' }}>This is what Bluemind read from your file — edit if anything's off.</p>
                   )}
                 </div>
               )}
@@ -1401,7 +1401,7 @@ export default function QuickReport() {
               {locationCaptureMethod && (
                 <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: provenanceMeta(locationCaptureMethod === 'gps' ? 'system_captured' : 'user_provided').color }}>
                   {locationCaptureMethod === 'gps'
-                    ? `Blue Mind used your device's location${locationAccuracy ? ` (±${Math.round(locationAccuracy)}m)` : ''} — drag the pin if it's off.`
+                    ? `Bluemind used your device's location${locationAccuracy ? ` (±${Math.round(locationAccuracy)}m)` : ''} — drag the pin if it's off.`
                     : 'You placed this pin yourself.'}
                 </p>
               )}
@@ -1447,8 +1447,8 @@ export default function QuickReport() {
               {aiEstimatedQuantity != null && (
                 <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                   {Number(quantity) === Number(aiEstimatedQuantity)
-                    ? `Blue Mind estimated this from what you shared — tap to correct.`
-                    : `You corrected Blue Mind's ${aiEstimatedQuantity}kg estimate.`}
+                    ? `Bluemind estimated this from what you shared — tap to correct.`
+                    : `You corrected Bluemind's ${aiEstimatedQuantity}kg estimate.`}
                 </p>
               )}
             </div>

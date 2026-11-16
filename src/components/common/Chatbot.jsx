@@ -5,8 +5,8 @@ import { apiPost } from '../../services/api';
 const FALLBACK_REPLY = 'I can help with reporting ocean observations, submitting cleanup evidence, and understanding your impact. What would you like to do?';
 
 function getChatErrorMessage(error) {
-  if (error instanceof Error && error.message) return `BlueMind is unavailable: ${error.message}`;
-  return 'BlueMind is unavailable right now. Please try again later.';
+  if (error instanceof Error && error.message) return `Bluemind is unavailable: ${error.message}`;
+  return 'Bluemind is unavailable right now. Please try again later.';
 }
 
 export default function Chatbot() {
@@ -15,7 +15,7 @@ export default function Chatbot() {
   const [draft, setDraft] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 'welcome', role: 'assistant', content: 'Hi, I am BlueMind. How can I help with your ocean cleanup today?' }
+    { id: 'welcome', role: 'assistant', content: 'Hi, I am Bluemind. How can I help with your ocean cleanup today?' }
   ]);
   const messagesRef = useRef(null);
 
@@ -47,7 +47,7 @@ export default function Chatbot() {
         content: response.reply
       }]);
     } catch (error) {
-      console.error('BlueMind chat request failed:', error);
+      console.error('Bluemind chat request failed:', error);
       setMessages((current) => [...current, {
         id: `${Date.now()}-assistant`,
         role: 'assistant',
@@ -68,16 +68,16 @@ export default function Chatbot() {
             setShowGreeting(false);
             setIsOpen(true);
           }}
-          aria-label="Open BlueMind chat"
+          aria-label="Open Bluemind chat"
         >
           <strong>We're Online! <br/><span>How may I help you today?</span></strong>
         </button>
       )} */}
       {isOpen && (
-        <section className="chatbot-panel" aria-label="BlueMind chat">
+        <section className="chatbot-panel" aria-label="Bluemind chat">
           <header className="chatbot-header">
             <div>
-              <strong>BlueMind</strong>
+              <strong>Bluemind</strong>
               <span>Ocean cleanup assistant</span>
             </div>
             <button type="button" className="chatbot-icon-button" onClick={() => setIsOpen(false)} aria-label="Close chat" title="Close chat">
@@ -95,7 +95,7 @@ export default function Chatbot() {
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               placeholder="Ask anything..."
-              aria-label="Message BlueMind"
+              aria-label="Message Bluemind"
               maxLength={1000}
             />
             <button type="submit" className="chatbot-send-button" disabled={!draft.trim() || isSending} aria-label="Send message" title="Send message">
@@ -104,7 +104,7 @@ export default function Chatbot() {
           </form>
         </section>
       )}
-      <button type="button" className="chatbot-launcher" onClick={() => { setShowGreeting(false); setIsOpen((open) => !open); }} aria-label={isOpen ? 'Close BlueMind chat' : 'Open BlueMind chat'} title="Chat with BlueMind">
+      <button type="button" className="chatbot-launcher" onClick={() => { setShowGreeting(false); setIsOpen((open) => !open); }} aria-label={isOpen ? 'Close Bluemind chat' : 'Open Bluemind chat'} title="Chat with Bluemind">
         {isOpen ? <X size={21} /> : <MessageCircle size={21} />}
       </button>
     </div>

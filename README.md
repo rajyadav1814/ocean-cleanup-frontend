@@ -1,6 +1,6 @@
-# BlueMind Frontend
+# Bluemind Frontend
 
-This is the React frontend for the BlueMind activity tracking platform. It provides specialized dashboards for contributors, verifiers, and the general public to track and verify environmental impact activities worldwide.
+This is the React frontend for the Bluemind activity tracking platform. It provides specialized dashboards for contributors, verifiers, and the general public to track and verify environmental impact activities worldwide.
 
 ## Features
 
@@ -14,7 +14,7 @@ This is the React frontend for the BlueMind activity tracking platform. It provi
 - React
 - React Router DOM
 - Vite
-- Custom CSS (BlueMind light and dark theme)
+- Custom CSS (Bluemind light and dark theme)
 
 ## Getting Started
 

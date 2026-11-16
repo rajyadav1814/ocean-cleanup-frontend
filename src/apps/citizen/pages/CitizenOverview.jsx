@@ -628,7 +628,7 @@ const STYLES = `
 
 /* Brand mark shown in the hero's community bar — mirrors the one on the
    Contributor Space so both spaces read as the same product. */
-const BlueMindMark = () => (
+const BluemindMark = () => (
   <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
     <path d="M16 3.6 27 9.6v12.8L16 28.4 5 22.4V9.6z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" opacity=".38" />
     <path d="M9.5 14.4c1.7-1.9 3.4-1.9 5.1 0s3.4 1.9 5.1 0 3.4-1.9 5.1 0" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" fill="none" transform="translate(-3.6 0)" />
@@ -642,9 +642,9 @@ const BlueMindMark = () => (
 const HERO_VALUES = [
   { key:'awareness', title:'Raise Awareness', text:'What you contribute helps build a clearer picture of what’s happening out there.',
     Icon: Megaphone, color:'#3B82F6', tint:'rgba(59,130,246,0.14)' },
-  { key:'impact', title:'Drive Impact', text:'Blue Mind connects what you share to real-world action, not just a database.',
+  { key:'impact', title:'Drive Impact', text:'Bluemind connects what you share to real-world action, not just a database.',
     Icon: BarChart3, color:'#22A06B', tint:'rgba(34,160,107,0.14)' },
-  { key:'trust', title:'Build Trust', text:'Evidence stays traceable — see what you submitted, what Blue Mind added, and what got verified.',
+  { key:'trust', title:'Build Trust', text:'Evidence stays traceable — see what you submitted, what Bluemind added, and what got verified.',
     Icon: Shield, color:'#7C5CD6', tint:'rgba(124,92,214,0.14)' },
   { key:'protect', title:'Protect Together', text:'Cleanup, wildlife, water quality, research — every kind of contribution counts.',
     Icon: Leaf, color:'#CE9A2E', tint:'rgba(206,154,46,0.16)' },
@@ -745,7 +745,7 @@ export default function CitizenOverview() {
 
       {toast && <div className="co-toast">{toast}</div>}
 
-      {/* ── Hero ── same Blue Mind hero used on the Contributor Space, so
+      {/* ── Hero ── same Bluemind hero used on the Contributor Space, so
           both spaces read as one product. Citizen has no export/report
           endpoint, so the hero carries a single CTA instead of the pair. */}
       <div className="bm-hero">
@@ -768,7 +768,7 @@ export default function CitizenOverview() {
             </h1>
             <p className="bm-hero__sub">
               {heroUpdate
-                ? "You contribute, Blue Mind understands it, others confirm or connect it, and you see what changed."
+                ? "You contribute, Bluemind understands it, others confirm or connect it, and you see what changed."
                 : 'Every activity you submit helps us understand pollution patterns, raise awareness, and build a cleaner, healthier planet together.'}
             </p>
             <div className="bm-hero__actions">
@@ -807,7 +807,7 @@ export default function CitizenOverview() {
       <div className="co-panel" style={{ marginBottom: '1.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '0.5rem 1rem', padding: '0.9rem 1.25rem' }}>
         {[
           { step: 'You contribute', Icon: Send },
-          { step: 'Blue Mind understands', Icon: Sparkles },
+          { step: 'Bluemind understands', Icon: Sparkles },
           { step: 'Others confirm or connect it', Icon: Users },
           { step: 'Something happens', Icon: Zap },
           { step: 'You see what changed', Icon: Eye },
