@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { MoreHorizontal, Trash2 } from 'lucide-react';
 import { useActivities } from '../../../hooks/useActivities';
 import { useEvents } from '../../../hooks/useEvents';
 import { useAuth } from '../../../context/AuthContext';
@@ -8,6 +9,7 @@ import { eventStateMeta, verificationStateMeta } from '../eventMeta';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { apiDelete } from '../../../services/api';
 import ImageGalleryModal from '../../../components/common/ImageGalleryModal';
+import ConfirmDialog from '../../../components/common/ConfirmDialog';
 import OceanWaveStrip from '../../../components/common/OceanWaveStrip';
 import { invalidateContributorStats } from '../../../store/contributorSlice';
 import { invalidateCitizenStats } from '../../../store/citizenSlice';
@@ -150,7 +152,30 @@ const STYLES = `
   }
   .ma-chip strong { font-weight: 700; }
 
-  .ma-actions { margin-top: 1.1rem; display: flex; justify-content: flex-end; gap: .55rem; }
+  .ma-actions { margin-top: 1.1rem; display: flex; align-items: center; gap: .55rem; }
+  .ma-actions .ma-btn--edit { margin-left: auto; }
+  .ma-menu { position: relative; }
+  .ma-menu__trigger {
+    width: 34px; height: 34px; padding: 0; border-radius: var(--radius-md); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid transparent; color: var(--text-muted);
+    transition: background .2s ease, border-color .2s ease, color .2s ease;
+  }
+  .ma-menu__trigger:hover, .ma-menu__trigger[aria-expanded="true"] {
+    background: var(--surface-hover); border-color: var(--border-light); color: var(--text-main);
+  }
+  /* Opens upward: .ma-card clips overflow, and the actions row is its last child. */
+  .ma-menu__list {
+    position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 5; min-width: 170px; padding: .3rem;
+    background: var(--surface-solid); border: 1px solid var(--border-light); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+  }
+  .ma-menu__item {
+    width: 100%; display: flex; align-items: center; gap: .5rem; padding: .5rem .65rem;
+    background: transparent; border: none; border-radius: calc(var(--radius-md) - 2px);
+    color: #ef4444; font-size: .8rem; font-weight: 600; font-family: var(--font-sans); cursor: pointer; text-align: left;
+  }
+  .ma-menu__item:hover, .ma-menu__item:focus-visible { background: rgba(239,68,68,.08); outline: none; }
   .ma-btn {
     flex: none; min-width: 96px; padding: .5rem .9rem; border-radius: var(--radius-md); font-size: .78rem; font-weight: 600;
     cursor: pointer; text-align: center; transition: background .2s ease, border-color .2s ease, opacity .2s ease;
@@ -158,8 +183,6 @@ const STYLES = `
   }
   .ma-btn--edit { background: transparent; border: 1px solid var(--border-glow); color: var(--primary); }
   .ma-btn--edit:hover { background: rgba(46,158,155,.08); }
-  .ma-btn--delete { background: transparent; border: 1px solid rgba(239,68,68,.35); color: #ef4444; }
-  .ma-btn--delete:hover { background: rgba(239,68,68,.08); }
   .ma-btn:disabled { opacity: .6; cursor: default; }
 
   .ma-empty {
@@ -191,6 +214,8 @@ export default function MyActivities() {
   const navigate = useNavigate();
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState('');
+  const [menuFor, setMenuFor] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
   const [gallery, setGallery] = useState(null);
   // Opens on a preselected bucket when linked to with ?filter= (the
   // dashboards' "Needs Attention" cards link straight to the open ones,
@@ -254,22 +279,38 @@ export default function MyActivities() {
     && activity.contributorId === user?.id
     && activity.status !== 'approved';
 
+  // Close the card's ⋯ menu on any click outside it, or on Escape.
+  useEffect(() => {
+    if (!menuFor) return undefined;
+    const onDown = (e) => { if (!e.target.closest('.ma-menu')) setMenuFor(null); };
+    const onKey = (e) => { if (e.key === 'Escape') setMenuFor(null); };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuFor]);
+
   if (loading) return <LoadingSpinner layout="list" />;
 
-  async function handleDelete(activityId) {
-    const confirmed = window.confirm('Delete this activity? This cannot be undone.');
-    if (!confirmed) return;
-
+  // Deleting a report removes its whole environmental event (photos,
+  // subjects, verification history) and cuts the links from any other
+  // reports joined into it — so it goes through a menu and a confirmation
+  // popup instead of a one-click button.
+  async function handleDelete() {
+    const activityId = pendingDelete.activity.id;
     setDeletingId(activityId);
     setError('');
 
     try {
       const response = await apiDelete(`/api/activities/${activityId}`);
       if (!response.ok) {
-        setError(response.error || response.message || 'Failed to delete activity');
+        setError(response.error || response.message || 'Failed to delete report');
         return;
       }
 
+      setPendingDelete(null);
       await refresh();
       dispatch(role === 'citizen' ? invalidateCitizenStats() : invalidateContributorStats());
     } catch {
@@ -282,6 +323,32 @@ export default function MyActivities() {
   return (
     <div className="ma-root">
       <style>{STYLES}</style>
+
+      {pendingDelete && (
+        <ConfirmDialog
+          title="Delete this report?"
+          description="This permanently deletes your report and can't be undone."
+          confirmLabel="Delete report"
+          onConfirm={handleDelete}
+          onCancel={() => { setPendingDelete(null); setError(''); }}
+          loading={Boolean(deletingId)}
+          error={error}
+        >
+          <ul style={{ fontSize: '0.875rem', color: 'var(--text-muted)', paddingLeft: '1.25rem', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <li>Its photos, details and verification history are removed from the shared map.</li>
+            {pendingDelete.event.corroborationCount > 0 ? (
+              <li>
+                <strong style={{ color: 'var(--text-main)' }}>
+                  {pendingDelete.event.corroborationCount} other {pendingDelete.event.corroborationCount === 1 ? "person's report is" : "people's reports are"} joined
+                </strong>{' '}
+                to this event. Theirs stay, but lose the link to yours.
+              </li>
+            ) : (
+              <li>No other reports are joined to it yet.</li>
+            )}
+          </ul>
+        </ConfirmDialog>
+      )}
 
       {gallery && (
         <ImageGalleryModal
@@ -313,7 +380,7 @@ export default function MyActivities() {
           </div>
         )}
 
-        {error && <div className="ma-error">{error}</div>}
+        {error && !pendingDelete && <div className="ma-error">{error}</div>}
 
         {/* ── GRID / EMPTY STATE ──
             A contributor whose work lives only in the event model (spec §10)
@@ -429,12 +496,27 @@ export default function MyActivities() {
                           and the edit form was the last thing keeping the
                           retired legacy submission screen alive. Delete
                           stays, and still needs a legacy activity because
-                          that endpoint takes an activity id. */}
+                          that endpoint takes an activity id. It lives in
+                          the ⋯ menu so it isn't next to the main action. */}
                       {canModify(activity) && (
-                        <button type="button" className="ma-btn ma-btn--delete"
-                          onClick={() => handleDelete(activity.id)} disabled={isDeleting}>
-                          {isDeleting ? 'Deleting…' : 'Delete'}
-                        </button>
+                        <div className="ma-menu">
+                          <button type="button" className="ma-menu__trigger"
+                            aria-label="More actions" aria-haspopup="menu"
+                            aria-expanded={menuFor === event.eventId}
+                            onClick={() => setMenuFor((open) => (open === event.eventId ? null : event.eventId))}
+                            disabled={isDeleting}>
+                            <MoreHorizontal size={18} />
+                          </button>
+                          {menuFor === event.eventId && (
+                            <div className="ma-menu__list" role="menu">
+                              <button type="button" role="menuitem" className="ma-menu__item" autoFocus
+                                onClick={() => { setMenuFor(null); setError(''); setPendingDelete({ activity, event }); }}>
+                                <Trash2 size={15} />
+                                Delete report
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
                       <button type="button" className="ma-btn ma-btn--edit"
                         onClick={() => navigate(`/${role}/events/${event.eventId}`)}>
