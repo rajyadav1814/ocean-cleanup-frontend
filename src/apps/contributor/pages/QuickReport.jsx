@@ -11,7 +11,7 @@ import { invalidateDashboard } from '../../../store/dashboardSlice';
 import { invalidateContributorStats } from '../../../store/contributorSlice';
 import { invalidateCitizenStats } from '../../../store/citizenSlice';
 import { invalidateEvents } from '../../../store/eventsSlice';
-import { fileToDataUrl } from '../../../utils/file';
+import { fileToDataUrl, imageFileToDataUrl } from '../../../utils/file';
 import { provenanceMeta } from '../eventMeta';
 
 // For the confirm screen's "When did this happen?" <input type="datetime-local">
@@ -461,7 +461,7 @@ export default function QuickReport() {
   async function handlePhotoSelected(e, source) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const dataUrl = await fileToDataUrl(file);
+    const dataUrl = await imageFileToDataUrl(file);
     setPhotoDataUrl(dataUrl);
     setCaptureSource(source);
     setMode('photo');

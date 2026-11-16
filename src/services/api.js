@@ -26,6 +26,9 @@ async function readResponse(response) {
   if (response.status === 401 && getToken()) {
     window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
   }
+  if (response.status === 413) {
+    return { ok: false, error: 'Your photos or files are too large to send. Remove some, or use smaller ones, and try again.' };
+  }
   try {
     return await response.json();
   } catch {

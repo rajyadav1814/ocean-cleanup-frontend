@@ -20,11 +20,13 @@ export function useActivities() {
     }
   }, [dispatch, status]);
 
-  // Wrap reviewActivity to dispatch the thunk and return the result
+  // Dispatches the review and reports the outcome as { ok, activity, error }
+  // so callers can tell a failed review from a successful one.
   const reviewActivity = useCallback(
     async (id, reviewStatus, reviewNote = '') => {
       const result = await dispatch(reviewActivityThunk({ id, status: reviewStatus, reviewNote }));
-      return result.payload;
+      if (reviewActivityThunk.fulfilled.match(result)) return { ok: true, activity: result.payload };
+      return { ok: false, error: result.payload || 'Review failed' };
     },
     [dispatch]
   );

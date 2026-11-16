@@ -8,6 +8,18 @@ import {
 import useOrganizations from '../../../hooks/useOrganizations';
 import 'leaflet/dist/leaflet.css';
 
+// Leaflet popups take an HTML string. Location labels come from user
+// submissions and OpenStreetMap place names, so escape them before they
+// go in — otherwise a crafted name could run script on this page.
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const createPin = (fillColor) => {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 36 46">
@@ -348,10 +360,10 @@ export default function MyAreasMap({ events, isFullscreen, onExitFullscreen }) {
           const marker = L.marker([lat, lng], { icon })
             .addTo(markersLayer)
             .bindPopup(
-              `<div style="font:600 0.8rem sans-serif;">${subjectLabel}</div>
-               <div style="font:0.72rem sans-serif;color:#666;margin-top:2px;">${event.locationLabel || ''}</div>
+              `<div style="font:600 0.8rem sans-serif;">${escapeHtml(subjectLabel)}</div>
+               <div style="font:0.72rem sans-serif;color:#666;margin-top:2px;">${escapeHtml(event.locationLabel)}</div>
                <div style="font:0.68rem sans-serif;color:#888;margin-top:2px;">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
-               <div style="font:700 0.7rem sans-serif;color:${meta.color};margin-top:4px;text-transform:uppercase;">${meta.label}</div>`,
+               <div style="font:700 0.7rem sans-serif;color:${meta.color};margin-top:4px;text-transform:uppercase;">${escapeHtml(meta.label)}</div>`,
               // autoPan off: focusPlace flies the map itself, and leaflet's own
               // pan-into-view would fight that animation mid-flight.
               { maxWidth: 220, autoPan: false }

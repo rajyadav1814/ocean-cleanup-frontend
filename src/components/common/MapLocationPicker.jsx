@@ -82,7 +82,14 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
   }, [suppliedPosition?.lat, suppliedPosition?.lng]);
 
   // Helper to reverse geocode lat/lng to a proper structured place name
+  // Only the latest lookup may set the name: dragging the pin twice quickly
+  // can otherwise let the slower first response overwrite the second.
+  const lookupIdRef = useRef(0);
   const fetchLocationName = async (lat, lng) => {
+    const lookupId = ++lookupIdRef.current;
+    // Coordinates are a usable name on their own, so Submit is never blocked
+    // waiting on (or failing at) the place-name lookup.
+    const coordinateName = `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
     try {
       setIsFetchingName(true);
       const res = await fetch(
@@ -90,30 +97,33 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
         { headers: { 'Accept-Language': 'en' } }
       );
       const data = await res.json();
-      if (data && data.display_name) {
-        const a = data.address || {};
-
-        // Nominatim display_name is already ordered specific → broad (comma-separated)
-        // Take first 4-5 parts for a rich readable address
-        const displayParts = data.display_name
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean);
-
-        // Try to prepend a specific named place (beach, park, amenity etc.) if it isn't already in display_name
-        const specificPlace = a.amenity || a.tourism || a.leisure || a.natural || a.waterway;
-        if (specificPlace && !displayParts[0].toLowerCase().includes(specificPlace.toLowerCase())) {
-          displayParts.unshift(specificPlace);
-        }
-
-        // Take up to 5 parts, remove exact consecutive duplicates
-        const unique = displayParts.filter((p, i) => p !== displayParts[i - 1]);
-        setLocationName(unique.slice(0, 5).join(', '));
+      if (lookupId !== lookupIdRef.current) return;
+      if (!data?.display_name) {
+        setLocationName(coordinateName);
+        return;
       }
-    } catch (err) {
-      console.warn('Reverse geocoding failed', err);
+      const a = data.address || {};
+
+      // Nominatim display_name is already ordered specific → broad (comma-separated)
+      // Take first 4-5 parts for a rich readable address
+      const displayParts = data.display_name
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      // Try to prepend a specific named place (beach, park, amenity etc.) if it isn't already in display_name
+      const specificPlace = a.amenity || a.tourism || a.leisure || a.natural || a.waterway;
+      if (specificPlace && !displayParts[0].toLowerCase().includes(specificPlace.toLowerCase())) {
+        displayParts.unshift(specificPlace);
+      }
+
+      // Take up to 5 parts, remove exact consecutive duplicates
+      const unique = displayParts.filter((p, i) => p !== displayParts[i - 1]);
+      setLocationName(unique.slice(0, 5).join(', '));
+    } catch {
+      if (lookupId === lookupIdRef.current) setLocationName(coordinateName);
     } finally {
-      setIsFetchingName(false);
+      if (lookupId === lookupIdRef.current) setIsFetchingName(false);
     }
   };
 
@@ -242,18 +252,25 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
         </div>
       )}
 
-      {/* Location name + Lat/Lng display (read-only, auto-filled) — only once a point exists */}
+      {/* Location name (auto-filled, editable) + read-only Lat/Lng — only once a point exists */}
       {position && (
         <>
           <div className="form-group" style={{ marginBottom: 0 }}>
-            <label style={{ fontSize: '0.8rem' }}>Location name</label>
+            <label htmlFor="map-location-name" style={{ fontSize: '0.8rem' }}>Location name</label>
             <input
+              id="map-location-name"
               type="text"
-              placeholder="Enter a custom name for this location (e.g. Rozi Beach)..."
+              placeholder="Enter a name for this location (e.g. Rozi Beach)"
               value={locationName}
-              disabled
-              style={{ background: 'var(--surface-hover)', color: 'var(--text-muted)' }}
+              onChange={(e) => setLocationName(e.target.value)}
+              maxLength={200}
+              aria-invalid={!isFetchingName && !locationName.trim()}
             />
+            {!isFetchingName && !locationName.trim() && (
+              <p role="alert" style={{ margin: '0.35rem 0 0', fontSize: '0.74rem', color: 'var(--danger, #ef4444)' }}>
+                Add a name for this location to submit the report.
+              </p>
+            )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', width: '100%' }}>
             <div className="form-group" style={{ marginBottom: 0, minWidth: 0 }}>

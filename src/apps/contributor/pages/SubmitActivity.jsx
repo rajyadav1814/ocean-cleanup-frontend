@@ -13,6 +13,7 @@ import { invalidateActivities } from '../../../store/activitiesSlice';
 import { invalidateDashboard } from '../../../store/dashboardSlice';
 import { invalidateContributorStats } from '../../../store/contributorSlice';
 import { invalidateCitizenStats } from '../../../store/citizenSlice';
+import { imageFileToDataUrl } from '../../../utils/file';
 
 const labels = [
   "Site conditions",
@@ -316,14 +317,12 @@ export default function SubmitActivity() {
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
-    files.forEach((file) => {
-      const objectUrl = URL.createObjectURL(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImages((prev) => [...prev, { objectUrl, dataUrl: reader.result, name: file.name }]);
-      };
-      reader.readAsDataURL(file);
-    });
+    // Compressed before upload (see imageFileToDataUrl); kept in pick order.
+    Promise.all(files.map(async (file) => ({
+      objectUrl: URL.createObjectURL(file),
+      dataUrl: await imageFileToDataUrl(file),
+      name: file.name
+    }))).then((added) => setImages((prev) => [...prev, ...added]));
     e.target.value = '';
   };
 

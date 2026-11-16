@@ -2,10 +2,16 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { eventApi } from '../../../services/api';
-import { useGetEventQuery, useGetActivityProofQuery, useListSubjectsQuery } from '../../../store/apiSlice';
+import { useDispatch } from 'react-redux';
+import { bluemindApi, useGetEventQuery, useGetActivityProofQuery, useListSubjectsQuery } from '../../../store/apiSlice';
+import { invalidateActivities } from '../../../store/activitiesSlice';
+import { invalidateDashboard } from '../../../store/dashboardSlice';
+import { invalidateContributorStats } from '../../../store/contributorSlice';
+import { invalidateCitizenStats } from '../../../store/citizenSlice';
+import { invalidateEvents } from '../../../store/eventsSlice';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { eventStateMeta, verificationStateMeta, provenanceMeta, formatImpactPhrase } from '../eventMeta';
-import { fileToDataUrl } from '../../../utils/file';
+import { imageFileToDataUrl } from '../../../utils/file';
 
 function fmt(ts) {
   const d = new Date(ts);
@@ -226,6 +232,7 @@ const ProofBadge = ({ proof }) => {
 export default function EventDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { user } = useAuth();
   const isContributor = user?.role === 'contributor';
   const isVerifier = user?.role === 'verifier' || user?.role === 'admin';
@@ -338,12 +345,26 @@ export default function EventDetail() {
     }
   }
 
+  // Planning, completing, verifying, relating or correcting changes what the
+  // overview, map, stats, stories and activity lists show. Those are cached
+  // for the session, so mark them stale (they refetch on next visit) as
+  // well as reloading this event.
+  function refreshAfterChange() {
+    dispatch(invalidateEvents());
+    dispatch(invalidateActivities());
+    dispatch(invalidateDashboard());
+    dispatch(invalidateContributorStats());
+    dispatch(invalidateCitizenStats());
+    dispatch(bluemindApi.util.invalidateTags(['Story', { type: 'Event', id }]));
+  }
+
   async function handlePlanAction() {
     if (!planSubjectCode) return;
     const res = await runAction(setPlanning, setPlanError,
       () => eventApi.planAction(id, { subjectCode: planSubjectCode, description: planDescription.trim() || undefined }),
       'Failed to plan action.');
     if (!res) return;
+    refreshAfterChange();
     navigate(`${basePath}/events/${res.event.eventId}`);
   }
 
@@ -351,7 +372,7 @@ export default function EventDetail() {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
     const withDataUrls = await Promise.all(
-      files.map(async (file) => ({ file, dataUrl: await fileToDataUrl(file) }))
+      files.map(async (file) => ({ file, dataUrl: await imageFileToDataUrl(file) }))
     );
     setCompletePhotos((prev) => [...prev, ...withDataUrls]);
     e.target.value = '';
@@ -372,7 +393,7 @@ export default function EventDetail() {
     setKgRemoved('');
     setCompleteNote('');
     setCompletePhotos([]);
-    loadEvent();
+    refreshAfterChange();
   }
 
   async function handleVerify(outcome) {
@@ -382,7 +403,7 @@ export default function EventDetail() {
     if (!res) return;
     setVerifyOpen(false);
     setVerifyNotes('');
-    loadEvent();
+    refreshAfterChange();
   }
 
   async function handleRelate() {
@@ -393,7 +414,7 @@ export default function EventDetail() {
     if (!res) return;
     setRelateOpen(false);
     setRelateTargetId('');
-    loadEvent();
+    refreshAfterChange();
   }
 
   // Loads the taxonomy for the family being corrected — a species read wrong
@@ -419,7 +440,7 @@ export default function EventDetail() {
     setCorrectingId(null);
     setCorrectCode('');
     setCorrectNote('');
-    loadEvent();
+    refreshAfterChange();
   }
 
   if (loading) return <LoadingSpinner />;
