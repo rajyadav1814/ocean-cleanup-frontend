@@ -1,20 +1,12 @@
-import { useEffect, useState, useCallback } from 'react';
-import { apiGet, apiPost } from '../services/api';
+import { useCallback } from 'react';
+import { useGetOrganizationsQuery, useAddOrganizationMutation } from '../store/apiSlice';
 
-// Shared across Signup and Submit Activity — fetches the organization list
-// and exposes a way to add a new one on the fly from a "custom value" dropdown.
+// Shared across Signup and Submit Activity — the organization list (cached
+// in the store, so revisiting a page doesn't refetch it) and a way to add a
+// new one on the fly from a "custom value" dropdown.
 export default function useOrganizations() {
-  const [organizations, setOrganizations] = useState([]);
-  const [orgsLoading, setOrgsLoading] = useState(true);
-
-  useEffect(() => {
-    let isMounted = true;
-    apiGet('/api/dashboard/organizations')
-      .then((data) => { if (isMounted && data.ok) setOrganizations(data.organizations || []); })
-      .catch(() => {})
-      .finally(() => { if (isMounted) setOrgsLoading(false); });
-    return () => { isMounted = false; };
-  }, []);
+  const { data: organizations = [], isLoading: orgsLoading } = useGetOrganizationsQuery();
+  const [createOrganization] = useAddOrganizationMutation();
 
   const addOrganization = useCallback(async (name) => {
     const trimmed = name.trim();
@@ -23,12 +15,10 @@ export default function useOrganizations() {
     const existing = organizations.find((o) => o.name.toLowerCase() === trimmed.toLowerCase());
     if (existing) return existing;
 
-    const data = await apiPost('/api/dashboard/organizations', { name: trimmed });
-    if (!data.ok) throw new Error(data.error || 'Failed to add organization');
-
-    setOrganizations((prev) => [...prev, data.organization]);
-    return data.organization;
-  }, [organizations]);
+    const result = await createOrganization(trimmed);
+    if (result.error) throw new Error(result.error.message || 'Failed to add organization');
+    return result.data;
+  }, [organizations, createOrganization]);
 
   return { organizations, orgsLoading, addOrganization };
 }

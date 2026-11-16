@@ -7,6 +7,7 @@ import { invalidateDashboard } from '../store/dashboardSlice';
 import { invalidateContributorStats } from '../store/contributorSlice';
 import { invalidateCitizenStats } from '../store/citizenSlice';
 import { invalidateEvents } from '../store/eventsSlice';
+import { bluemindApi } from '../store/apiSlice';
 
 const AuthContext = createContext(null);
 
@@ -60,6 +61,7 @@ export function AuthProvider({ children }) {
     dispatch(invalidateContributorStats());
     dispatch(invalidateCitizenStats());
     dispatch(invalidateEvents());
+    dispatch(bluemindApi.util.resetApiState());
   };
 
   // Re-check the token with the server. The saved user is already on screen,

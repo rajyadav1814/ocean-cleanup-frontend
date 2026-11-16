@@ -10,6 +10,7 @@ import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { apiDelete } from '../../../services/api';
 import ImageGalleryModal from '../../../components/common/ImageGalleryModal';
 import ConfirmDialog from '../../../components/common/ConfirmDialog';
+import { bluemindApi } from '../../../store/apiSlice';
 import OceanWaveStrip from '../../../components/common/OceanWaveStrip';
 import { invalidateContributorStats } from '../../../store/contributorSlice';
 import { invalidateCitizenStats } from '../../../store/citizenSlice';
@@ -313,6 +314,7 @@ export default function MyActivities() {
       setPendingDelete(null);
       await refresh();
       dispatch(role === 'citizen' ? invalidateCitizenStats() : invalidateContributorStats());
+      dispatch(bluemindApi.util.invalidateTags(['Story']));
     } catch {
       setError('Network error. Please try again.');
     } finally {
