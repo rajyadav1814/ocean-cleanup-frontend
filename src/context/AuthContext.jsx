@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { TOKEN_KEY, USER_KEY, authVerify, authLogout } from '../services/api';
+import { TOKEN_KEY, USER_KEY, AUTH_EXPIRED_EVENT, authVerify, authLogout } from '../services/api';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { invalidateActivities } from '../store/activitiesSlice';
 import { invalidateDashboard } from '../store/dashboardSlice';
@@ -10,6 +10,9 @@ import { invalidateEvents } from '../store/eventsSlice';
 import { bluemindApi } from '../store/apiSlice';
 
 const AuthContext = createContext(null);
+
+// Read once by the login page to explain why the user was signed out.
+export const SESSION_EXPIRED_KEY = 'ocean_session_expired';
 
 function buildDisplayName(userData) {
   return userData?.displayName
@@ -87,6 +90,8 @@ export function AuthProvider({ children }) {
             setRole(normalizedUser.role);
             localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
           } else {
+            // The server rejected the saved token: tell the login page why.
+            if (readStoredUser()) sessionStorage.setItem(SESSION_EXPIRED_KEY, '1');
             clearSession();
           }
         } catch (err) {
@@ -99,6 +104,22 @@ export function AuthProvider({ children }) {
       setLoading(false);
     };
     checkAuth();
+  }, []);
+
+  // Any API call rejected with 401 means the saved token is no longer
+  // valid: sign out so ProtectedRoute sends the user back to login.
+  useEffect(() => {
+    const handleExpired = () => {
+      if (!localStorage.getItem(TOKEN_KEY)) return;
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      sessionStorage.setItem(SESSION_EXPIRED_KEY, '1');
+      setUser(null);
+      setRole(null);
+      resetCachedData();
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleExpired);
   }, []);
 
   // Admin accounts belong to the separate admin app — this app must never

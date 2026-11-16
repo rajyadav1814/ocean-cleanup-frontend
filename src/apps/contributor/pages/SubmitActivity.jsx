@@ -202,7 +202,10 @@ export default function SubmitActivity() {
     };
     loadActivity();
     return () => { isMounted = false; };
-  }, [activityId, user]);
+    // Keyed on the activity only: AuthContext replaces the user object when
+    // it re-verifies the session, and re-running this would reload the form
+    // and wipe whatever the user had already edited.
+  }, [activityId]);
 
   async function handleSubmit(e) {
     e.preventDefault();

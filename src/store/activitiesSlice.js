@@ -9,6 +9,8 @@ export const fetchActivities = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const data = await apiGet('/api/activities');
+      // An error body ({ ok: false }) must not look like an empty list.
+      if (!data?.ok) return rejectWithValue(data?.error || data?.message || 'Could not load activities');
       return data.activities || [];
     } catch (err) {
       return rejectWithValue(err.message || 'Network error');

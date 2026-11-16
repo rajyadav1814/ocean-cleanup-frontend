@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth, SESSION_EXPIRED_KEY } from "../../../context/AuthContext";
 import { authLogin, authResendVerification } from "../../../services/api";
 
 const TOKENS = `
@@ -187,7 +187,15 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  // Set by AuthContext when an API call is rejected because the session
+  // ran out, so the user knows why they're back on the login page.
+  // (Cleared in an effect, not here: StrictMode runs initializers twice.)
+  const [error, setError] = useState(() =>
+    sessionStorage.getItem(SESSION_EXPIRED_KEY) ? "Your session expired. Please sign in again." : ""
+  );
+  useEffect(() => {
+    sessionStorage.removeItem(SESSION_EXPIRED_KEY);
+  }, []);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [resendState, setResendState] = useState("idle");
   const [loading, setLoading] = useState(false);

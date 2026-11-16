@@ -651,7 +651,10 @@ export default function QuickReport() {
     setExtraFields((f) => ({ ...f, [key]: value }));
   }
 
-  const canSubmit = draft && location && quantity !== '' && Number(quantity) >= 0 && !submitting;
+  // A cleared datetime-local input gives '' — new Date('') is invalid and
+  // toISOString() would throw mid-submit, so treat it as a missing field.
+  const occurredAtValid = Boolean(occurredAt) && !Number.isNaN(new Date(occurredAt).getTime());
+  const canSubmit = draft && location && occurredAtValid && quantity !== '' && Number(quantity) >= 0 && !submitting;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -1413,12 +1416,19 @@ export default function QuickReport() {
               <input
                 type="datetime-local" value={occurredAt} max={toDatetimeLocal(new Date())}
                 onChange={(e) => { setOccurredAt(e.target.value); setOccurredAtTouched(true); }}
-                style={{ padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)',
+                aria-invalid={!occurredAtValid}
+                style={{ padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-md)', border: `1px solid ${occurredAtValid ? 'var(--border-light)' : 'var(--danger, #ef4444)'}`,
                   background: 'var(--surface-hover)', color: 'var(--text-main)', font: 'inherit', fontSize: '0.88rem' }}
               />
-              <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: provenanceMeta(occurredAtTouched ? 'user_provided' : 'system_captured').color }}>
-                {occurredAtTouched ? 'You set this time.' : "Set to right now — nudge it if that's not when this happened."}
-              </p>
+              {occurredAtValid ? (
+                <p style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: provenanceMeta(occurredAtTouched ? 'user_provided' : 'system_captured').color }}>
+                  {occurredAtTouched ? 'You set this time.' : "Set to right now — nudge it if that's not when this happened."}
+                </p>
+              ) : (
+                <p role="alert" style={{ margin: '0.4rem 0 0', fontSize: '0.74rem', color: 'var(--danger, #ef4444)' }}>
+                  Pick the date and time this happened to submit the report.
+                </p>
+              )}
             </div>
 
             {!isCitizen && (
