@@ -125,7 +125,7 @@ const TOKENS = `
 
 function Logo() {
   return (
-    <Link to="/login" className="bm-forgot__logo" aria-label="BlueMind login">
+    <Link to="/login" className="bm-forgot__logo" aria-label="Bluemind login">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <circle cx="12" cy="12" r="9.25" stroke="currentColor" strokeWidth="1.4" />
         <path d="M2.9 9.6h18.2M2.9 14.4h18.2" stroke="currentColor" strokeWidth="1.1" opacity=".55" />

@@ -123,7 +123,7 @@ export default function SubmitActivity() {
     organizationId: '',
     // '' rather than a hardcoded 'plastic' guess — this form is edit-only
     // now (reached from MyActivities, never as a fresh-entry path), so an
-    // unedited record should keep reading as "Blue Mind will infer this"
+    // unedited record should keep reading as "Bluemind will infer this"
     // rather than silently claiming a waste category nobody chose.
     category: '',
     evidenceHash: 'mock-hash',
@@ -568,7 +568,7 @@ export default function SubmitActivity() {
                     value={form.category}
                     onChange={(v) => setForm({...form, category: v})}
                     options={[
-                      { value: '', label: "Not sure — Blue Mind will infer this" },
+                      { value: '', label: "Not sure — Bluemind will infer this" },
                       { value: 'plastic', label: 'Plastic' },
                       { value: 'glass', label: 'Glass' },
                       { value: 'metal', label: 'Metal' },

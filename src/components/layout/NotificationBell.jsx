@@ -11,7 +11,7 @@ function fmtTime(ts) {
 
 // spec §22-23: "reward closure, not data entry" — the notification this
 // bell surfaces (created by notifyEventClosure on the backend) is the "I
-// contributed something → something happened → Blue Mind showed me the
+// contributed something → something happened → Bluemind showed me the
 // outcome" loop, not a generic inbox. Shared by every role via Header.jsx;
 // the backend already scopes results to the caller's own role/id.
 export default function NotificationBell() {

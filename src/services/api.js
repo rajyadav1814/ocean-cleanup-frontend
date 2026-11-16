@@ -228,7 +228,7 @@ export const eventApi = {
 // or a short text description. Returns { ok:false, error } with a clear
 // message if the server has no AI key configured yet — callers should
 // fall back to manual entry, never block. For a voice note the response's
-// `inference.transcript` carries what Blue Mind heard; for a document,
+// `inference.transcript` carries what Bluemind heard; for a document,
 // `inference.extractedText` carries what it read.
 export const aiApi = {
   infer: ({ imageBase64, audioBase64, documentBase64, text }) =>

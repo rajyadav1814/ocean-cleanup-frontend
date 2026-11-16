@@ -170,7 +170,7 @@ export default function ImpactMap() {
 
         layeredEvents.forEach((event, i) => {
           const [lat, lng] = latLngs[i];
-          const locationLabel = event.locationLabel || 'BlueMind Activity Site';
+          const locationLabel = event.locationLabel || 'Bluemind Activity Site';
           const stateMeta = eventStateMeta(event.eventState);
           const verMeta = verificationStateMeta(event.verificationState);
           const subjectLabel = event.subjects?.map((s) => s.label).join(', ') || 'Unclassified';

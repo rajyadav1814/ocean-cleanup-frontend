@@ -130,7 +130,7 @@ function buildStoryBeats(event) {
   const corroborators = event.relationships.filter((r) => r.relationshipType === 'corroborates').length;
   if (corroborators > 0) {
     beats.push({
-      text: `${corroborators} other ${corroborators === 1 ? 'person' : 'people'} reported the same thing — Blue Mind joined the reports into this one event, not ${corroborators + 1} separate problems.`,
+      text: `${corroborators} other ${corroborators === 1 ? 'person' : 'people'} reported the same thing — Bluemind joined the reports into this one event, not ${corroborators + 1} separate problems.`,
       done: true,
     });
   }
@@ -165,9 +165,9 @@ function buildStoryBeats(event) {
   } else if (event.eventState === 'addressed') {
     beats.push({ text: 'Marked complete — waiting on a verifier to confirm it.', done: false });
   } else if (corroborators > 0 || actionRelationships.length > 0) {
-    beats.push({ text: 'Blue Mind is still tracking this — check back for what happens next.', done: false });
+    beats.push({ text: 'Bluemind is still tracking this — check back for what happens next.', done: false });
   } else {
-    beats.push({ text: 'Still open — Blue Mind is watching for corroboration or action.', done: false });
+    beats.push({ text: 'Still open — Bluemind is watching for corroboration or action.', done: false });
   }
 
   return beats;

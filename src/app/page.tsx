@@ -10,7 +10,7 @@ import {
 import Chatbot from "../components/common/Chatbot";
 
 /* ---------------------------------------------------------------------
-   BLUEMIND — DASHBOARD LANDING
+   Bluemind — DASHBOARD LANDING
    Same token system as the marketing site: Instrument Sans / Instrument
    Serif italic, the navy → ocean → teal depth ramp, and the editorial
    numbered-row + wave-divider language used throughout bluemind.si.
