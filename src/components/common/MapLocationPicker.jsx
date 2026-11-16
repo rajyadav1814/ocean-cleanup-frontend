@@ -53,6 +53,10 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
   const [locationName, setLocationName] = useState(value || '');
   const [isFetchingName, setIsFetchingName] = useState(false);
   const [isMapRequested, setIsMapRequested] = useState(Boolean(suppliedPosition));
+  // Set when the device couldn't give a position (denied, timed out, or no
+  // geolocation). The map then waits for the user to place the pin instead
+  // of guessing a location they'd submit without noticing.
+  const [locateError, setLocateError] = useState('');
   const markerRef = useRef(null);
 
   // Location architecture (spec §18) — only the device's Geolocation API
@@ -115,37 +119,29 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
 
   // Initialize with current location if no lat/lon is provided and user has requested map access
   useEffect(() => {
-    if (isMapRequested && !suppliedPosition && !position) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            setPosition(newPos);
-            // Number.isFinite guard: some browsers report accuracy as 0 for
-            // a genuinely unknown fix rather than omitting it.
-            setAccuracy(Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : null);
-            setCaptureMethod('gps');
-            fetchLocationName(newPos.lat, newPos.lng);
-          },
-          (err) => {
-            console.warn('Geolocation error:', err);
-            // Fallback to a default location (e.g. London) if geolocation fails —
-            // this isn't a real fix, so it's 'unknown', not 'gps'.
-            setPosition({ lat: 51.505, lng: -0.09 });
-            setAccuracy(null);
-            setCaptureMethod('unknown');
-            fetchLocationName(51.505, -0.09);
-          },
-          { enableHighAccuracy: true, timeout: 5000 }
-        );
-      } else {
-        setPosition({ lat: 51.505, lng: -0.09 });
-        setAccuracy(null);
-        setCaptureMethod('unknown');
-        fetchLocationName(51.505, -0.09);
-      }
+    if (!isMapRequested || suppliedPosition || position || locateError) return;
+    if (!navigator.geolocation) {
+      setLocateError("This browser can't share your location.");
+      return;
     }
-  }, [suppliedPosition, isMapRequested, position]);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const newPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setPosition(newPos);
+        // Number.isFinite guard: some browsers report accuracy as 0 for
+        // a genuinely unknown fix rather than omitting it.
+        setAccuracy(Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : null);
+        setCaptureMethod('gps');
+        fetchLocationName(newPos.lat, newPos.lng);
+      },
+      (err) => {
+        setLocateError(err?.code === 1
+          ? 'Location access is turned off.'
+          : "We couldn't find your location.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [suppliedPosition, isMapRequested, position, locateError]);
 
   // Sync internal state to parent when internal state changes
   useEffect(() => {
@@ -201,6 +197,28 @@ export default function MapLocationPicker({ value, lat, lon, onChange }) {
               />
               <MapEvents position={position} setPosition={setPosition} onPositionChange={handleManualPositionChange} />
             </MapContainer>
+          ) : locateError ? (
+            <>
+              <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }}>
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <MapEvents position={null} setPosition={setPosition} onPositionChange={handleManualPositionChange} />
+              </MapContainer>
+              <div role="alert" style={{
+                position: 'absolute', top: '0.6rem', left: '0.6rem', right: '0.6rem', zIndex: 1000,
+                display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap',
+                padding: '0.55rem 0.75rem', borderRadius: 'var(--radius-md)',
+                background: 'var(--surface, #fff)', border: '1px solid var(--border-light)',
+                fontSize: '0.8rem', color: 'var(--text-main)', boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+              }}>
+                <span style={{ flex: 1, minWidth: '12rem' }}>{locateError} Tap the map to place the pin where this happened.</span>
+                <button type="button" className="secondary" onClick={() => setLocateError('')} style={{ padding: '0.3rem 0.7rem', fontSize: '0.78rem' }}>
+                  Try again
+                </button>
+              </div>
+            </>
           ) : (
             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-hover)', color: 'var(--text-muted)' }}>
               Loading map & locating you...

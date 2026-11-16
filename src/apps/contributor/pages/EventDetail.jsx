@@ -316,16 +316,34 @@ export default function EventDetail() {
     return () => { cancelled = true; };
   }, [verificationIds]);
 
+  // Runs one event action with its busy flag and error message. A network
+  // failure (or a non-JSON error page) used to throw past the busy reset and
+  // leave the button disabled with nothing on screen; now it always resets
+  // and says what went wrong. Returns the response on success, else null.
+  async function runAction(setBusy, setError, request, failMessage) {
+    setBusy(true);
+    setError('');
+    try {
+      const res = await request();
+      if (!res?.ok) {
+        setError(res?.error || res?.message || failMessage);
+        return null;
+      }
+      return res;
+    } catch {
+      setError(`${failMessage} Check your connection and try again.`);
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handlePlanAction() {
     if (!planSubjectCode) return;
-    setPlanning(true);
-    setPlanError('');
-    const res = await eventApi.planAction(id, { subjectCode: planSubjectCode, description: planDescription.trim() || undefined });
-    setPlanning(false);
-    if (!res.ok) {
-      setPlanError(res.error || 'Failed to plan action.');
-      return;
-    }
+    const res = await runAction(setPlanning, setPlanError,
+      () => eventApi.planAction(id, { subjectCode: planSubjectCode, description: planDescription.trim() || undefined }),
+      'Failed to plan action.');
+    if (!res) return;
     navigate(`${basePath}/events/${res.event.eventId}`);
   }
 
@@ -344,18 +362,12 @@ export default function EventDetail() {
   }
 
   async function handleComplete() {
-    setCompleting(true);
-    setCompleteError('');
-    const res = await eventApi.complete(id, {
+    const res = await runAction(setCompleting, setCompleteError, () => eventApi.complete(id, {
       kgRemoved: kgRemoved ? Number(kgRemoved) : undefined,
       note: completeNote.trim() || undefined,
       imageUrls: completePhotos.length > 0 ? JSON.stringify(completePhotos.map((p) => p.dataUrl)) : undefined
-    });
-    setCompleting(false);
-    if (!res.ok) {
-      setCompleteError(res.error || 'Failed to complete action.');
-      return;
-    }
+    }), 'Failed to complete action.');
+    if (!res) return;
     setCompleteOpen(false);
     setKgRemoved('');
     setCompleteNote('');
@@ -364,14 +376,10 @@ export default function EventDetail() {
   }
 
   async function handleVerify(outcome) {
-    setVerifying(true);
-    setVerifyError('');
-    const res = await eventApi.verify(id, { outcome, notes: verifyNotes.trim() || undefined });
-    setVerifying(false);
-    if (!res.ok) {
-      setVerifyError(res.error || 'Failed to record verification.');
-      return;
-    }
+    const res = await runAction(setVerifying, setVerifyError,
+      () => eventApi.verify(id, { outcome, notes: verifyNotes.trim() || undefined }),
+      'Failed to record verification.');
+    if (!res) return;
     setVerifyOpen(false);
     setVerifyNotes('');
     loadEvent();
@@ -379,14 +387,10 @@ export default function EventDetail() {
 
   async function handleRelate() {
     if (!relateTargetId.trim()) return;
-    setRelating(true);
-    setRelateError('');
-    const res = await eventApi.relate(id, { toEventId: relateTargetId.trim(), relationshipType: relateType });
-    setRelating(false);
-    if (!res.ok) {
-      setRelateError(res.error || 'Failed to create relationship.');
-      return;
-    }
+    const res = await runAction(setRelating, setRelateError,
+      () => eventApi.relate(id, { toEventId: relateTargetId.trim(), relationshipType: relateType }),
+      'Failed to create relationship.');
+    if (!res) return;
     setRelateOpen(false);
     setRelateTargetId('');
     loadEvent();
@@ -401,21 +405,17 @@ export default function EventDetail() {
     setCorrectNote('');
     setCorrectError('');
     setCorrectSubjects([]);
-    eventApi.listSubjects(subject.family).then((res) => { if (res.ok) setCorrectSubjects(res.subjects); });
+    eventApi.listSubjects(subject.family)
+      .then((res) => { if (res.ok) setCorrectSubjects(res.subjects); else setCorrectError('Could not load the subject list.'); })
+      .catch(() => setCorrectError('Could not load the subject list. Check your connection and try again.'));
   }
 
   async function handleCorrectSubject(subject) {
     if (!correctCode) return;
-    setCorrecting(true);
-    setCorrectError('');
-    const res = await eventApi.correctSubject(id, subject.eventSubjectId, {
+    const res = await runAction(setCorrecting, setCorrectError, () => eventApi.correctSubject(id, subject.eventSubjectId, {
       family: subject.family, code: correctCode, note: correctNote.trim() || undefined
-    });
-    setCorrecting(false);
-    if (!res.ok) {
-      setCorrectError(res.error || 'Failed to record the correction.');
-      return;
-    }
+    }), 'Failed to record the correction.');
+    if (!res) return;
     setCorrectingId(null);
     setCorrectCode('');
     setCorrectNote('');

@@ -58,7 +58,7 @@ function RejectModal({ onConfirm, onCancel, loading }) {
 
 
 export default function PendingQueue() {
-  const { activities, loading, reviewActivity } = useActivities();
+  const { activities, loading, error, reviewActivity, refresh } = useActivities();
   const pendingActivities = activities.filter((activity) => activity.status === 'pending');
 
   // spec §20: not every pending report needs the same scrutiny — a report
@@ -142,7 +142,14 @@ export default function PendingQueue() {
           </div>
         </div>
 
-        {pendingActivities.length === 0 ? (
+        {loading ? (
+          <LoadingSpinner />
+        ) : error ? (
+          <div className="card" role="alert" style={{ padding: '1.25rem 1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+            <span>Couldn't load the review queue: {error}</span>
+            <button type="button" className="secondary" onClick={refresh}>Try again</button>
+          </div>
+        ) : pendingActivities.length === 0 ? (
           <EmptyState message="No pending activities to review." />
         ) : (
           <div className="content-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>

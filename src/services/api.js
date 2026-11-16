@@ -14,11 +14,30 @@ function authHeaders(extra = {}) {
   };
 }
 
+// Fired when the server rejects the saved token (expired, revoked, or the
+// account is gone). AuthContext listens and signs the user out, so pages
+// don't keep rendering empty "logged in" states off failed requests.
+export const AUTH_EXPIRED_EVENT = 'bluemind:auth-expired';
+
+// Parses an API response. A 401 on a request that carried a token means the
+// session is no longer valid; a non-JSON body (gateway/HTML error page)
+// becomes a normal { ok: false } result instead of a thrown SyntaxError.
+async function readResponse(response) {
+  if (response.status === 401 && getToken()) {
+    window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+  }
+  try {
+    return await response.json();
+  } catch {
+    return { ok: false, error: `Request failed (${response.status})` };
+  }
+}
+
 export async function apiGet(path) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: authHeaders()
   });
-  return response.json();
+  return readResponse(response);
 }
 
 export async function apiPost(path, body) {
@@ -27,7 +46,7 @@ export async function apiPost(path, body) {
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body)
   });
-  return response.json();
+  return readResponse(response);
 }
 
 export async function apiDelete(path) {
@@ -35,7 +54,7 @@ export async function apiDelete(path) {
     method: 'DELETE',
     headers: authHeaders()
   });
-  return response.json();
+  return readResponse(response);
 }
 
 export async function apiPatch(path, body) {
@@ -44,7 +63,7 @@ export async function apiPatch(path, body) {
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body)
   });
-  return response.json();
+  return readResponse(response);
 }
 
 export async function apiPut(path, body) {
@@ -53,7 +72,7 @@ export async function apiPut(path, body) {
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body)
   });
-  return response.json();
+  return readResponse(response);
 }
 
 // For binary downloads (e.g. generated PDFs) — reads the response as a blob
@@ -96,7 +115,7 @@ export async function apiPostForm(path, formData) {
     headers: authHeaders(),
     body: formData
   });
-  return response.json();
+  return readResponse(response);
 }
 
 // Auth-specific helpers — token key used across the app
