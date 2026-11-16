@@ -24,6 +24,7 @@ import LandingPage from '../app/page';
 import ProfileSettings from '../apps/profile/pages/ProfileSettings';
 import Chatbot from '../components/common/Chatbot';
 import ReefScene from '../components/common/ReefScene';
+import NotFound from '../components/common/NotFound';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role } = useAuth();
@@ -310,6 +311,26 @@ export default function AppRouter() {
               <MultisigStatus />
             </MainLayout>
           </ProtectedRoute>
+        } />
+
+        {/* Bare space roots have no page of their own; "/" routes each
+            role to its overview. */}
+        <Route path="/citizen" element={<Navigate to="/" replace />} />
+        <Route path="/contributor" element={<Navigate to="/" replace />} />
+        <Route path="/verifier" element={<Navigate to="/" replace />} />
+
+        {/* Anything else: a 404 page instead of a blank screen. Signed-in
+            users keep the app header and nav around it. */}
+        <Route path="*" element={
+          user ? (
+            <MainLayout>
+              <NotFound />
+            </MainLayout>
+          ) : (
+            <LandingLayout>
+              <NotFound />
+            </LandingLayout>
+          )
         } />
       </Routes>
     </>
